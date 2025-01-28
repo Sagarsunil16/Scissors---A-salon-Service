@@ -1,13 +1,35 @@
 import AdminHeader from "../../Components/AdminHeader";
 import Sidebar from "../../Components/Sidebar";
-import { useSelector } from "react-redux";
- 
+import { useSelector,useDispatch } from "react-redux";
+import { updateUserStatus,deleteUser } from "../../Redux/Admin/adminSlice";
+import { blockAndUnblock,deleteUserAPI } from "../../Services/adminAPI";
 
 const Users = () => {
 
   const users = useSelector((state: any) => state.admin.userData);
+  const dispatch = useDispatch()
+  const handleBlockAndUnblock = async(userId:string,isActive:boolean)=>{
+    try{
+      const response =  await blockAndUnblock({userId,isActive})
+      console.log(response)
+      dispatch(updateUserStatus(response.data.updatedUser))
+      alert("Done")
+    }
+    catch(error:any){
+      alert(error.message)
+    }
+  }
 
-
+  const handleDeleteUser = async(id:string)=>{
+    try {
+      console.log(id)
+      const response = await deleteUserAPI({id})
+      dispatch(deleteUser(response.data.deletedUser._id))
+      alert("Deleted Successfully")
+    } catch (error:any) {
+      alert(error.message)
+    }
+  }
   return (
     <div>
       <div className="flex">
@@ -42,13 +64,14 @@ const Users = () => {
                     <td className="border p-2 flex space-x-2 justify-center">
                       {user.is_Active ? (
                         <button
-                          
+                          onClick={()=>handleBlockAndUnblock(user._id,false)}
                           className="bg-red-500 text-white py-1 px-4 rounded"
                         >
                           Block
                         </button>
                       ) : (
                         <button
+                        onClick={() => handleBlockAndUnblock(user._id, true)}
                           className="bg-green-500 text-white py-1 px-4 rounded"
                         >
                           Unblock
@@ -56,6 +79,7 @@ const Users = () => {
                       )}
 
                       <button
+                      onClick={() => handleDeleteUser(user._id)}
                         className="bg-red-700 text-white py-1 px-4 rounded"
                       >
                         Delete

@@ -3,8 +3,6 @@ import * as Yup from 'yup'
 import { Formik,Form,Field,ErrorMessage } from "formik"
 import { useLocation, useNavigate } from "react-router-dom"
 import { resentOtp,verifyOtp } from "../Services/salonAPI"
-import { resendOTP } from "../Services/UserAPI"
-
 const OTP = () => {
     
     const [serverError,setServerError] = useState('');
@@ -31,7 +29,7 @@ const OTP = () => {
             setIsResendEnabled(true);
             clearInterval(interval)
         }
-        return () => clearInterval(interval); // Cleanup on unmount
+        return () => clearInterval(interval); 
     },[timer])
 
     const initialValues = {

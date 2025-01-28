@@ -25,7 +25,7 @@ const ProfileSetting = () => {
   const handleUpdateUser = async (values: any) => {
     try {
       const payload = {
-        id: user._id, // Assuming the user's ID is available in the Redux store
+        id: user._id, 
         firstname: values.firstname,
         lastname: values.lastname,
         address: {
@@ -46,7 +46,7 @@ const ProfileSetting = () => {
   
 
   const handleChangePasswordClick = () => {
-    navigate("/change-password"); // Navigate to the Change Password page
+    navigate("/change-password"); 
   };
 
   return (
@@ -66,7 +66,7 @@ const ProfileSetting = () => {
           }}
           validationSchema={validationSchema}
           onSubmit={(values) => {
-            handleUpdateUser(values); // Call the update user handler
+            handleUpdateUser(values); 
           }}
         >
           {() => (

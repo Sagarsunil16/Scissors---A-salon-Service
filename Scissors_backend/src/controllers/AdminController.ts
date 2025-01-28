@@ -3,6 +3,7 @@ import Jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import {userService} from "../config/di";
 
+
 class AdminController {
   async adminLogin(req: Request, res: Response): Promise<any> {
     try {
@@ -39,6 +40,33 @@ class AdminController {
         .json({ message: "Login Successfull", user: adminData,userData:userData });
     } catch (error: any) {
       res.status(500).json({ error: error.message || "Internal Server Issue" });
+    }
+  }
+
+  async blockUnblockUser(req:Request,res:Response):Promise<any>{
+    try {
+      const {userId,isActive} = req.body
+      if(!userId){
+        return res.status(400).json({message:"No Id Found"})
+      }
+      const updatedUser = await userService.updateUserStatus(userId,isActive)
+      return res.status(200).json({message:"Updated Successfully",updatedUser})
+    } catch (error:any) {
+      return res.status(500).json({error:error?.message || "Internal Server Issue"})
+    }
+  }
+
+  async deleteUser(req:Request,res:Response):Promise<any>{
+    try {
+      const {id} = req.body
+      if(!id){
+        return res.status(400).json({message:"No Id Found"})
+      }
+      
+      const deletedUser = await userService.deleteUser(id)
+      return res.status(200).json({message:"User Deleted Successfull",deletedUser:deletedUser})
+    } catch (error:any) {
+      return res.status(500).json({error:error?.message || "Internal Server Issue"})
     }
   }
 

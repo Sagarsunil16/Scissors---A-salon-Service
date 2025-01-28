@@ -36,7 +36,7 @@ const UserSignIn = () => {
       console.log(error);
       dispatch(signInFailure(true));
       alert(
-        error?.response?.data?.message || "Failed to login. Please try again!"
+        error?.response?.data?.error || "Failed to login. Please try again!"
       );
     }
   };

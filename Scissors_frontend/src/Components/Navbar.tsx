@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 
 const Navbar = () => {
-  const [isOpen, setIsOpen] = useState(false); // State to toggle mobile menu
+  const [isOpen, setIsOpen] = useState(false); 
 
   const navLinks = [
     { name: "Home", path: "/" },
@@ -20,7 +20,7 @@ const Navbar = () => {
             <Link to={"/"}>SCISSORS</Link>
           </div>
 
-          {/* Hamburger Menu Button */}
+      
           <button
             onClick={() => setIsOpen(!isOpen)}
             className="text-gray-500 md:hidden block focus:outline-none"
@@ -69,7 +69,7 @@ const Navbar = () => {
           </ul>
         </div>
 
-        {/* Mobile Navigation */}
+     
         <div
           className={`${
             isOpen ? "absolute" : "hidden"
@@ -81,13 +81,13 @@ const Navbar = () => {
                 <Link
                   to={link.path}
                   className="block hover:text-blue-500 transition duration-500"
-                  onClick={() => setIsOpen(false)} // Close menu on link click
+                  onClick={() => setIsOpen(false)} 
                 >
                   {link.name}
                 </Link>
               </li>
             ))}
-            {/* Action Buttons */}
+          
             <div className="flex flex-col space-y-4 mt-4">
               <Link to={"/login"}>
                 <button className="w-full px-4 py-2 text-black border rounded-sm hover:bg-gray-200 transition duration-300">

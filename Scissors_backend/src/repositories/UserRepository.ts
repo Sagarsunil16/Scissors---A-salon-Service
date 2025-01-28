@@ -16,6 +16,7 @@ class UserRepository implements IUserRepostirory {
   }
 
   async deleteUser(id: string): Promise<IUserDocument | null> {
+    
     return await User.findByIdAndDelete(id);
   }
 
@@ -25,6 +26,10 @@ class UserRepository implements IUserRepostirory {
       {otp,otpExpiry},
       {new:true}
     );
+  }
+
+  async updateUserStatus(id:string,isActive:boolean):Promise<IUserDocument | null>{
+    return await User.findByIdAndUpdate(id,{is_Active:isActive},{new:true})
   }
 
   async resetPassword(email:string,newPassword:string):Promise<IUserDocument | null>{

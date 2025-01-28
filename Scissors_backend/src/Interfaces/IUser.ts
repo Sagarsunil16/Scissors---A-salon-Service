@@ -1,5 +1,4 @@
 export type UserRole = "User" | "Admin"
-export type UserStatus = "Active" | "inactive"
 export interface Address {
     areaStreet: string;
     city: string;
@@ -14,7 +13,7 @@ export interface IUser{
     password:string,
     address:Address,
     role:UserRole,
-    is_Active:UserRole,
+    is_Active:boolean,
     otp?:string | null,
     otpExpiry?:Date |null
 }

@@ -19,7 +19,7 @@ const Password = () => {
       .required("Confirm password is required"),
   });
   const handleSubmit = async(values:any)=>{
-    setServerMessage(""); // Clear previous messages
+    setServerMessage(""); 
         try {
          const partials = {id:user._id,currentPassword:values.currentPassword,newPassword:values.newPassword}
           const response = await changePassword(partials)
@@ -57,9 +57,9 @@ const Password = () => {
           validationSchema={validationSchema}
           onSubmit={handleSubmit}
         >
-          {({ handleChange, handleBlur, values }) => (
+          {() => (
             <Form className="space-y-4">
-              {/* Current Password Field */}
+
               <div>
                 <label htmlFor="currentPassword" className="block text-gray-600 font-medium mb-1">
                   Current Password
@@ -73,7 +73,7 @@ const Password = () => {
                 <ErrorMessage name="currentPassword" component="div" className="text-red-600 text-sm mt-1" />
               </div>
 
-              {/* New Password Field */}
+           
               <div>
                 <label htmlFor="newPassword" className="block text-gray-600 font-medium mb-1">
                   New Password
@@ -87,7 +87,6 @@ const Password = () => {
                 <ErrorMessage name="newPassword" component="div" className="text-red-600 text-sm mt-1" />
               </div>
 
-              {/* Confirm Password Field */}
               <div>
                 <label htmlFor="confirmPassword" className="block text-gray-600 font-medium mb-1">
                   Confirm Password
@@ -101,7 +100,7 @@ const Password = () => {
                 <ErrorMessage name="confirmPassword" component="div" className="text-red-600 text-sm mt-1" />
               </div>
 
-              {/* Submit Button */}
+          
               <div className="text-center">
                 <button
                   type="submit"

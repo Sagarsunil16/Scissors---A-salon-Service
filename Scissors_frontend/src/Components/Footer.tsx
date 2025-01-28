@@ -5,7 +5,7 @@ const Footer = () => {
     <footer className="bg-black text-white py-10">
       <div className="container mx-auto justify-between ">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-          {/* Column 1: Explore */}
+    
           <div>
             <h3 className="text-lg font-semibold mb-4">Explore</h3>
             <ul className="space-y-2">
@@ -32,7 +32,7 @@ const Footer = () => {
             </ul>
           </div>
 
-          {/* Column 2: Utility Pages */}
+  
           <div>
             <h3 className="text-lg font-semibold mb-4">Utility Pages</h3>
             <ul className="space-y-2">
@@ -54,7 +54,7 @@ const Footer = () => {
             </ul>
           </div>
 
-          {/* Column 3: Keep in Touch */}
+        
           <div>
             <h3 className="text-lg font-semibold mb-4">Keep in Touch</h3>
             <ul className="space-y-2">
@@ -80,7 +80,7 @@ const Footer = () => {
           </div>
         </div>
 
-        {/* Footer Bottom */}
+       
         <div className="mt-8 text-center text-sm text-gray-400 bg-black">
           Copyright © 2023, Scissors.dk | All rights reserved.
         </div>

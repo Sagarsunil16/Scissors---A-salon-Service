@@ -38,11 +38,14 @@ class UserService {
         if (!user) {
             throw new Error("Invalid email or password");
         }
+        if(!user.is_Active){
+            throw new Error("Account has been blocked!")
+        }
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
         throw new Error("Invalid email or password");
         }
-        const token = jwt.sign({ id: user._id }, process.env.JWt_SECRET as string, {
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET as string, {
         expiresIn: "1h",
         });
         return { user, token };
@@ -92,13 +95,11 @@ class UserService {
         updatedData: Partial<IUser>
     ): Promise<IUserDocument | null> {
         if(!updatedData.firstname || !updatedData.lastname || !updatedData.address){
-            console.log("Error 1")
             throw new Error("Firstname, Lastname and Address are Required");
         }
 
         const {areaStreet,city,state,pincode} = updatedData.address as any
         if (!areaStreet || !city || !state || !pincode) {
-            console.log(areaStreet,city,state,pincode,"details")
             throw new Error("Address fields are incomplete.");
         }
         return this.repository.updateUser(id,updatedData)
@@ -119,6 +120,12 @@ class UserService {
 
         return "Password updated Successfully"
     }
+
+    async updateUserStatus(id:string,isActive:boolean):Promise<any>{
+        return await this.repository.updateUserStatus(id,isActive)
+        
+    }
+
 
 }
 

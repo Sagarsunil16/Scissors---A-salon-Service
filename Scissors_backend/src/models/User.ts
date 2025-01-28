@@ -3,6 +3,7 @@ import { IUser} from "../Interfaces/IUser";
 
 export interface IUserDocument extends IUser, Document {
   _doc?: IUser; // Add the _doc property as optional
+
 }
 const addressSchema:Schema = new Schema({
   areaStreet: { type: String, default:null },
@@ -41,9 +42,8 @@ const UserSchema: Schema = new Schema({
     default: "User",
   },
   is_Active: {
-    type: String,
-    enum: ["active", "inactive"],
-    default: "active",
+    type: Boolean,
+    default: true,
   },
   otp:{
     type:String,

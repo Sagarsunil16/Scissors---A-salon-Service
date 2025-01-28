@@ -1,7 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-
-import Login from './Pages/Admin/Login';
 import SignUp from './Pages/User/SignUp';
 import UserLogin from './Pages/User/UserLogin';
 import ForgotPassword from './Pages/User/ForgotPassword';
@@ -16,10 +14,14 @@ import Setting from './Pages/User/Setting';
 import ChangePassword from './Pages/User/ChangePassword';
 import Registration from './Pages/Salon/Registration';
 import OtpVerification from './Pages/Salon/OtpVerification';
+import SalonLogin from './Pages/Salon/SalonLogin';
+import Login from './Pages/Admin/Login';
+import SalonDashboard from './Pages/Salon/SalonDashboard';
+import SalonProfile from './Pages/Salon/SalonProfile';
 
 export default function App() {
   const { currentUser } = useSelector((state: any) => state.user);
-
+  const {salon} = useSelector((state:any)=>state.salon)
   return (
     <Router>
       <Routes>
@@ -50,13 +52,37 @@ export default function App() {
         
           <Route
           path="/salon/register"
-          element={currentUser ? <Navigate to="/salon/dashboard" replace /> : <Registration />}
+          element={salon ? <Navigate to="/salon/dashboard" replace /> : <Registration />}
         />
 
         <Route
           path="/salon/register/otp"
-          element={currentUser ? <Navigate to="/salon/dashboard" replace /> : <OtpVerification />}
+          element={salon ? <Navigate to="/salon/dashboard" replace /> : <OtpVerification />}
         />
+
+        <Route
+          path="/salon/login"
+          element={salon ? <Navigate to="/salon/dashboard" replace /> : <SalonLogin />}
+        />
+
+        <Route
+          path="/salon/Dashboard"
+          element={
+            <PrivateRoute salonOnly={true}>
+              <SalonDashboard />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/salon/profile"
+          element={
+            <PrivateRoute salonOnly={true}>
+              <SalonProfile />
+            </PrivateRoute>
+          }
+        />
+        
 
         {/* User Routes */}
         <Route

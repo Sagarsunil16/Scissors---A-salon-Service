@@ -1,7 +1,9 @@
 import axios from 'axios'
 
 const API = axios.create({
-    baseURL: 'http://localhost:3000'
+    baseURL: 'http://localhost:3000',
+    withCredentials: true,  // This ensures cookies are sent with requests
+    
 })
 
 export const loginUser = async(data:{email:string,password:string})=>{

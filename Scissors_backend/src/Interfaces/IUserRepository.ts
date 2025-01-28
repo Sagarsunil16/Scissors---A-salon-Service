@@ -12,4 +12,5 @@ export interface IUserRepostirory {
     resetPassword(email:string,newPassword:string):Promise<IUserDocument | null>
     updateUser(id:string,updatedData:Partial<IUser>):Promise<IUserDocument | null>;
     changePassword(id:string,newPassword:string):Promise<IUserDocument | null>
+    updateUserStatus(id:string,isActive:boolean):Promise<IUserDocument | null>
 }

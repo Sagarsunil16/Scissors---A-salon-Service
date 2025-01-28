@@ -20,8 +20,10 @@ class UserController {
 
       res
         .cookie("authToken", result?.token, {
-          httpOnly: true,
-          maxAge: 60 * 60 * 1000,
+          path: "/",
+      maxAge: 60 * 60 * 1000,
+      httpOnly: true,
+      secure: false,  // Since not using HTTPS
         })
         .status(200)
         .json({
@@ -35,7 +37,10 @@ class UserController {
 
   async userSignOut(req: Request, res: Response): Promise<any> {
     res
-      .clearCookie("authToken", { path: "/login" })
+    .cookie("authToken","", {path: "/",
+      httpOnly: true,
+      secure: false,  
+      })
       .status(200)
       .json({ message: "Logged Out Successfully!" });
   }
@@ -62,7 +67,6 @@ class UserController {
 
   async resetPassword(req:Request,res:Response):Promise<any>{
     try {
-      console.log("ResetPassword")
       const {email,password} = req.body
       const message = await userService.resetPasssword(email,password)
       res.status(200).json({message:message})
@@ -73,6 +77,7 @@ class UserController {
 
   async updateUser(req:Request,res:Response):Promise<any>{
     try {
+      
       const {id,firstname,lastname,address} = req.body
       const updatedData ={firstname,lastname,address}
       const updatedUser = await userService.updateUser(id,updatedData)
@@ -92,7 +97,6 @@ class UserController {
   async changePassword(req:Request,res:Response):Promise<any>{
     try {
       const {id,currentPassword,newPassword} = req.body
-      console.log(id,currentPassword,newPassword)
       if(!currentPassword || !newPassword){
         return res.status(400).json({message:"current and new passwords are required"})
       }
