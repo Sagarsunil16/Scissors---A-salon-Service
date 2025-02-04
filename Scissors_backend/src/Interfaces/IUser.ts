@@ -13,6 +13,7 @@ export interface IUser{
     password:string,
     address:Address,
     role:UserRole,
+    verified:boolean,
     is_Active:boolean,
     otp?:string | null,
     otpExpiry?:Date |null

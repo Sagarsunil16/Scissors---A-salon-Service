@@ -48,6 +48,7 @@ class UserController {
   async sentOtp(req:Request,res:Response):Promise<any>{
     try {
       const {email} = req.body
+      console.log(req.body)
       const message = await userService.sendOtp(email);
       res.status(200).json({message:message})
     } catch (error:any) {

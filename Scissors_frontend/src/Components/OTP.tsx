@@ -2,15 +2,13 @@ import { useEffect, useState } from "react"
 import * as Yup from 'yup'
 import { Formik,Form,Field,ErrorMessage } from "formik"
 import { useLocation, useNavigate } from "react-router-dom"
-import { resentOtp,verifyOtp } from "../Services/salonAPI"
-const OTP = () => {
+import { OTPVerificationProps } from "../interfaces/interface"
+const OTP = ({resendOTP,verifyOTP,redirectPath}:OTPVerificationProps) => {
     
     const [serverError,setServerError] = useState('');
     const [timer,setTimer] = useState(60)
     const [isResendEnabled,setIsResendEnabled] = useState(false)
     const location = useLocation()
-    const values = location.state
-    console.log(values)
     const email = location.state?.email
     const navigate = useNavigate()
     useEffect(()=>{
@@ -43,26 +41,26 @@ const OTP = () => {
         }
     )
 
-    const resend = async()=>{
+    const handleResend = async()=>{
         setServerError("")
         try {
-          console.log(email)
-            await resentOtp({email})
+            console.log(email)
+            await resendOTP({email})
             alert("Otp resended")
             setTimer(60);
             setIsResendEnabled(false);
         } catch (error:any) {
             console.log(error)
-            setServerError(error.message)
+            setServerError(error.response.data.message)
         }
     }
 
     const handleSubmit = async(values:{otp:string})=>{
         setServerError("")
         try {
-            const response = await verifyOtp({email,otp:values.otp})
+            const response = await verifyOTP({email,otp:values.otp})
             alert("done")
-            navigate('/salon/login')
+            navigate(redirectPath)
         } catch (error:any) {
             setServerError(error.message)
         }
@@ -109,7 +107,7 @@ const OTP = () => {
                   {isResendEnabled ? (
                     <button
                       type="button"
-                      onClick={resend}
+                      onClick={handleResend}
                       className="text-blue-500 hover:underline"
                     >
                       Resend OTP

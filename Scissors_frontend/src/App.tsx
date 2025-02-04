@@ -18,6 +18,8 @@ import SalonLogin from './Pages/Salon/SalonLogin';
 import Login from './Pages/Admin/Login';
 import SalonDashboard from './Pages/Salon/SalonDashboard';
 import SalonProfile from './Pages/Salon/SalonProfile';
+import OTPverification from './Pages/User/OTPverification';
+
 
 export default function App() {
   const { currentUser } = useSelector((state: any) => state.user);
@@ -96,6 +98,10 @@ export default function App() {
         <Route
           path="/signup"
           element={currentUser ? <Navigate to="/home" replace /> : <SignUp />}
+        />
+        <Route
+          path="/signup/verify"
+          element={currentUser ? <Navigate to="/home" replace /> : <OTPverification />}
         />
 
          <Route

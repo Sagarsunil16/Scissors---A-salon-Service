@@ -2,7 +2,7 @@ import { Link } from "react-router-dom"
 
 const ProfileNavbar = () => {
   return (
-      <nav className="bg-black shadow-lg rounded-2xl w-full max-w-3xl p-4">
+      <nav className="bg-black shadow-lg rounded-md w-full max-w-3xl p-4">
         <ul className="flex flex-wrap justify-between text-center">
           <li className="p-2 w-full sm:w-auto">
             <Link

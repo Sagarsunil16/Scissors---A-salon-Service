@@ -17,8 +17,12 @@ export const forgotPassword = async(data:{email:string})=>{
     return await API.post('/forgot-password',data)
 }
 
-export const resendOTP = async(email:string)=>{
-    return await API.put('/resend-otp',{email})
+export const sentOTP = async(email:string)=>{
+    return await API.post('/otp',{email})
+}
+
+export const resendOTP = async(data:{email:string})=>{
+    return await API.put('/resend-otp',data)
 }
 
 export const verifyOTP = async(data:{email:string,otp:string})=>{

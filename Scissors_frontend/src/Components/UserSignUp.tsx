@@ -1,10 +1,13 @@
 import * as Yup from 'yup'
-
 import { useNavigate } from "react-router-dom";
-import { signUpUser } from '../Services/UserAPI';
+import { useDispatch, useSelector } from 'react-redux';
+import { signUpUser,sentOTP } from '../Services/UserAPI';
 import { ErrorMessage, Field, Form, Formik } from 'formik';
+import { signUpStart,signUpSuccess,signUpFailure, } from '../Redux/User/userSlice';
 
 const UserSignUp = () => {
+  const dispatch = useDispatch()
+  const { loading, error } = useSelector((state:any) => state.user);
   const initialValues = {
     firstname:"",
     lastname:"",
@@ -40,15 +43,14 @@ const UserSignUp = () => {
   
 
   const handleSubmit = async (values:any)=>{
+    dispatch(signUpStart())
        try {
         const response =  await signUpUser(values)
-        alert(response.data.message || "Account Created Successfully")
-        navigate("/login");
-        
+        await sentOTP(values.email)
+        dispatch(signUpSuccess());
+        navigate("/signup/verify",{state:values});
        } catch (error:any) {
-        alert(
-          error?.response?.data?.message || "Failed to submit the form. Please try again."
-        );
+        dispatch(signUpFailure(error?.response?.data?.message || "Sign-up failed"));
        }
       }
   
@@ -68,7 +70,7 @@ const UserSignUp = () => {
           validationSchema={validationSchema}
           onSubmit={handleSubmit}
           >
-          {({isSubmitting})=>(
+          {({})=>(
             <Form className='space-y-4'>
               <div className="flex space-x-4">
                   <div className="w-1/2">
@@ -188,13 +190,10 @@ const UserSignUp = () => {
                 </div>
 
                 {/* Submit Button */}
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full py-2 px-4 bg-black text-white rounded-full hover:bg-blue-500 transition duration-500 mt-10"
-                >
-                  Sign Up
-                </button>
+                <button type="submit" disabled={loading} className="w-full py-2 px-4 bg-black text-white rounded-full hover:bg-blue-500 transition duration-500 mt-10">
+                {loading ? "Signing Up..." : "Sign Up"}
+              </button>
+              {error && <p className="text-red-500 text-xs mt-2 text-center">{error}</p>}
                 <p className="w-full text-xs flex justify-center">
                   By creating an account, you agree to the Terms of Use and Privacy Policy.
                 </p>

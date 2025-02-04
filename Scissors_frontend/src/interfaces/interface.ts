@@ -40,3 +40,15 @@ export interface Address {
     openingTime:string,
     closingTime:string
   }
+
+  export interface UserSignInProps{
+    title:string,
+    onSubmit:(values:{email:string,password:string})=>Promise<void>,
+    redirectPath:string
+  } 
+
+  export interface OTPVerificationProps {
+    resendOTP: (data:{email: string }) => Promise<any>;
+    verifyOTP: (data: { email: string; otp: string }) => Promise<any>;
+    redirectPath:string
+  }

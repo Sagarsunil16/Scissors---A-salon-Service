@@ -39,6 +39,14 @@ class UserRepository implements IUserRepostirory {
     )
   }
 
+  async updateOTP(email:string,otp:string,otpExpiry:Date):Promise<IUserDocument | null>{
+    return await User.findOneAndUpdate({email},{otp,otpExpiry},{new:true})
+  }
+
+  async verifyOtpAndUpdate(email:string):Promise<IUserDocument | null>{
+    return await User.findOneAndUpdate({email},{otp:null,otpExpiry:null,verified:true},{new:true})
+  }
+
   async updateUser(
     id: string,
     updateData: Partial<IUser>

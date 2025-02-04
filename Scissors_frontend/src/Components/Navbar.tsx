@@ -1,7 +1,10 @@
 import { useState } from "react";
+import { useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 
 const Navbar = () => {
+  const currentUser =  useSelector((state:any)=>state.user.currentUser)
+  console.log(currentUser)
   const [isOpen, setIsOpen] = useState(false); 
 
   const navLinks = [
@@ -54,7 +57,7 @@ const Navbar = () => {
               </li>
             ))}
             {/* Action Buttons */}
-            <div className="flex space-x-4">
+            {!currentUser && <div className="flex space-x-4">
               <Link to={"/login"}>
                 <button className="px-4 py-2 text-black border rounded-sm hover:bg-gray-200 transition duration-300">
                   Login
@@ -65,7 +68,8 @@ const Navbar = () => {
                   SignUp
                 </button>
               </Link>
-            </div>
+            </div> }
+            
           </ul>
         </div>
 

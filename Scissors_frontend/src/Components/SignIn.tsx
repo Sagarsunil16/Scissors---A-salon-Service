@@ -1,18 +1,10 @@
-import { useNavigate, Link } from "react-router-dom";
-import { useDispatch } from "react-redux";
+import {Link } from "react-router-dom";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
-import { loginUser } from "../Services/UserAPI";
-import {
-  signInstart,
-  signInSuccess,
-  signInFailure,
-} from "../Redux/User/userSlice";
+import { UserSignInProps } from "../interfaces/interface";
 
-const UserSignIn = () => {
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
 
+const SignIn  = ({title,onSubmit}:UserSignInProps) => {
   const initialValues = {
     email: "",
     password: "",
@@ -25,33 +17,18 @@ const UserSignIn = () => {
     password: Yup.string().required("Password is required"),
   });
 
-  const handleSubmit = async (values: { email: string; password: string }) => {
-    dispatch(signInstart());
-    try {
-      const response = await loginUser(values);
-      dispatch(signInSuccess(response.data.user));
-      alert("Login Successful");
-      navigate("/dashboard");
-    } catch (error: any) {
-      console.log(error);
-      dispatch(signInFailure(true));
-      alert(
-        error?.response?.data?.error || "Failed to login. Please try again!"
-      );
-    }
-  };
 
   return (
     <div>
       <div className="flex flex-col justify-center items-center min-h-screen bg-white px-4 sm:px-8 pt-16">
         <h2 className="text-3xl sm:text-4xl text-center font-poppins mb-6 sm:mb-8">
-          Welcome Back, Log in Please!
+          {title}
         </h2>
         <div className="bg-white p-6 rounded-lg flex flex-col sm:flex-row w-full sm:w-[90%] md:w-[80%] lg:w-[70%] xl:w-[60%] justify-center items-center">
           <Formik
             initialValues={initialValues}
             validationSchema={validationSchema}
-            onSubmit={handleSubmit}
+            onSubmit={onSubmit}
           >
             {({ isSubmitting }) => (
               <Form className="space-y-4 w-full sm:w-1/2 px-4 sm:px-8">
@@ -134,4 +111,4 @@ const UserSignIn = () => {
   );
 };
 
-export default UserSignIn;
+export default SignIn;

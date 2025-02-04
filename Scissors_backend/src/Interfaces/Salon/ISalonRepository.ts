@@ -9,4 +9,5 @@ export interface ISalonRepository{
     updateSalonOtp(email:string,otp:string,otpExpiry:Date):Promise<ISalonDocument | null>
     verifyOtpAndUpdate(email:string,):Promise<ISalonDocument | null>
     updateSalonProfile(updatedData:Partial<ISalon>):Promise<ISalonDocument | null>
+   
 }

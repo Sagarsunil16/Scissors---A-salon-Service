@@ -41,6 +41,9 @@ class UserService {
         if(!user.is_Active){
             throw new Error("Account has been blocked!")
         }
+        if(!user.verified){
+            throw new Error("Please verify you account first")
+        }
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
         throw new Error("Invalid email or password");
@@ -67,7 +70,7 @@ class UserService {
         return await this.repository.getAllUsers(page,limit)
     }
 
-    async verifyOTP(email:string,otp:string):Promise<boolean>{
+    async verifyOTP(email:string,otp:string):Promise<string>{
             const user = await this.repository.getUserByEmail(email)
             if(!user){
                 throw new Error("User not found")
@@ -78,7 +81,8 @@ class UserService {
             if(user.otpExpiry< new Date()){
                 throw new Error("OTP has Expired")
             }
-            return true
+            await this.repository.verifyOtpAndUpdate(email)
+            return "Verification Successfull"
     }
     async resetPasssword(email:string,newPassword:string):Promise<string>{
         const user = this.repository.getUserByEmail(email)
