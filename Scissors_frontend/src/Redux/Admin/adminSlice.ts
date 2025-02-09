@@ -1,8 +1,16 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { AdminState,User } from "../../interfaces/interface";
+import { AdminState,salon,User } from "../../interfaces/interface";
 
 const initialState:AdminState = {
-    userData :[],
+    currentUser:"",
+    userData :{
+        userData:[],
+        totalUserPages:''
+    },
+    salonData:{
+        salonData:[],
+        totalSalonPages:''
+    },
     loading:false,
     error:false
 }
@@ -11,11 +19,23 @@ const adminSlice = createSlice({
     name:"Admin",
     initialState,
     reducers:{
+        signInStart:(state)=>{
+            state.loading = false
+        },
+        signInSuccess:(state,action:PayloadAction<User>)=>{
+            state.currentUser = action.payload
+            state.loading = false
+            state.error = false
+        },
+        signInFailure:(state,action:PayloadAction<string>)=>{
+            state.loading = false
+            state.error = action.payload
+        },
         getUserDataStart:(state)=>{
             state.loading =true
         },
         getUserDataSuccess:(state,action:PayloadAction<User[]>)=>{
-            state.userData = action.payload
+            state.userData.userData = action.payload
             state.loading = false,
             state.error = false
         },
@@ -23,19 +43,55 @@ const adminSlice = createSlice({
             state.loading =  false,
             state.error = action.payload;
         },
+        updateUserData:(state,action:PayloadAction<User[]>)=>{
+            state.userData.userData = action.payload
+        },
         updateUserStatus:(state,action:PayloadAction<User>)=>{
             const updatedUser = action.payload
-            const index = state.userData.findIndex(user=>user._id===updatedUser._id);
+            const index = state.userData.userData.findIndex(user=>user._id===updatedUser._id);
             if(index!==-1){
-                state.userData[index] = updatedUser
+                state.userData.userData[index] = updatedUser
             }
         },
         deleteUser:(state,action:PayloadAction<string>)=>{
             const userId = action.payload
-            state.userData = state.userData.filter(user=>user._id!==userId)
+            state.userData.userData = state.userData.userData.filter(user=>user._id!==userId)
+        },
+        getSalonDataStart:(state)=>{
+            state.loading =true
+        },
+        getSalonDataSuccess:(state,action:PayloadAction<salon[]>)=>{
+            state.salonData.salonData = action.payload
+            state.loading = false,
+            state.error = false
+        },
+        getSalonDataFailure:(state,action:PayloadAction<string>)=>{
+            state.loading =  false,
+            state.error = action.payload;
+        },
+        updateSalonStatus:(state,action:PayloadAction<salon>)=>{
+            const updatedSalon = action.payload
+            const index =  state.salonData.salonData.findIndex((salon)=>salon._id === updatedSalon._id)
+            if(index!==-1){
+                state.salonData.salonData[index] = updatedSalon
+            }
+        },
+        updateProfileData:(state,action:PayloadAction<salon>)=>{
+            state.currentUser = action.payload
+        },
+        signOut:(state)=>{
+            state.currentUser = "",
+            state.userData = {  userData:[],
+                totalUserPages:''},
+            state.salonData = {
+                  salonData:[],
+                totalSalonPages:''
+            }   
+            state.loading = false,
+            state.error = ""
         }
     }
 })
 
-export const {getUserDataStart,getUserDataSuccess,getUserDataFailure,updateUserStatus,deleteUser} = adminSlice.actions
+export const {signInStart,signInSuccess,signInFailure,getUserDataStart,getUserDataSuccess,getUserDataFailure,updateUserStatus,deleteUser,updateUserData, getSalonDataStart, getSalonDataSuccess, getSalonDataFailure,updateSalonStatus,updateProfileData,signOut} = adminSlice.actions
 export default adminSlice.reducer

@@ -70,6 +70,13 @@ class SalonService {
        return updatedSalon
     }
 
+    async updateSalonStatus(id:string,isActive:boolean):Promise<ISalonDocument | null>{
+      return await this.repository.updateSalonStatus(id,isActive)
+    }
+
+    async getAllSalons(page:number):Promise<{data:ISalonDocument[],totalCount:number}>{
+        return await this.repository.getAllSalon(page)
+    }
  
 }
 

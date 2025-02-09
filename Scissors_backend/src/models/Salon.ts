@@ -40,6 +40,10 @@ const salonSchema: Schema = new Schema({
     type: Boolean,
     default: false,
   },
+  is_Active:{
+    type:Boolean,
+    default:false
+  },
   otp: {
     type: String,
     default: null,

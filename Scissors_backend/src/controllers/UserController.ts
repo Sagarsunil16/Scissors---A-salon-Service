@@ -1,5 +1,7 @@
 import { Request, Response } from "express";
 import { userService } from "../config/di";
+import UserService from "../services/UserService";
+import path from "path";
 
 class UserController {
   async createUser(req: Request, res: Response): Promise<any> {
@@ -35,6 +37,21 @@ class UserController {
     }
   }
 
+  async googleLogin(req:Request,res:Response):Promise<any>{
+    try {
+      const {token} = req.body
+      const result =  await userService.googleLogin(token)
+      res.cookie("authToken",result?.token,{
+        path:"/",
+        maxAge:60*60*1000,
+        httpOnly:true,
+        secure:false
+      }).status(200).json({message:"Login Successfull",user:result?.user})
+    } catch (error:any) {
+      res.status(401).json({ error: error.message || "Invalid credentials" });
+    }
+  }
+
   async userSignOut(req: Request, res: Response): Promise<any> {
     res
     .cookie("authToken","", {path: "/",
@@ -48,7 +65,6 @@ class UserController {
   async sentOtp(req:Request,res:Response):Promise<any>{
     try {
       const {email} = req.body
-      console.log(req.body)
       const message = await userService.sendOtp(email);
       res.status(200).json({message:message})
     } catch (error:any) {
@@ -79,9 +95,9 @@ class UserController {
   async updateUser(req:Request,res:Response):Promise<any>{
     try {
       
-      const {id,firstname,lastname,address} = req.body
-      const updatedData ={firstname,lastname,address}
-      const updatedUser = await userService.updateUser(id,updatedData)
+      const {id,firstname,lastname,phone,address} = req.body
+      const updatedData ={firstname,lastname,phone,address}
+      const updatedUser = await userService.updateUser(id,updatedData,false)
       if (!updatedUser) {
         return res.status(404).json({ message: "User not found" });
       }

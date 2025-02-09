@@ -6,11 +6,14 @@ interface PrivateRouteProps {
     children?: React.ReactNode;
   }
 const PrivateRoute = ({adminOnly,salonOnly,children}:PrivateRouteProps) => {
-    const {currentUser} = useSelector((state:any)=>state.user)
+    const {currentUser:adminUser} =  useSelector((state:any)=>state.admin)
+    const {currentUser:normalUser} = useSelector((state:any)=>state.user)
+
+    const currentUser = adminUser || normalUser
+
     const {salon} = useSelector((state:any)=>state.salon)
 
     if (salonOnly) {
-   
       if (!salon) {
         return <Navigate to="/salon/login" replace />;
       }
@@ -21,8 +24,13 @@ const PrivateRoute = ({adminOnly,salonOnly,children}:PrivateRouteProps) => {
     return <Navigate to={'/login'} replace/>
   }
 
-  if(adminOnly && currentUser.role!=='Admin'){
-    return <Navigate to={'/'} replace />
+  // Redirect admins from user routes if `adminOnly` is false
+  if (!adminOnly && adminUser) {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+
+  if (adminOnly && !adminUser) {
+    return <Navigate to="/" replace />;
   }
 
   return children?children:<Outlet/>

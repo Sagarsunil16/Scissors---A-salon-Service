@@ -25,20 +25,30 @@ export interface Address {
   
   // AdminState interface
   export interface AdminState {
-    userData: User[]; // Array of user objects
+    currentUser:{}
+    userData :{
+      userData:User[],
+      totalUserPages:string
+  };
+  salonData:{
+    salonData:salon[],
+    totalSalonPages:string
+}
     loading: boolean;
     error: boolean | string;
   }
   
 
   export interface salon{
+    _id: string;
     salonName:string,
     email:string,
     password:string,
     phone:number,
     address:Address,
     openingTime:string,
-    closingTime:string
+    closingTime:string,
+    is_Active:boolean
   }
 
   export interface UserSignInProps{
@@ -51,4 +61,14 @@ export interface Address {
     resendOTP: (data:{email: string }) => Promise<any>;
     verifyOTP: (data: { email: string; otp: string }) => Promise<any>;
     redirectPath:string
+  }
+
+  export interface TableProps{
+    columns:{header:string,accessor:string}[];
+    data:any[];
+    actions?:{
+      label:string,
+      className:string,
+      onClick:(row:any)=>void
+    }[]
   }

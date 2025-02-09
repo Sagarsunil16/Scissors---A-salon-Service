@@ -9,7 +9,7 @@ export interface IUser{
     firstname:string,
     lastname:string,
     email:string,
-    phone:number,
+    phone:string,
     password:string,
     address:Address,
     role:UserRole,

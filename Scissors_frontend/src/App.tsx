@@ -4,7 +4,6 @@ import SignUp from './Pages/User/SignUp';
 import UserLogin from './Pages/User/UserLogin';
 import ForgotPassword from './Pages/User/ForgotPassword';
 import AdminDashboard from './Pages/Admin/AdminDashboard';
-import UserDashboard from './Pages/User/UserDashboard';
 import PrivateRoute from './Components/PrivateRoute';
 import Users from './Pages/Admin/Users';
 import ForgotOtp from './Pages/User/ForgotOtp';
@@ -19,6 +18,10 @@ import Login from './Pages/Admin/Login';
 import SalonDashboard from './Pages/Salon/SalonDashboard';
 import SalonProfile from './Pages/Salon/SalonProfile';
 import OTPverification from './Pages/User/OTPverification';
+import HomePage from './Pages/User/HomePage';
+import Salons from './Pages/Admin/Salons';
+import AdminProfile from './Pages/Admin/AdminProfile';
+import AdminChangePassword from './Pages/Admin/AdminChangePassword';
 
 
 export default function App() {
@@ -41,10 +44,37 @@ export default function App() {
           }
         />
         <Route
+          path="/admin/profile"
+          element={
+            <PrivateRoute adminOnly={true}>
+              <AdminProfile />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/admin/change-password"
+          element={
+            <PrivateRoute adminOnly={true}>
+              <AdminChangePassword />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
           path="/admin/users"
           element={
             <PrivateRoute adminOnly={true}>
               <Users />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/admin/salons"
+          element={
+            <PrivateRoute adminOnly={true}>
+              <Salons />
             </PrivateRoute>
           }
         />
@@ -89,8 +119,11 @@ export default function App() {
         {/* User Routes */}
         <Route
           path="/"
-          element={currentUser ? <Navigate to="/home" replace /> : <UserLogin />}
+          element={currentUser ? <Navigate to="/home" replace /> : <HomePage />}
         />
+
+        
+
         <Route
           path="/login"
           element={currentUser ? <Navigate to="/home" replace /> : <UserLogin />}
@@ -126,7 +159,7 @@ export default function App() {
           path="/home"
           element={
             <PrivateRoute adminOnly={false}>
-              <UserDashboard />
+              <HomePage />
             </PrivateRoute>
           }
         />

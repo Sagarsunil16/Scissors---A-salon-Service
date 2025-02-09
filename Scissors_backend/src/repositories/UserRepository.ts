@@ -3,8 +3,9 @@ import { IUser } from "../Interfaces/IUser";
 import { IUserRepostirory } from "../Interfaces/IUserRepository";
 
 class UserRepository implements IUserRepostirory {
-  async createUser(userData: IUser): Promise<IUserDocument> {
-    return await User.create(userData);
+  async createUser(userData: Partial<IUser>): Promise<IUserDocument> {
+      console.log(userData,"userData")
+      return await User.create(userData);
   }
 
   async getUserById(id: string): Promise<IUserDocument | null> {
@@ -59,16 +60,21 @@ class UserRepository implements IUserRepostirory {
   }
 
   async getAllUsers(
-    page: number = 1,
-    limit: number = 10
-  ): Promise<IUserDocument[]> {
+    page: number,
+    limit: number
+  ): Promise<{data:IUserDocument[],totalCount:number}> {
     try {
       const skip = (page - 1) * limit;
-      return await User.find({ role: "User" }).skip(skip).limit(limit);
+      const users = await User.find({ role: "User" }).skip(skip).limit(limit);
+      const totalCount =  await User.countDocuments({role:"User"})
+      return {data:users,totalCount};
     } catch (error) {
       console.error("Error fetching users:", error);
       throw new Error("Could not fetch users");
     }
+  }
+  async totalPages():Promise<number>{
+    return Math.ceil((await User.find({})).length/10)
   }
   
 }

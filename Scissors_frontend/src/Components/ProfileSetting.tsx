@@ -14,6 +14,9 @@ const ProfileSetting = () => {
   const validationSchema = Yup.object({
     firstname: Yup.string().required("First name is required"),
     lastname: Yup.string().required("Last name is required"),
+    phone:Yup.string()
+    .matches(/^\d{10}$/,"Enter a valid 10-digit phone number")
+    .required("Phone is required"),
     areaStreet: Yup.string().required("Area and street are required"),
     city: Yup.string().required("City is required"),
     state: Yup.string().required("State is required"),
@@ -28,6 +31,7 @@ const ProfileSetting = () => {
         id: user._id, 
         firstname: values.firstname,
         lastname: values.lastname,
+        phone:values.phone,
         address: {
           areaStreet: values.areaStreet,
           city: values.city,
@@ -59,6 +63,7 @@ const ProfileSetting = () => {
           initialValues={{
             firstname: user?.firstname || "",
             lastname: user?.lastname || "",
+            phone:user?.phone,
             areaStreet: user?.address?.areaStreet || "",
             city: user?.address?.city || "",
             state: user?.address?.state || "",
@@ -97,6 +102,20 @@ const ProfileSetting = () => {
                   className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <ErrorMessage name="lastname" component="div" className="text-red-600 text-sm mt-1" />
+              </div>
+
+              {/*Phone*/}
+              <div>
+                <label htmlFor="phone" className="block text-gray-600 font-medium mb-1">
+                  Phone
+                </label>
+                <Field
+                  type="text"
+                  id="phone"
+                  name="phone"
+                  className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <ErrorMessage name="phone" component="div" className="text-red-600 text-sm mt-1" />
               </div>
 
               {/* Address - Area and Street */}

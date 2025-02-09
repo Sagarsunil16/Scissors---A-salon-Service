@@ -43,3 +43,11 @@ export const updateUser = async(data:{id:string,firstname:string,lastname:string
 export const changePassword = async(data:{currentPassword:string,newPassword:string})=>{
     return await API.put('change-password',data)
 }
+
+export const googleLogin =  async(data:{token:string})=>{
+    return  await API.post('/auth/google',data)
+}
+
+export const LogOut = async()=>{
+    return await API.post('/signout')
+}

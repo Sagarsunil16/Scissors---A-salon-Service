@@ -2,6 +2,7 @@ import { Router } from "express";
 import UserController from "../controllers/UserController";
 
 import verifyToken from "../middleware/verifyToken";
+import User from "../models/User";
 const router = Router()
 
 router.post('/signup',UserController.createUser)
@@ -12,6 +13,7 @@ router.post('/otp',UserController.sentOtp)
 router.put('/resend-otp',UserController.sentOtp)
 router.post('/verify-otp',UserController.verifyOtp)
 router.put('/reset-password',UserController.resetPassword)
+router.post('/auth/google',UserController.googleLogin)
 
 
 // Protected routes

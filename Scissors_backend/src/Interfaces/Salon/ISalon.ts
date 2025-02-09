@@ -8,6 +8,7 @@ export interface ISalon{
     openingTime:string,
     closingTime:string,
     verified:boolean,
+    is_Active:boolean,
     otp?:string | null,
     otpExpiry?:Date |null
 }

@@ -2,9 +2,13 @@ import {Link } from "react-router-dom";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import { UserSignInProps } from "../interfaces/interface";
-
-
+import { signInWithPopup } from "firebase/auth";
+import { provider,auth } from "../Config/firebase";
+import { googleLogin } from "../Services/UserAPI";
+import { signInstart,signInSuccess,signInFailure } from "../Redux/User/userSlice";
+import { useDispatch } from "react-redux";
 const SignIn  = ({title,onSubmit}:UserSignInProps) => {
+  const dispatch = useDispatch()
   const initialValues = {
     email: "",
     password: "",
@@ -17,7 +21,20 @@ const SignIn  = ({title,onSubmit}:UserSignInProps) => {
     password: Yup.string().required("Password is required"),
   });
 
-
+  const signInWithGoogle =  async()=>{
+    dispatch(signInstart())
+    try {
+      const result = await signInWithPopup(auth,provider)
+      const user = result.user
+      const Idtoken = await user.getIdToken()
+      const response =  await googleLogin({token:Idtoken})
+      console.log(response.data)
+     dispatch(signInSuccess(response.data.user))
+    } catch (error:any) {
+      console.error("Error during sign-in:", error);
+      dispatch(signInFailure(error.response.data.message))
+    }
+  }
   return (
     <div>
       <div className="flex flex-col justify-center items-center min-h-screen bg-white px-4 sm:px-8 pt-16">
@@ -87,9 +104,11 @@ const SignIn  = ({title,onSubmit}:UserSignInProps) => {
           </div>
           {/* Right Section */}
           <div className="w-full sm:w-1/2 px-4 sm:px-8 flex flex-col items-center">
-            <button
+            <button 
+              id="google-signin-btn"
               type="button"
               className="flex justify-center items-center px-4 py-3 w-full border rounded-lg hover:bg-gray-200 transition duration-300"
+              onClick={signInWithGoogle}
             >
               <img
                 src="https://img.icons8.com/color/48/000000/google-logo.png"

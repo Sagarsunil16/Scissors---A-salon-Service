@@ -1,94 +1,123 @@
 import AdminHeader from "../../Components/AdminHeader";
 import Sidebar from "../../Components/Sidebar";
-import { useSelector,useDispatch } from "react-redux";
-import { updateUserStatus,deleteUser } from "../../Redux/Admin/adminSlice";
-import { blockAndUnblock,deleteUserAPI } from "../../Services/adminAPI";
+import { useSelector, useDispatch } from "react-redux";
+import { updateUserStatus, deleteUser } from "../../Redux/Admin/adminSlice";
+import { fetchUsers, deleteUserAPI, blockAndUnblockUser } from "../../Services/adminAPI";
+import { updateUserData } from "../../Redux/Admin/adminSlice";
+import { useEffect, useState } from "react";
+import Table from "../../Components/Table";
 
 const Users = () => {
+  const dispatch = useDispatch();
+  const [currentPage, setCurrentPage] = useState(1);
+ 
+  const limit = 10;
+  const users = useSelector((state: any) => state.admin.userData.userData);
+  const totalPages = Number(useSelector((state: any) => state.admin.userData.totalUserPages))
+ 
+  console.log(totalPages,"totalPages")
+  useEffect(() => {
+    const fetchUsersData = async () => {
+      try {
+        const data = { page: currentPage, limit: limit };
+        const response = await fetchUsers(data);
+        dispatch(updateUserData(response.data.userData.userData));
+      } catch (error: any) {
+        alert(error.message);
+      }
+    };
+    fetchUsersData();
+  }, [currentPage, dispatch]);
 
-  const users = useSelector((state: any) => state.admin.userData);
-  const dispatch = useDispatch()
-  const handleBlockAndUnblock = async(userId:string,isActive:boolean)=>{
-    try{
-      const response =  await blockAndUnblock({userId,isActive})
-      console.log(response)
-      dispatch(updateUserStatus(response.data.updatedUser))
-      alert("Done")
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    if (page > 0 && page <= totalPages) {
+      setCurrentPage(page);
     }
-    catch(error:any){
-      alert(error.message)
-    }
-  }
+  };
 
-  const handleDeleteUser = async(id:string)=>{
+  // Handle block/unblock user
+  const handleBlockAndUnblock = async (userId: string, isActive: boolean) => {
     try {
-      console.log(id)
-      const response = await deleteUserAPI({id})
-      dispatch(deleteUser(response.data.deletedUser._id))
-      alert("Deleted Successfully")
-    } catch (error:any) {
-      alert(error.message)
+      const response = await blockAndUnblockUser({ userId, isActive });
+      dispatch(updateUserStatus(response.data.updatedUser));
+      alert("Done");
+    } catch (error: any) {
+      alert(error.message);
     }
-  }
-  return (
-    <div>
-      <div className="flex">
-        <Sidebar />
-        <div className="flex-1">
-          <AdminHeader />
-          <div className="p-8">
-            <h2 className="text-2xl font-semibold mb-4">User Management</h2>
-            <table className="min-w-full table-auto border-collapse border border-gray-300">
-              <thead>
-                <tr>
-                  <th className="border p-2">Name</th>
-                  <th className="border p-2">Email</th>
-                  <th className="border p-2">Phone</th>
-                  <th className="border p-2">Status</th>
-                  <th className="border p-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users?.map((user: any) => (
-                  <tr key={user._id}>
-                    <td className="border p-2">{user.firstname} {user.lastname}</td>
-                    <td className="border p-2">{user.email}</td>
-                    <td className="border p-2">{user.phone}</td>
-                    <td className="border p-2">
-                      {user.is_Active ? (
-                        <span className="text-green-500">Active</span>
-                      ) : (
-                        <span className="text-red-500">Blocked</span>
-                      )}
-                    </td>
-                    <td className="border p-2 flex space-x-2 justify-center">
-                      {user.is_Active ? (
-                        <button
-                          onClick={()=>handleBlockAndUnblock(user._id,false)}
-                          className="bg-red-500 text-white py-1 px-4 rounded"
-                        >
-                          Block
-                        </button>
-                      ) : (
-                        <button
-                        onClick={() => handleBlockAndUnblock(user._id, true)}
-                          className="bg-green-500 text-white py-1 px-4 rounded"
-                        >
-                          Unblock
-                        </button>
-                      )}
+  };
 
-                      <button
-                      onClick={() => handleDeleteUser(user._id)}
-                        className="bg-red-700 text-white py-1 px-4 rounded"
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+  // Handle delete user
+  const handleDeleteUser = async (id: string) => {
+    try {
+      const response = await deleteUserAPI({ id });
+      dispatch(deleteUser(response.data.deletedUser._id));
+      alert("Deleted Successfully");
+    } catch (error: any) {
+      alert(error.message);
+    }
+  };
+
+  const columns = [
+    { header: "Name", accessor: "firstname" },
+    { header: "Email", accessor: "email" },
+    { header: "Phone", accessor: "phone" },
+    { header: "Status", accessor: "is_Active" },
+  ];
+
+  const actions = [
+    {
+      label: "Block",
+      className: "bg-red-500 text-white py-1 px-4 rounded",
+      onClick: (row: any) =>
+        row.is_Active ? handleBlockAndUnblock(row._id, false) : null,
+    },
+    {
+      label: "Unblock",
+      className: "bg-green-500 text-white py-1 px-4 rounded",
+      onClick: (row: any) =>
+        !row.is_Active ? handleBlockAndUnblock(row._id, true) : null,
+    },
+    {
+      label: "Delete",
+      className: "bg-red-700 text-white py-1 px-4 rounded",
+      onClick: (row: any) => handleDeleteUser(row._id),
+    },
+  ];
+
+  return (
+    <div className="flex flex-col sm:flex-row">
+      <Sidebar />
+      <div className="flex-1">
+        <AdminHeader />
+        <div className="p-4 sm:p-8">
+          <h2 className="text-lg sm:text-2xl font-semibold mb-4 text-center sm:text-left">
+            User Management
+          </h2>
+          {/* Table Component */}
+          <div className="overflow-x-auto">
+            <Table columns={columns} data={users} actions={actions} />
+          </div>
+
+          {/* Pagination */}
+          <div className="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-4 mt-10">
+            <button
+              className="bg-gray-300 py-2 px-6 rounded disabled:opacity-50"
+              disabled={currentPage === 1}
+              onClick={() => handlePageChange(currentPage - 1)}
+            >
+              Previous
+            </button>
+            <span className="text-sm sm:text-base">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              className="bg-gray-300 py-2 px-6 rounded disabled:opacity-50"
+              disabled={currentPage === totalPages}
+              onClick={() => handlePageChange(currentPage + 1)}
+            >
+              Next
+            </button>
           </div>
         </div>
       </div>

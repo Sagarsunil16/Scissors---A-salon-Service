@@ -1,12 +1,14 @@
 import { useState } from "react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { Link } from "react-router-dom";
-
+import { useNavigate } from "react-router-dom";
+import { LogOut } from "../Services/UserAPI";
+import { signOut } from "../Redux/User/userSlice";
 const Navbar = () => {
   const currentUser =  useSelector((state:any)=>state.user.currentUser)
-  console.log(currentUser)
   const [isOpen, setIsOpen] = useState(false); 
-
+  const navigate =useNavigate()
+  const dispatch = useDispatch()
   const navLinks = [
     { name: "Home", path: "/" },
     { name: "About", path: "/about" },
@@ -14,6 +16,16 @@ const Navbar = () => {
     { name: "Profile", path: "/profile" },
   ];
 
+  const signout = async()=>{
+    try {
+        const response = await LogOut()
+        console.log(response)
+        dispatch(signOut()) 
+        navigate('/login')
+    } catch (error:any) {
+        console.log(error.message)
+    }
+}
   return (
     <div>
       <nav className="bg-white shadow-md p-4 fixed top-0 left-0 w-full z-50">
@@ -70,6 +82,13 @@ const Navbar = () => {
               </Link>
             </div> }
             
+            {currentUser && <div className="flex space-x-4">
+              <Link to={"/login"}>
+                <button className="px-4 py-2 text-black border rounded-sm hover:bg-gray-200 transition duration-300 " onClick={signout}>
+                  Log Out
+                </button>
+              </Link>
+            </div> }
           </ul>
         </div>
 
