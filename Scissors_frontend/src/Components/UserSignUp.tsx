@@ -4,6 +4,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { signUpUser,sentOTP } from '../Services/UserAPI';
 import { ErrorMessage, Field, Form, Formik } from 'formik';
 import { signUpStart,signUpSuccess,signUpFailure, } from '../Redux/User/userSlice';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const UserSignUp = () => {
   const dispatch = useDispatch()
@@ -48,9 +50,12 @@ const UserSignUp = () => {
         const response =  await signUpUser(values)
         await sentOTP(values.email)
         dispatch(signUpSuccess());
+        toast.success("Sign-up successful! OTP sent to your email.");
         navigate("/signup/verify",{state:values});
        } catch (error:any) {
+        const errorMessage = error?.response?.data?.message || "Sign-up failed";
         dispatch(signUpFailure(error?.response?.data?.message || "Sign-up failed"));
+        toast.error(errorMessage);
        }
       }
   

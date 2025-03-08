@@ -31,7 +31,7 @@ export interface Address {
       totalUserPages:string
   };
   salonData:{
-    salonData:salon[],
+    salonData:ISalon[],
     totalSalonPages:string
 }
     loading: boolean;
@@ -39,7 +39,7 @@ export interface Address {
   }
   
 
-  export interface salon{
+  export interface ISalon{
     _id: string;
     salonName:string,
     email:string,
@@ -48,7 +48,15 @@ export interface Address {
     address:Address,
     openingTime:string,
     closingTime:string,
-    is_Active:boolean
+    is_Active:boolean,
+    verified:boolean,
+    images:Array<{id:string,url:string}>
+    services:Array<{service:string,
+      name:string,
+      description:string,
+      price:number
+    }>
+    rating:number
   }
 
   export interface UserSignInProps{
@@ -69,6 +77,38 @@ export interface Address {
     actions?:{
       label:string,
       className:string,
-      onClick:(row:any)=>void
-    }[]
+      onClick:(row:any)=>void,
+      isDynamic:boolean
+    }[],
+  }
+
+  export interface Category {
+    _id: string;
+    name: string;
+    description: string;
+  }
+  
+
+  export interface IService{
+    _id:string,
+    name:string,
+    description:string
+  }
+
+  export interface ISalonService{
+    _id:string,
+    name:string,
+    description:string,
+    price:number
+  }
+
+  export interface IStylist{
+    _id:string,
+    name:string,
+    salon:string,
+    email:string,
+    phone:string,
+    workingHours:Array<{day:string,startTime:string,endTime:string}>
+    services:Array<{name:string,description:string}>,
+    isAvailable:boolean
   }

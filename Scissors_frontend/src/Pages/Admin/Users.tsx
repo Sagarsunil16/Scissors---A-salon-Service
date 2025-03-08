@@ -1,33 +1,37 @@
 import AdminHeader from "../../Components/AdminHeader";
 import Sidebar from "../../Components/Sidebar";
-import { useSelector, useDispatch } from "react-redux";
+import { useDispatch } from "react-redux";
 import { updateUserStatus, deleteUser } from "../../Redux/Admin/adminSlice";
 import { fetchUsers, deleteUserAPI, blockAndUnblockUser } from "../../Services/adminAPI";
-import { updateUserData } from "../../Redux/Admin/adminSlice";
 import { useEffect, useState } from "react";
 import Table from "../../Components/Table";
-
+import { User } from "../../interfaces/interface";
+import Swal from "sweetalert2"
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 const Users = () => {
   const dispatch = useDispatch();
   const [currentPage, setCurrentPage] = useState(1);
- 
+  const [userData,setUserData] = useState<User[]>([])
   const limit = 10;
-  const users = useSelector((state: any) => state.admin.userData.userData);
-  const totalPages = Number(useSelector((state: any) => state.admin.userData.totalUserPages))
- 
-  console.log(totalPages,"totalPages")
+  // const users = useSelector((state: any) => state.admin.userData.userData);
+
+ let totalPages =1
+  // console.log(totalPages,"totalPages")
   useEffect(() => {
     const fetchUsersData = async () => {
       try {
         const data = { page: currentPage, limit: limit };
         const response = await fetchUsers(data);
-        dispatch(updateUserData(response.data.userData.userData));
+        // dispatch(updateUserData(response.data.userData.userData));
+        setUserData(response.data.userData.userData)
+        totalPages = response.data.userData.totalUserPages
       } catch (error: any) {
-        alert(error.message);
+        toast.error(error.message);
       }
     };
     fetchUsersData();
-  }, [currentPage, dispatch]);
+  }, [currentPage,userData]);
 
   // Handle page change
   const handlePageChange = (page: number) => {
@@ -37,18 +41,30 @@ const Users = () => {
   };
 
   // Handle block/unblock user
-  const handleBlockAndUnblock = async (userId: string, isActive: boolean) => {
+  const handleToggleStatus = async (userId: string, isActive: boolean) => {
     try {
       const response = await blockAndUnblockUser({ userId, isActive });
       dispatch(updateUserStatus(response.data.updatedUser));
-      alert("Done");
+      setUserData((prevUserData)=>
+      prevUserData.map((user)=>user._id===userId?{...user,isActive:!user.is_Active}:user))
+      toast.success(response.data.message);
     } catch (error: any) {
-      alert(error.message);
+      toast.error(error.message);
     }
   };
 
   // Handle delete user
   const handleDeleteUser = async (id: string) => {
+    const result = await Swal.fire({
+      title:"Are you Sure?",
+      text:"This Action Cannot be Undone!",
+      icon:"warning",
+      showCancelButton:true,
+      confirmButtonColor: "#d33",
+    cancelButtonColor: "#3085d6",
+    confirmButtonText: "Yes, delete it!",
+    })
+    if (result.isConfirmed) {
     try {
       const response = await deleteUserAPI({ id });
       dispatch(deleteUser(response.data.deletedUser._id));
@@ -56,6 +72,7 @@ const Users = () => {
     } catch (error: any) {
       alert(error.message);
     }
+  }
   };
 
   const columns = [
@@ -67,21 +84,16 @@ const Users = () => {
 
   const actions = [
     {
-      label: "Block",
-      className: "bg-red-500 text-white py-1 px-4 rounded",
-      onClick: (row: any) =>
-        row.is_Active ? handleBlockAndUnblock(row._id, false) : null,
-    },
-    {
-      label: "Unblock",
-      className: "bg-green-500 text-white py-1 px-4 rounded",
-      onClick: (row: any) =>
-        !row.is_Active ? handleBlockAndUnblock(row._id, true) : null,
+      label:"Toggle Status",
+      className: "bg-blue-500 text-white py-1 px-4 rounded",
+      onClick: (row: any) => handleToggleStatus(row._id, !row.is_Active),
+      isDynamic:true
     },
     {
       label: "Delete",
       className: "bg-red-700 text-white py-1 px-4 rounded",
       onClick: (row: any) => handleDeleteUser(row._id),
+      isDynamic:false
     },
   ];
 
@@ -96,7 +108,7 @@ const Users = () => {
           </h2>
           {/* Table Component */}
           <div className="overflow-x-auto">
-            <Table columns={columns} data={users} actions={actions} />
+            <Table columns={columns} data={userData} actions={actions} />
           </div>
 
           {/* Pagination */}

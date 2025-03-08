@@ -3,6 +3,8 @@ import * as Yup from 'yup'
 import { Formik,Form,Field,ErrorMessage } from "formik"
 import { useLocation, useNavigate } from "react-router-dom"
 import { OTPVerificationProps } from "../interfaces/interface"
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 const OTP = ({resendOTP,verifyOTP,redirectPath}:OTPVerificationProps) => {
     
     const [serverError,setServerError] = useState('');
@@ -46,7 +48,7 @@ const OTP = ({resendOTP,verifyOTP,redirectPath}:OTPVerificationProps) => {
         try {
             console.log(email)
             await resendOTP({email})
-            alert("Otp resended")
+            toast.success("Otp resended")
             setTimer(60);
             setIsResendEnabled(false);
         } catch (error:any) {
@@ -59,7 +61,7 @@ const OTP = ({resendOTP,verifyOTP,redirectPath}:OTPVerificationProps) => {
         setServerError("")
         try {
             const response = await verifyOTP({email,otp:values.otp})
-            alert("done")
+            toast.success("Verification Successfull, Please Log in")
             navigate(redirectPath)
         } catch (error:any) {
             setServerError(error.message)

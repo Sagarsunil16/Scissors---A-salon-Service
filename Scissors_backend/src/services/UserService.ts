@@ -6,6 +6,7 @@
     import { sendOtpEmail,generateOtp } from "../Utils/otp";
     import admin from "../config/firebase";
     import crypto from 'crypto'
+import { userService } from "../config/di";
 
     class UserService {
         private repository:IUserRepostirory
@@ -35,7 +36,7 @@
         async loginUser(
             email: string,
             password: string
-        ): Promise<{ user: IUserDocument; token: string } | null> {
+        ): Promise<{ user: IUserDocument; accessToken: string, refreshToken:string } | null> {
             const user = await  this.repository.getUserByEmail(email);
             if (!user) {
                 throw new Error("Invalid email or password");
@@ -50,15 +51,24 @@
             if (!isPasswordValid) {
             throw new Error("Invalid email or password");
             }
-            const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET as string, {
-            expiresIn: "1h",
+            console.log(user,"user")
+            const accessToken = jwt.sign({ id: user._id,role:user.role,active:user.is_Active }, process.env.JWT_SECRET as string, {
+            expiresIn: "15m",
             });
-            return { user, token };
+
+            const refreshToken = jwt.sign({id:user._id,role:user.role,active:user.is_Active},process.env.REFRESH_TOKEN_SECRET as string,{
+                expiresIn:'7d'
+            })
+
+            await this.repository.updateUserData(user._id as string,{refreshToken})
+            console.log("Done")
+            return { user,accessToken,refreshToken };
         }
 
-        async googleLogin(idToken:string):Promise<{user:IUserDocument,token:string}>{
+        async googleLogin(idToken:string,refreshToken:string):Promise<{user:IUserDocument,token:string}>{
             
             const decodedToken = await admin.auth().verifyIdToken(idToken)
+            console.log(decodedToken,"gooolge")
             const {email,name} = decodedToken
             const tempPassword = crypto.randomBytes(16).toString('hex')
             if(!email){
@@ -74,7 +84,8 @@
             email:email,
             phone:" ",
             password:tempPassword,
-            verified:true
+            verified:true,
+            refreshToken
             })
             console.log(user);
             
@@ -170,8 +181,8 @@
             
         }
 
-        async getTotalPages():Promise<any>{
-            return await this.repository.totalPages()
+        async updateRefreshToken(id:string,refreshToken:string):Promise<any>{
+            return await this.repository.updateRefreshToken(id,refreshToken)
         }
 
 

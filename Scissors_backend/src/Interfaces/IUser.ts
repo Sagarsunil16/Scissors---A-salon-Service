@@ -16,5 +16,6 @@ export interface IUser{
     verified:boolean,
     is_Active:boolean,
     otp?:string | null,
-    otpExpiry?:Date |null
+    otpExpiry?:Date |null,
+    refreshToken:string,
 }

@@ -1,0 +1,46 @@
+import mongoose ,{Document} from "mongoose";
+
+export interface IStylist{
+    name:string;
+    salon:mongoose.Types.ObjectId;
+    email:string;
+    phone:string;
+    workingHours:{
+        day:string,
+        startTime:string,
+        endTime:String
+    }[];
+    services:mongoose.Types.ObjectId[];
+    isAvailable:boolean
+}
+
+export interface IStylistDocument extends Document{
+   
+    name:string;
+    salon:mongoose.Types.ObjectId;
+    email:string;
+    phone:string;
+    workingHours:{
+        day:string,
+        startTime:string,
+        endTime:String
+    }[];
+    services:mongoose.Types.ObjectId[];
+    isAvailable:boolean,
+   
+}
+
+export interface PaginationOptions {
+    page: number;
+    limit: number;
+  }
+
+  export interface PaginationResult<T> {
+    data: T[];
+    pagination: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  }

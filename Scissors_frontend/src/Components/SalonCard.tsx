@@ -1,7 +1,9 @@
+import { Link } from "react-router-dom";
 
-
-const SalonCard = ({ name, image, rating, comment }:any) => {
+const SalonCard = ({ name, image, rating, comment,id }:any) => {
+ 
   return (
+    <Link to={`/salon-details/${id}`}>
     <div className="bg-white shadow-lg rounded-lg p-4 w-64 sm:w-72 md:w-80 transition-transform hover:scale-105">
       {/* Salon Image */}
       <div className="overflow-hidden rounded-lg mb-4">
@@ -26,6 +28,7 @@ const SalonCard = ({ name, image, rating, comment }:any) => {
       {/* Comment */}
       <p className="text-sm text-gray-700">{comment}</p>
     </div>
+    </Link>
   );
 };
 

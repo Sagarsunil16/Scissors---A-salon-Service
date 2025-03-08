@@ -6,7 +6,6 @@ import {useSelector } from "react-redux";
 import { updatePassword } from "../../Services/adminAPI";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
-
 const AdminChangePassword = () => {
   const navigate = useNavigate()
   const { currentUser } = useSelector((state: any) => state.admin);

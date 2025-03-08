@@ -26,8 +26,9 @@ const SignIn  = ({title,onSubmit}:UserSignInProps) => {
     try {
       const result = await signInWithPopup(auth,provider)
       const user = result.user
+      const refreshToken = user.refreshToken;
       const Idtoken = await user.getIdToken()
-      const response =  await googleLogin({token:Idtoken})
+      const response =  await googleLogin({token:Idtoken,refreshToken:refreshToken})
       console.log(response.data)
      dispatch(signInSuccess(response.data.user))
     } catch (error:any) {

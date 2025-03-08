@@ -9,7 +9,8 @@ const PrivateRoute = ({adminOnly,salonOnly,children}:PrivateRouteProps) => {
     const {currentUser:adminUser} =  useSelector((state:any)=>state.admin)
     const {currentUser:normalUser} = useSelector((state:any)=>state.user)
 
-    const currentUser = adminUser || normalUser
+    const currentUser = normalUser || adminUser
+   
 
     const {salon} = useSelector((state:any)=>state.salon)
 

@@ -180,7 +180,7 @@ const SalonProfile = () => {
                 </Form>
               </Formik>
             ) : (
-              <div className="bg-white shadow-md rounded-lg p-6">
+              <div className="bg-white shadow-md rounded-lg p-4 sm:p-6 lg:p-8">
                 <h2 className="text-2xl font-semibold text-gray-700 mb-4">Salon Details</h2>
                 <table className="w-full border-collapse border border-gray-200">
                   <tbody>

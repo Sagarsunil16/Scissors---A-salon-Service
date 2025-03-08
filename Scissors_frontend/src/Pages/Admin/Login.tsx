@@ -24,8 +24,8 @@ const Login = () => {
       toast.success("Login successful!", { position: "top-right", autoClose: 3000 });
       navigate("/admin/dashboard");
     } catch (error: any) {
-      dispatch(signInFailure(error.messa));
-      toast.error(error.response?.data?.error || "Failed to login. Please try again!", {
+      dispatch(signInFailure(error.message));
+      toast.error(error.message || "Failed to login. Please try again!", {
         position: "top-right",
         autoClose: 3000,
       });

@@ -24,6 +24,7 @@
     "react-router-dom": "^7.1.1",
     "react-toastify": "^11.0.3",
     "redux-persist": "^6.0.0",
+    "sweetalert2": "^11.17.2",
     "yup": "^1.6.1"
   },
   "devDependencies": {

@@ -1,32 +1,49 @@
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Sidebar from "../../Components/Sidebar"
 import AdminHeader from "../../Components/AdminHeader"
 import Table from "../../Components/Table"
 import { useDispatch, useSelector } from "react-redux"
-import { blockAndUnblockSalon } from '../../Services/adminAPI'
-import { updateSalonStatus } from "../../Redux/Admin/adminSlice"
+import { blockAndUnblockSalon, fetchSalons } from '../../Services/adminAPI'
+import { ISalon } from "../../interfaces/interface"
+import { toast } from "react-toastify"
+import "react-toastify/dist/ReactToastify.css";
+
 
 
 const Salons = () => {
   const dispatch = useDispatch()
     const [currentPage,setCurrentPage] = useState(1)
+    const [salonData,setSalonData] = useState<ISalon []>([])
     const salons = useSelector((state:any)=>state.admin.salonData.salonData)
-    const totalPages = useSelector((state:any)=>state.admin.salonData.totalSalonPages)
+    const [totalPages,setTotalPages] = useState(1)
     const handlePageChange = async(page:number)=>{
         if(page>0 && page<=totalPages){
             setCurrentPage(page)
         }
     }
     
+    useEffect(()=>{
+      const fetchSalonData = async()=>{
+        try {
+          const data  = {page:currentPage}
+          const response = await fetchSalons(data)
+          setSalonData(response.data.salonData.data)
+          setTotalPages(response.data.totalPages)
+          console.log("Fetched successfully")
+        } catch (error:any) {
+          console.log(error.message)
+        }
+      }
+      fetchSalonData()
+    },[currentPage])
     const handleBlockAndUnblock =  async(salonId:string,isActive:boolean)=>{
         try {
-            const data = {salonId,isActive}
-            const response = await blockAndUnblockSalon(data)
-            dispatch(updateSalonStatus(response.data.updatedSalon))
-           alert("Done")
+            const response = await blockAndUnblockSalon({salonId,isActive})
+            setSalonData((prevSalonData)=>prevSalonData.map((salon)=>salon._id==salonId?{...salon,is_Active:!salon.is_Active}:salon))
+            toast.success("Salon status updated successfully", { position: "top-right" });
         } catch (error:any) {
-            alert(error.message)
+          toast.error(`Error: ${error.message}`, { position: "top-right" });
         }
     }
 
@@ -40,16 +57,12 @@ const Salons = () => {
 
     const actions  = [
         {
-            label:"Block",
-            className:"bg-red-500 text-white py-1 px-4 rounded",onClick:(row:any)=>{row.is_Active? handleBlockAndUnblock(row._id,false):null}
+            label:"Toggle Status",
+            className:"bg-blue-500 text-white py-1 px-4 rounded",
+            onClick:(row:any)=>{ handleBlockAndUnblock(row._id,!row.is_Active)},
+            isDynamic:true
         },
-        {
-            label:"Unblock",
-            className:"bg-green-500 text-white py-1 px-4 rounded",
-            onClick:(row:any)=>{
-                !row.is_Active?handleBlockAndUnblock(row._id,true):null
-            }
-        }
+        
     ]
   return (
    
@@ -62,7 +75,7 @@ const Salons = () => {
                 Salon Management
             </h2>
             <div className="overflow-x-auto">
-                <Table columns={columns} data={salons} actions={actions}/>
+                <Table columns={columns} data={salonData} actions={actions}/>
             </div>
             <div className="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-4 mt-10">
             <button

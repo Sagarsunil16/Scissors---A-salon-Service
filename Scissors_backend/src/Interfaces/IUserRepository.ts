@@ -15,4 +15,6 @@ export interface IUserRepostirory {
     updateUserStatus(id:string,isActive:boolean):Promise<IUserDocument | null>
     verifyOtpAndUpdate(email:string):Promise<IUserDocument | null>
     totalPages():Promise<number>
+    updateUserData(id:string,userData:Partial<IUser>):Promise<IUserDocument | null>
+    updateRefreshToken(id:string,refreshToken:string):Promise<IUserDocument | null>
 }

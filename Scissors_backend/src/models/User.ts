@@ -57,6 +57,10 @@ const UserSchema: Schema = new Schema({
   otpExpiry:{
     type:Date,
     default:null
+  },
+  refreshToken:{
+    type:String,
+    default:null
   }
 });
 

@@ -11,7 +11,7 @@ const Navbar = () => {
   const dispatch = useDispatch()
   const navLinks = [
     { name: "Home", path: "/" },
-    { name: "About", path: "/about" },
+    { name: "Salons", path: "/salons" },
     { name: "Contact", path: "/contact" },
     { name: "Profile", path: "/profile" },
   ];

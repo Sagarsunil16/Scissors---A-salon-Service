@@ -1,7 +1,9 @@
 import * as Yup from "yup";
 import { useNavigate } from "react-router-dom";
-import { signUpSalon,sentOtp } from "../Services/salonAPI";
+import { signUpSalon, sentOtp } from "../Services/salonAPI";
 import { ErrorMessage, Field, Form, Formik } from "formik";
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const SalonRegistration = () => {
   const navigate = useNavigate();
@@ -10,11 +12,14 @@ const SalonRegistration = () => {
     email: "",
     password: "",
     confirmPassword: "",
-    contact: "",
-    areaStreet: "",
-    city: "",
-    state: "",
-    pincode: "",
+    phone: "",
+    address: {
+      areaStreet: "",
+      city: "",
+      state: "",
+      pincode: "",
+    },
+    category: "",
   };
 
   const validationSchema = Yup.object({
@@ -34,7 +39,7 @@ const SalonRegistration = () => {
       .required("Confirm password is required"),
     phone: Yup.string()
       .matches(/^\d{10}$/, "Enter a valid 10-digit phone number")
-      .required("Contact number is required"),
+      .required("Phone number is required"),
     address: Yup.object({
       areaStreet: Yup.string().required("Area/Street is required"),
       city: Yup.string().required("City is required"),
@@ -43,17 +48,18 @@ const SalonRegistration = () => {
         .matches(/^\d{6}$/, "Enter a valid 6-digit pincode")
         .required("Pincode is required"),
     }),
+    category: Yup.string().required("Category is required"),
   });
 
   const handleSubmit = async (values: any) => {
     try {
-      const response =  await signUpSalon(values)
-      const data = {email:values.email}
-      alert(response.data.message || "Please Verify Your Account.");
-      await sentOtp(data)
-      navigate("/salon/register/otp",{state:values});
+      const response = await signUpSalon(values);
+      const data = { email: values.email };
+      toast.success(response.data.message || "Please Verify Your Account.");
+      await sentOtp(data);
+      navigate("/salon/register/otp", { state: values });
     } catch (error: any) {
-      alert(
+      toast.error(
         error?.response?.data?.message ||
           "Failed to submit the form. Please try again."
       );
@@ -63,7 +69,6 @@ const SalonRegistration = () => {
   return (
     <div>
       <div className="min-h-screen flex flex-col lg:flex-row justify-center items-center py-10 relative m-10">
-        {/* Registration Form */}
         <div className="bg-white p-8 border border-gray-300 rounded-xl w-full max-w-lg m-8">
           <h2 className="text-2xl font-manrope mb-6 text-center font-semibold">
             Register Your Salon
@@ -115,9 +120,9 @@ const SalonRegistration = () => {
                   />
                 </div>
 
-                {/* Contact */}
+                {/* Phone */}
                 <div>
-                  <label htmlFor="contact" className="block text-gray-700 mb-2">
+                  <label htmlFor="phone" className="block text-gray-700 mb-2">
                     Phone
                   </label>
                   <Field
@@ -131,7 +136,7 @@ const SalonRegistration = () => {
                     verify your account and keep it safe.
                   </p>
                   <ErrorMessage
-                    name="contact"
+                    name="phone"
                     component="p"
                     className="text-red-500 text-xs mt-1"
                   />
@@ -183,10 +188,10 @@ const SalonRegistration = () => {
                 <div className="flex space-x-4">
                   <div className="w-1/2">
                     <label
-                      htmlFor="areaStreet"
+                      htmlFor="address.areaStreet"
                       className="block text-gray-700 mb-2"
                     >
-                      Address - Area/Street
+                      Area/Street
                     </label>
                     <Field
                       type="text"
@@ -201,7 +206,7 @@ const SalonRegistration = () => {
                     />
                   </div>
                   <div className="w-1/2">
-                    <label htmlFor="city" className="block text-gray-700 mb-2">
+                    <label htmlFor="address.city" className="block text-gray-700 mb-2">
                       City
                     </label>
                     <Field
@@ -217,9 +222,9 @@ const SalonRegistration = () => {
                     />
                   </div>
                 </div>
-                <div className="flex space-x-4 mb-2">
+                <div className="flex space-x-4">
                   <div className="w-1/2">
-                    <label htmlFor="state" className="block text-gray-700 mb-2">
+                    <label htmlFor="address.state" className="block text-gray-700 mb-2">
                       State
                     </label>
                     <Field
@@ -235,10 +240,7 @@ const SalonRegistration = () => {
                     />
                   </div>
                   <div className="w-1/2">
-                    <label
-                      htmlFor="pincode"
-                      className="block text-gray-700 mb-2"
-                    >
+                    <label htmlFor="address.pincode" className="block text-gray-700 mb-2">
                       Pincode
                     </label>
                     <Field
@@ -253,6 +255,31 @@ const SalonRegistration = () => {
                       className="text-red-500 text-xs mt-1"
                     />
                   </div>
+                </div>
+
+                {/* Category Selection */}
+                <div>
+                  <label htmlFor="category" className="block text-gray-700 mb-2">
+                    Salon Category
+                  </label>
+                  <Field
+                    as="select"
+                    id="category"
+                    name="category"
+                    className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="" disabled>
+                      Select a category
+                    </option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Unisex">Unisex</option>
+                  </Field>
+                  <ErrorMessage
+                    name="category"
+                    component="p"
+                    className="text-red-500 text-xs mt-1"
+                  />
                 </div>
 
                 {/* Submit Button */}

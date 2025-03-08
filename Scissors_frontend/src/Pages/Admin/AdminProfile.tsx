@@ -6,7 +6,8 @@ import { useDispatch, useSelector } from "react-redux";
 import { UpdateProfile } from "../../Services/adminAPI";
 import { updateProfileData } from "../../Redux/Admin/adminSlice";
 import { Link } from "react-router-dom";
-
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 const AdminProfile = () => {
   const dispatch = useDispatch()
   const {currentUser} = useSelector((state:any)=>state.admin)
@@ -28,11 +29,11 @@ const AdminProfile = () => {
     try {
       const data = {id:currentUser._id,...values}
       const response = await UpdateProfile(data)
-      alert(response.data.message)
+      toast.success(response.data.message)
       dispatch(updateProfileData(response.data.updatedAdmin))
     } catch (error) {
       console.error("Error updating profile:", error);
-      alert("Failed to update profile. Please try again.");
+      toast.error("Failed to update profile. Please try again.");
     }
   };
 

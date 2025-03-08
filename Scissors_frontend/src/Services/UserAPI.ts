@@ -1,53 +1,113 @@
-import axios from 'axios'
-
+import axios from "axios";
+import { store } from "../Redux/store";
+import { signOut } from "../Redux/User/userSlice";
 const API = axios.create({
-    baseURL: 'http://localhost:3000',
-    withCredentials: true,  // This ensures cookies are sent with requests
-    
-})
+  baseURL: "http://localhost:3000",
+  withCredentials: true, // This ensures cookies are sent with requests
+});
 
-export const loginUser = async(data:{email:string,password:string})=>{
-    return await API.post('/login',data)
-}
-export const signUpUser = async(data:any)=>{
-    return await API.post('/signup',data)
-}
+API.interceptors.request.use((config) => {
+  const token = document.cookie
+    .split(";")
+    .find((row) => row.startsWith("authToken"))
+    ?.split("=")[1];
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
 
-export const forgotPassword = async(data:{email:string})=>{
-    return await API.post('/forgot-password',data)
-}
+API.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
 
-export const sentOTP = async(email:string)=>{
-    return await API.post('/otp',{email})
-}
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      try {
+        await axios.post(
+          "http://localhost:3000/refresh-token",
+          {},
+          {
+            withCredentials: true,
+          }
+        );
 
-export const resendOTP = async(data:{email:string})=>{
-    return await API.put('/resend-otp',data)
-}
+        return API(originalRequest);
+      } catch (refreshError) {
+        await API.post("/signout");
+        window.location.href = "/login";
+        return Promise.reject(refreshError);
+      }
+    }
 
-export const verifyOTP = async(data:{email:string,otp:string})=>{
-    return await API.post('/verify-otp',data)
-}
+    if(error.response?.status===403){
+      alert("You have been blocked by the admin. Logging out...");
+      await API.post('/signout')
+      store.dispatch(signOut())
+    }
+    return Promise.reject(error);
+  }
+);
 
-export const resetPassword = async(data:{email:string,password:string})=>{
-    return await API.put('/reset-password',data)
-}
+export const loginUser = async (data: { email: string; password: string }) => {
+  return await API.post("/login", data);
+};
+export const signUpUser = async (data: any) => {
+  return await API.post("/signup", data);
+};
 
-export const updateUser = async(data:{id:string,firstname:string,lastname:string,address:{areaStreet: string;
-    city: string;
-    state: string;
-    pincode: string;}})=>{
-    return await API.put('/profile',data)
-}
+export const forgotPassword = async (data: { email: string }) => {
+  return await API.post("/forgot-password", data);
+};
 
-export const changePassword = async(data:{currentPassword:string,newPassword:string})=>{
-    return await API.put('change-password',data)
-}
+export const sentOTP = async (email: string) => {
+  return await API.post("/otp", { email });
+};
 
-export const googleLogin =  async(data:{token:string})=>{
-    return  await API.post('/auth/google',data)
-}
+export const resendOTP = async (data: { email: string }) => {
+  return await API.put("/resend-otp", data);
+};
 
-export const LogOut = async()=>{
-    return await API.post('/signout')
-}
+export const verifyOTP = async (data: { email: string; otp: string }) => {
+  return await API.post("/verify-otp", data);
+};
+
+export const resetPassword = async (data: {
+  email: string;
+  password: string;
+}) => {
+  return await API.put("/reset-password", data);
+};
+
+export const updateUser = async (data: {
+  id: string;
+  firstname: string;
+  lastname: string;
+  address: { areaStreet: string; city: string; state: string; pincode: string };
+}) => {
+  return await API.put("/profile", data);
+};
+
+export const changePassword = async (data: {
+  currentPassword: string;
+  newPassword: string;
+}) => {
+  return await API.put("change-password", data);
+};
+
+export const googleLogin = async (data: { token: string,refreshToken:string }) => {
+  return await API.post("/auth/google", data);
+};
+
+export const LogOut = async () => {
+  return await API.post("/signout");
+};
+
+export const getAllSalons = async (params: URLSearchParams) => {
+  return await API.get("/salons", { params });
+};
+
+export const getSalonDetails = async (id: string) => {
+  return await API.get("/salon-details", {
+    params: { id: id },
+  });
+};

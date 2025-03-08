@@ -76,7 +76,13 @@ class UserRepository implements IUserRepostirory {
   async totalPages():Promise<number>{
     return Math.ceil((await User.find({})).length/10)
   }
-  
+
+  updateUserData(id: string, userData: Partial<IUser>): Promise<IUserDocument | null> {
+      return User.findByIdAndUpdate(id,{...userData},{new:true})
+  }
+  updateRefreshToken(id: string, refreshToken: string): Promise<IUserDocument | null> {
+      return User.findByIdAndUpdate(id,{refreshToken},{new:true})
+  }
 }
 
 export default UserRepository;

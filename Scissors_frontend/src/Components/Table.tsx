@@ -43,13 +43,14 @@ const Table = ({ columns, data, actions }: TableProps) => {
               {actions && (
                 <td className="border p-2 align-middle">
                   <div className="flex justify-center items-center space-x-2">
+                    
                     {actions.map((action, idx) => (
                       <button
                         key={idx}
                         onClick={() => action.onClick(row)}
-                        className={`px-3 py-1 text-sm rounded ${action.className}`}
+                        className={`px-3 py-1 text-sm rounded ${action.isDynamic?(row.is_Active? "bg-red-500": "bg-green-500"):"bg-gray-400"}`}
                       >
-                        {action.label}
+                        {action.isDynamic? (row.is_Active?"Block":"Unblock"):action.label}
                       </button>
                     ))}
                   </div>

@@ -1,10 +1,10 @@
 import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 import { useDispatch } from "react-redux";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import { signOut } from "../Redux/Admin/adminSlice";
+import { signOutAdmin } from "../Services/adminAPI";
 const Sidebar = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -14,13 +14,13 @@ const Sidebar = () => {
     setIsOpen(!isOpen);
   };
 
-  const signout = async (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
+  const signout = async () => {
     try {
-      const response = await axios.post("http://localhost:3000/admin/signout");
+      const response = await signOutAdmin();
       console.log(response);
       dispatch(signOut());
       navigate("/admin/login");
+      console.log("naavigated")
     } catch (error: any) {
       console.log(error.message);
     }
@@ -54,17 +54,33 @@ const Sidebar = () => {
             Dashboard
           </Link>
           <Link
-            to="/admin/users"
+            to="/admin/category"
             className="text-gray-300 hover:text-white hover:bg-gray-700 px-4 py-2 rounded"
           >
-            Users
+            Category
           </Link>
+
+          <Link
+            to="/admin/service"
+            className="text-gray-300 hover:text-white hover:bg-gray-700 px-4 py-2 rounded"
+          >
+            Services
+          </Link>
+
           <Link
             to="/admin/salons"
             className="text-gray-300 hover:text-white hover:bg-gray-700 px-4 py-2 rounded"
           >
             Salons
           </Link>
+          <Link
+            to="/admin/users"
+            className="text-gray-300 hover:text-white hover:bg-gray-700 px-4 py-2 rounded"
+          >
+            Users
+          </Link>
+         
+          
           <a
             onClick={signout}
             className="text-gray-300 hover:text-white hover:bg-gray-700 px-4 py-2 rounded cursor-pointer"

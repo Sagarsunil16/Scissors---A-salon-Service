@@ -1,8 +1,9 @@
 import { Router } from "express";
 import UserController from "../controllers/UserController";
-
 import verifyToken from "../middleware/verifyToken";
-import User from "../models/User";
+import SalonController from "../controllers/SalonController";
+import checkRole from "../middleware/checkRole";
+import authMiddleware from "../middleware/auth";
 const router = Router()
 
 router.post('/signup',UserController.createUser)
@@ -14,10 +15,11 @@ router.put('/resend-otp',UserController.sentOtp)
 router.post('/verify-otp',UserController.verifyOtp)
 router.put('/reset-password',UserController.resetPassword)
 router.post('/auth/google',UserController.googleLogin)
-
+router.get('/salons',verifyToken,authMiddleware,SalonController.getAllSalons)
+router.get('/salon-details',verifyToken,authMiddleware,SalonController.getSalonData)
 
 // Protected routes
-router.put('/profile',verifyToken,UserController.updateUser)
-router.put('/change-password',verifyToken,UserController.changePassword)
+router.put('/profile',verifyToken,authMiddleware,checkRole(['User']),UserController.updateUser)
+router.put('/change-password',verifyToken,authMiddleware,checkRole(['User']),UserController.changePassword)
 
 export default router
