@@ -4,13 +4,16 @@ import SalonHeader from "../../Components/SalonHeader";
 import SalonSidebar from "../../Components/SalonSidebar";
 import { useSelector } from "react-redux";
 import { useEffect, useState } from "react";
-import { addStylist } from "../../Services/salonAPI";
+import { addStylist, getSalonData } from "../../Services/salonAPI";
 import { useNavigate } from "react-router-dom";
-
+import { toast } from "react-toastify"
+import "react-toastify/dist/ReactToastify.css";
 interface Service {
   _id: string;
   name: string;
-  service:string,
+  service: {
+    _id:string
+  };
 }
 
 const daysOfWeek = [
@@ -29,10 +32,21 @@ const SalonAddStylist = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (salon?.services) {
-      setServices(salon.services);
-    }
-  }, [salon]);
+    const fetchSalonData = async () => {
+      try {
+        const id = salon._id;
+        const data = await getSalonData({ id });
+        const serviceData = data?.data.salonData?.services
+        console.log(serviceData,"serviceDta")
+        if (data?.data.salonData.services) {  
+          setServices(serviceData);
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    };
+    fetchSalonData()
+  }, []);
 
   const initialValues = {
     name: "",
@@ -88,7 +102,7 @@ const SalonAddStylist = () => {
       resetForm();
     } catch (error) {
       console.error("Error adding stylist:", error);
-      alert("Failed to add stylist. Please try again.");
+      toast.error("Failed to add stylist. Please try again.");
     }
   };
 
@@ -260,7 +274,7 @@ const SalonAddStylist = () => {
                         <Field
                           type="checkbox"
                           name="services"
-                          value={service.service}
+                          value={service.service._id}
                           className="form-checkbox h-4 w-4"
                         />
                         <span>{service.name}</span>

@@ -8,14 +8,25 @@ import {
   addService,
   getSalonData,
   updateService,
+  deleteService,
+  getStylists,
 } from "../../Services/salonAPI";
-
+import { IStylist } from "../../interfaces/interface";
+import Swal from "sweetalert2";
+import { toast } from "react-toastify"
+import "react-toastify/dist/ReactToastify.css";
 interface Service {
   _id: string;
   name: string;
   description: string;
-  service: string;
+  service:{
+    name:string
+  };
   price: number;
+  duration: number;
+  stylists: [{
+    _id:String
+  }]; // Array of stylist IDs
 }
 
 const SalonService = () => {
@@ -25,12 +36,15 @@ const SalonService = () => {
   const [salonServices, setSalonServices] = useState<Service[]>(
     salon.serviceIds || []
   );
+  const [stylists, setStylists] = useState<IStylist[]>([]);
   const [editingService, setEditingService] = useState(null);
   const [editForm, setEditForm] = useState({
     name: "",
     description: "",
     price: "",
-    service: "",
+    service: '',
+    duration: 30,
+    stylists: [] as string[],
   });
   const [selectedService, setSelectedService] = useState<Service | null>(null);
 
@@ -41,15 +55,18 @@ const SalonService = () => {
         setFetchedServices(serviceData.data.services);
         const data = { id: salon._id };
         const salonData = await getSalonData(data);
-        console.log(salonData, "sadasd");
+        console.log(salonData,"Salondata")
         setSalonServices(salonData.data.salonData.services);
+        const stylistData = await getStylists({id:salon._id});
+        setStylists(stylistData.data.result.stylists);
       } catch (error) {
         console.error("Error fetching services:", error);
       }
     };
     fetchServices();
-  }, []);
+  }, [salon._id,editingService]);
 
+  console.log(stylists,"styists")
   const handleSubmit = async (values: any) => {
     try {
       const data = { id: salon._id, ...values };
@@ -60,20 +77,39 @@ const SalonService = () => {
       console.log(error);
     }
   };
-
+  
   const handleEditClick = (service: any) => {
     setEditingService(service._id);
     setEditForm({
       name: service.name,
       description: service.description,
       price: service.price,
-      service: service.service,
+      service: service.service._id,
+      duration: service.duration,
+      stylists:  service.stylists.map((stylist:any) => stylist._id)
     });
   };
 
+  // Add duration input handling
+  const handleDurationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value);
+    setEditForm(prev => ({ ...prev, duration: value }));
+  };
+
+  // Add stylist checkbox handling
+  const handleStylistChange = (stylistId: string) => {
+    setEditForm(prev => ({
+      ...prev,
+      stylists: prev.stylists.includes(stylistId)
+        ? prev.stylists.filter(id => id !== stylistId)
+        : [...prev.stylists, stylistId]
+    }));
+  }
+
   const handleEditCancel = () => {
     setEditingService(null);
-    setEditForm({ name: "", description: "", price: "", service: "" });
+    setEditForm({ name: "", description: "", price: "", service: "", duration: 30,
+      stylists: [] as string[], });
   };
 
   const handleEditSave = async (id: string) => {
@@ -83,9 +119,9 @@ const SalonService = () => {
       const salonId = salon._id;
       const serviceId = id;
       const data = { salonId, serviceId, ...editForm };
-
+      console.log(editForm,"editform")
       const response = await updateService(data);
-      const updatedService = response.data.result; // Make sure this has the correct structure
+      const updatedService = response.data.result// Make sure this has the correct structure
 
       console.log(updatedService, "Updated Service Data");
 
@@ -97,12 +133,13 @@ const SalonService = () => {
             : service
         )
       );
-
+      toast.success(response.data.message)
       // Reset form and editing state
       setEditingService(null);
-      setEditForm({ name: "", description: "", price: "", service: "" });
+      setEditForm({ name: "", description: "", price: "", service: "", duration: 30,
+        stylists: [] as string[], });
     } catch (error: any) {
-      console.log(error.message);
+      toast(error.response.data.message);
     }
   };
 
@@ -113,6 +150,31 @@ const SalonService = () => {
       [name]: value,
     }));
   };
+
+  const handleDeleteService = async(serviceId:string)=>{
+    const result = await Swal.fire({
+      title:"Are you Sure?",
+      text:"This Action Cannot be Undone!",
+      icon:"warning",
+      showCancelButton:true,
+      confirmButtonColor: "#d33",
+    cancelButtonColor: "#3085d6",
+    confirmButtonText: "Yes, delete it!",
+    })
+    if(result.isConfirmed){
+      try {
+      
+        const salonId = salon._id
+        const data = {salonId,serviceId}
+        const response = await deleteService(data)
+        toast.success(response.data.message)
+        setSalonServices((prevServices)=>prevServices.filter((service)=>service._id!==serviceId))
+      } catch (error:any) {
+        toast(error.response.data.message)
+      }
+    }
+    
+  }
   return (
     <div className="flex h-screen">
       <SalonSidebar />
@@ -130,6 +192,8 @@ const SalonService = () => {
                   </th>
                   <th className="border border-gray-300 px-4 py-2">Service</th>
                   <th className="border border-gray-300 px-4 py-2">Price</th>
+                  <th className="border border-gray-300 px-4 py-2">Duration</th>
+                <th className="border border-gray-300 px-4 py-2">Stylists</th>
                   <th className="border border-gray-300 px-4 py-2">Actions</th>
                 </tr>
               </thead>
@@ -165,6 +229,7 @@ const SalonService = () => {
                     <td className="border border-gray-300 px-4 py-2">
                       {editingService === service._id ? (
                         <select
+
                           name="service"
                           value={editForm.service}
                           className="border rounded px-2 py-2 w-full"
@@ -178,7 +243,7 @@ const SalonService = () => {
                           ))}
                         </select>
                       ) : (
-                        service.name
+                        service.service.name
                       )}
                     </td>
                     <td className="border border-gray-300 px-4 py-2">
@@ -194,6 +259,44 @@ const SalonService = () => {
                         service.price
                       )}
                     </td>
+                    <td className="border border-gray-300 px-4 py-2">
+                    {editingService === service._id ? (
+                      <input
+                        type="number"
+                        min="15"
+                        step="15"
+                        value={editForm.duration}
+                        className="border rounded px-2 py-2 w-full"
+                        onChange={handleDurationChange}
+                      />
+                    ) : (
+                      `${service.duration} mins`
+                    )}
+                  </td>
+                  <td className="border border-gray-300 px-4 py-2">
+                    {editingService === service._id ? (
+                      <div className="grid grid-cols-2 gap-2">
+                        {stylists.map(stylist => (
+                          <label key={stylist._id} className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              checked={editForm.stylists.includes(stylist._id)}
+                              onChange={() => handleStylistChange(stylist._id)}
+                              className="form-checkbox h-4 w-4 text-blue-500"
+                            />
+                            <span>{stylist.name}</span>
+                          </label>
+                        ))}
+                      </div>
+                    ) : (
+                      service.stylists
+                        .map(stylist => 
+                          stylists.find(s => s._id === stylist._id)?.name
+                        )
+                        .join(", ")
+                    )}
+                  </td>
+                  
                     <td className="border border-gray-300 px-4 py-2 flex space-x-2">
                       {editingService === service._id ? (
                         <>
@@ -218,7 +321,8 @@ const SalonService = () => {
                           >
                             Edit
                           </button>
-                          <button className="bg-red-500 text-white px-3 py-1 rounded">
+                          <button className="bg-red-500 text-white px-3 py-1 rounded"
+                          onClick={()=>handleDeleteService(service._id)}>
                             Delete
                           </button>
                         </>

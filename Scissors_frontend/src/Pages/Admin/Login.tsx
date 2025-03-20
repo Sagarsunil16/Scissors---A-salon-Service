@@ -21,8 +21,8 @@ const Login = () => {
       dispatch(signInSuccess(response.data.user));
       dispatch(getUserDataSuccess(response.data.userData.userData));
       dispatch(getSalonDataSuccess(response.data.salonData.salonData));
-      toast.success("Login successful!", { position: "top-right", autoClose: 3000 });
       navigate("/admin/dashboard");
+      toast.success(response.data.message || "Login successful!", { position: "top-right", autoClose: 3000 });
     } catch (error: any) {
       dispatch(signInFailure(error.message));
       toast.error(error.message || "Failed to login. Please try again!", {

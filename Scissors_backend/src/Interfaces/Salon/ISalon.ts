@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { ObjectId } from "mongoose";
 import { Address } from "../IUser";
 export interface ISalon {
   salonName: string;
@@ -20,13 +21,59 @@ export interface ISalon {
   otpExpiry?: Date | null;
   services:[
     {
-    service:mongoose.Types.ObjectId,
-    name:String,
-    description:String,
-    price:string
+    _id:mongoose.Schema.Types.ObjectId
+    service:{
+      _id:mongoose.Types.ObjectId,
+    name:string,
+    description:string,
+    },
+    name:string,
+    description:string,
+    price:number,
+    duration:number
+    stylists:[
+      {_id:mongoose.Schema.Types.ObjectId,
+        name:string,
+        salon:mongoose.Schema.Types.ObjectId,
+        email:string,
+        phone:string,
+        workingHours:{
+          day:string,
+          startTime:string,
+          endTime:string
+        }[],
+        services:mongoose.Schema.Types.ObjectId[],
+        isAvailable:boolean
+      }]
   }
-  ]
+  ],
+  timeZone:string
+  rating:string
 }
+
+export interface ISalonService {
+  _id: mongoose.Schema.Types.ObjectId;
+  service: {
+    _id:mongoose.Types.ObjectId,
+  name:string,
+  description:string,
+  },
+  name: string;
+  description: string;
+  price: number;
+  duration: number;
+  stylists: {
+    _id: mongoose.Schema.Types.ObjectId;
+    name: string;
+    salon: mongoose.Schema.Types.ObjectId;
+    email: string;
+    phone: string;
+    workingHours: { day: string; startTime: string; endTime: string }[];
+    services: mongoose.Schema.Types.ObjectId[]; // If needed, otherwise remove
+    isAvailable: boolean;
+  }[];
+}
+
 
 
 export interface SalonQueryParams {
@@ -36,3 +83,5 @@ export interface SalonQueryParams {
   rating?: string[];
   offers?: string;
 }
+
+ 

@@ -1,7 +1,8 @@
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { Schema, Document,ObjectId } from "mongoose";
 import { ISalon } from "../Interfaces/Salon/ISalon";
 
 export interface ISalonDocument extends ISalon, Document {
+  _id:ObjectId
   _doc?: ISalon;
 }
 
@@ -48,7 +49,7 @@ const salonSchema: Schema = new Schema({
   },
   is_Active: {
     type: Boolean,
-    default: false,
+    default: true,
   },
   otp: {
     type: String,
@@ -88,12 +89,22 @@ const salonSchema: Schema = new Schema({
         requred:true,
         default:30
       },
-      stylist:{
+      stylists:[{
         type:mongoose.Schema.Types.ObjectId,
         ref:'Stylist'
-      }
+      }],
     },
   ],
+  timeZone:{
+    type:String,
+    required:true,
+    default:'UTC'
+  },
+  rating:{
+    type:String,
+    required:true,
+    default:3
+  }
 });
 
 export default mongoose.model<ISalonDocument>("Salon", salonSchema);

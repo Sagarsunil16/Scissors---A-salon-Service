@@ -52,6 +52,7 @@ const OTP = ({resendOTP,verifyOTP,redirectPath}:OTPVerificationProps) => {
             setTimer(60);
             setIsResendEnabled(false);
         } catch (error:any) {
+          toast.error(error.message)
             console.log(error)
             setServerError(error.response.data.message)
         }
@@ -61,9 +62,10 @@ const OTP = ({resendOTP,verifyOTP,redirectPath}:OTPVerificationProps) => {
         setServerError("")
         try {
             const response = await verifyOTP({email,otp:values.otp})
-            toast.success("Verification Successfull, Please Log in")
+            toast.success(response.data.message || "Verification Successfull, Please Log in")
             navigate(redirectPath)
         } catch (error:any) {
+          toast.error(error.message)
             setServerError(error.message)
         }
     }

@@ -1,19 +1,20 @@
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import { userService } from "../config/di";
-
+import CustomError from "../Utils/cutsomError";
+import { SUCCESS_MESSAGES,ERROR_MESSAGES } from "../constants";
 class UserController {
-  async createUser(req: Request, res: Response): Promise<any> {
+  async createUser(req: Request, res: Response,next:NextFunction): Promise<any> {
     try {
       const newUser = await userService.createUser(req.body);
       res
         .status(201)
-        .json({ message: "Account created successfully", user: newUser });
+        .json({ message: SUCCESS_MESSAGES.USER_CREATED, user: newUser });
     } catch (error: any) {
-      res.status(500).json({ error: error.message || "Internal server Error" });
+      next(new CustomError("Oops! Something went wrong while creating your account. Please try again later.", 500));
     }
   }
 
-  async userLogin(req: Request, res: Response): Promise<any> {
+  async userLogin(req: Request, res: Response,next:NextFunction): Promise<any> {
     try {
       const { email, password } = req.body;
       const result = await userService.loginUser(email, password);
@@ -32,15 +33,15 @@ class UserController {
         })
         .status(200)
         .json({
-          message: "Login successfull",
+          message: "You have logged in successfully!",
           user: result?.user,
         });
     } catch (error: any) {
-      res.status(401).json({ error: error.message || "Invalid credentials" });
+      next(new CustomError(ERROR_MESSAGES.INVALID_CREDENTIALS, 401));
     }
   }
 
-  async googleLogin(req: Request, res: Response): Promise<any> {
+  async googleLogin(req: Request, res: Response,next:NextFunction): Promise<any> {
     try {
       const { token,refreshToken } = req.body;
       const cookieOptions = {
@@ -57,82 +58,79 @@ class UserController {
           ...cookieOptions,maxAge:7*24*60*60*1000
         } )
         .status(200)
-        .json({ message: "Login Successfull", user: result?.user });
+        .json({ message: "You have successfully logged in with Google!", user: result?.user });
     } catch (error: any) {
-      res.status(401).json({ error: error.message || "Invalid credentials" });
+      next(new CustomError("There was an issue logging you in with Google. Please try again.", 401)); 
     }
   }
 
-  async userSignOut(req: Request, res: Response): Promise<any> {
+  async userSignOut(req: Request, res: Response,next:NextFunction): Promise<any> {
    
     res
       .clearCookie("authToken", { path: "/", httpOnly: true, secure: false })
       .clearCookie("refreshToken",{ path: "/", httpOnly: true, secure: false })
       .status(200)
-      .json({ message: "Logged Out Successfully!" });
+      .json({ message: "You have been logged out successfully. See you next time!" });
    
   }
 
-  async sentOtp(req: Request, res: Response): Promise<any> {
+  async sentOtp(req: Request, res: Response,next:NextFunction): Promise<any> {
     try {
       const { email } = req.body;
       const message = await userService.sendOtp(email);
       res.status(200).json({ message: message });
     } catch (error: any) {
-      res.status(400).json({ message: error.message });
+      next(new CustomError("We couldn't send the OTP. Please try again later.", 400));
     }
   }
 
-  async verifyOtp(req: Request, res: Response): Promise<any> {
+  async verifyOtp(req: Request, res: Response ,next:NextFunction): Promise<any> {
     try {
       const { email, otp } = req.body;
       const isValid = await userService.verifyOTP(email, otp);
-      res.status(200).json({ message: "OTP verified Successfully", isValid });
+      res.status(200).json({ message: "Your OTP has been verified successfully!", isValid });
     } catch (error: any) {
-      res.status(400).json({ message: error.message });
+      next(new CustomError("The OTP you entered is invalid or expired. Please try again.", 400));
     }
   }
 
-  async resetPassword(req: Request, res: Response): Promise<any> {
+  async resetPassword(req: Request, res: Response,next:NextFunction): Promise<any> {
     try {
       const { email, password } = req.body;
       const message = await userService.resetPasssword(email, password);
-      res.status(200).json({ message: message });
+      res.status(200).json({ message: SUCCESS_MESSAGES.PASSWORD_RESET });
     } catch (error: any) {
-      res.status(400).json({ message: error.message });
+      next(new CustomError("Something went wrong while resetting your password. Please try again.", 400));
     }
   }
 
-  async updateUser(req: Request, res: Response): Promise<any> {
+  async updateUser(req: Request, res: Response,next:NextFunction): Promise<any> {
     try {
       const { id, firstname, lastname, phone, address } = req.body;
       const updatedData = { firstname, lastname, phone, address };
       const updatedUser = await userService.updateUser(id, updatedData, false);
       if (!updatedUser) {
-        return res.status(404).json({ message: "User not found" });
+        throw new CustomError("We couldn't find your profile. Please make sure you're logged in.", 404);
       }
       return res.status(200).json({
-        message: "Profile updated successfully",
+        message: "Your profile has been updated successfully!",
         user: updatedUser._doc,
       });
     } catch (error: any) {
-      return res.status(500).json({ message: error.message });
+      next(new CustomError("Oops! Something went wrong while updating your profile. Please try again.", 500));
     }
   }
 
-  async changePassword(req: Request, res: Response): Promise<any> {
+  async changePassword(req: Request, res: Response,next:NextFunction): Promise<any> {
     try {
       const { id, currentPassword, newPassword } = req.body;
       if (!currentPassword || !newPassword) {
-        return res
-          .status(400)
-          .json({ message: "current and new passwords are required" });
+        throw new CustomError("Please provide both your current and new password to proceed.", 400);
       }
       await userService.changePassword(id, currentPassword, newPassword);
-      return res.status(200).json({ message: "Password updated successfully" });
+      return res.status(200).json({ message: "Your password has been updated successfully!" });
     } catch (error: any) {
-      console.error("Error changing password:", error.message);
-      return res.status(500).json({ message: error.message });
+      next( new CustomError("Oops! Something went wrong while changing your password. Please try again later.", 500));
     }
   }
 

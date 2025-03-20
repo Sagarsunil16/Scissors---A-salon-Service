@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { resetPassword } from "../Services/UserAPI";
 import * as Yup from "yup";
-
+import { toast } from "react-toastify"
+import "react-toastify/dist/ReactToastify.css";
 const ResetPassword = () => {
   const [serverError, setServerError] = useState("");
   const location = useLocation();
@@ -42,12 +43,13 @@ const ResetPassword = () => {
         email,
         password: values.password,
       });
-      alert("Password changed successfully! Please log in.");
+      toast.success(response.data.message || "Password changed successfully! Please log in.");
       navigate("/");
     } catch (error: any) {
       setServerError(
         error.response?.data?.message || "Failed to reset password. Please try again."
       );
+      toast.error(error.response.data.message)
     }
   };
 

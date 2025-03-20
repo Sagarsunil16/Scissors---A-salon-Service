@@ -5,7 +5,8 @@ import ProfileNavbar from "./ProfileNavbar";
 import * as Yup from "yup"; // For validation schema
 import { updateUser } from "../Services/UserAPI";
 import { updateProfileSuccess } from "../Redux/User/userSlice";
-
+import { toast } from "react-toastify"
+import "react-toastify/dist/ReactToastify.css";
 const ProfileSetting = () => {
   const user = useSelector((state: any) => state.user.currentUser);
   const navigate = useNavigate(); // Initialize the navigate hook
@@ -42,9 +43,10 @@ const ProfileSetting = () => {
   
     const response:any = await updateUser(payload);
     dispatch(updateProfileSuccess(response?.data?.user))
-    alert(response.data.message);
+    toast(response.data.message);
     } catch (error: any) {
       console.error("Error updating profile:", error.message);
+      toast.error(error.response.data.message)
     }
   };
   
@@ -185,7 +187,8 @@ const ProfileSetting = () => {
               </div>
 
               {/* Change Password Button */}
-              <div className="text-center mt-6">
+              {!user.googleLogin && (
+                <div className="text-center mt-6">
                 <button
                   type="button"
                   onClick={handleChangePasswordClick}
@@ -194,6 +197,8 @@ const ProfileSetting = () => {
                   Change Password
                 </button>
               </div>
+              )}
+              
             </Form>
           )}
         </Formik>

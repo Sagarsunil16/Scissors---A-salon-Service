@@ -11,6 +11,7 @@ import Registration from "../Pages/Salon/Registration"
 import { useSelector } from "react-redux"
 import AddStylist from "../Pages/Salon/AddStylist"
 import Stylists from "../Pages/Salon/Stylists"
+import EditStylist from "../Pages/Salon/EditStylist"
 
 const SalonRoutes = () => {
     const {salon} = useSelector((state:any)=>state.salon)
@@ -76,7 +77,7 @@ const SalonRoutes = () => {
           }
         />
         <Route
-          path="/stylist"
+          path="/stylists"
           element={
             <PrivateRoute salonOnly={true}>
               <Stylists />
@@ -88,6 +89,14 @@ const SalonRoutes = () => {
           element={
             <PrivateRoute salonOnly={true}>
               <AddStylist />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/stylists/edit/:id"
+          element={
+            <PrivateRoute salonOnly={true}>
+              <EditStylist />
             </PrivateRoute>
           }
         />

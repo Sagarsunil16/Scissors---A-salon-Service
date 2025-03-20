@@ -8,6 +8,8 @@ import cloudinary from "../config/cloudinary";
 import { SalonQueryParams } from "../Interfaces/Salon/ISalon";
 import { ICategoryRepository } from "../Interfaces/Category/ICategoryRepository";
 import mongoose, { Mongoose } from "mongoose";
+import { salonService } from "../config/di";
+import CustomError from "../Utils/cutsomError";
 
 class SalonService {
     private salonRepository: ISalonRepository;
@@ -19,7 +21,7 @@ class SalonService {
     async createSalon(salonData:ISalon):Promise<ISalonDocument>{
         const categoryData =  await this.categoryRepository.findByName(salonData.category)
         if(!categoryData){
-            throw new Error ("Category not Found")
+            throw new CustomError("Category not found. Please choose a valid category.", 400);
          }
         salonData.category = categoryData._id as mongoose.Types.ObjectId
         salonData.password = await bcrypt.hash(salonData.password,10)
@@ -29,46 +31,46 @@ class SalonService {
     async sendOtp(email:string):Promise<string>{
             const salon = await this.salonRepository.getSalonByEmail(email)
             if(!salon){
-                throw new Error("User not found");
+                throw new CustomError("No account found with this email address. Please check and try again.", 404);
             }
             const otp = generateOtp()
             const otpExpiry = new Date(Date.now() + 1 * 60 * 1000) // 1minutes
             await this.salonRepository.updateSalonOtp(email,otp,otpExpiry)
             await sendOtpEmail(email,otp)
-            return "OTP Sent to your email."
+            return "OTP has been sent to your email address.";
     }
 
     async verifyOtp(email:string,otp:string):Promise<string>{
         const salon =  await this.salonRepository.getSalonByEmail(email)
         if(!salon){
-            throw new Error("Salon not Found")
+            throw new CustomError("Salon not found with this email. Please ensure your account exists.", 404);
         }
         if(!salon.otp || !salon.otpExpiry || salon.otp!==otp){
-            throw new Error("Invalid or Exired Otp")
+            throw new CustomError("Invalid OTP. Please check and try again.", 400);
         }
         if(salon.otpExpiry< new Date()){
-            throw new Error("OTP has Expired")
+            throw new CustomError("OTP has expired. Please request a new one.", 400);
         }
         await this.salonRepository.verifyOtpAndUpdate(email)
-        return "Verifcation Successfull"
+        return "Verification successful. You may now log in.";
     }
 
     async loginSalon(email:string,password:string):Promise<{salon:ISalonDocument,token:string}>{
         const salon = await this.salonRepository.getSalonByEmail(email)
         if(!salon){
-            throw new Error ("Salon not found")
+            throw new CustomError("Salon not found. Please check your email or create an account.", 404);
         }
         const isPasswordValid =  await bcrypt.compare(password,salon.password);
         if(!isPasswordValid){
-            throw new Error ("Invalid Email or Password");
+            throw new CustomError("Invalid email or password. Please try again.", 400);
         }
 
         if(!salon.verified){
-            throw new Error("Please veerify your account First!")
+            throw new CustomError("Please verify your account before logging in.", 400);
         }
 
         if(!salon.is_Active){
-            throw new Error("Your Account has been blocked. Please contact customer care!")
+            throw new CustomError("Your account has been deactivated. Please contact customer care.", 403);
         }
 
       
@@ -81,7 +83,7 @@ class SalonService {
 
     async getSalonData(id:string):Promise<ISalonDocument | null>{
         if(!id){
-            throw new Error("Id not Found")
+            throw new CustomError("Salon ID is required to fetch salon data.", 400);
         }
         return this.salonRepository.getSalonById(id)
     }
@@ -110,7 +112,7 @@ class SalonService {
 
     async salonProfileUpdate(updatedData:Partial<ISalon>):Promise<ISalonDocument | null>{
        if(!updatedData.salonName || !updatedData.email || !updatedData.phone){
-        throw new Error("Missing required fields")
+        throw new CustomError("Missing required fields. Salon name, email, and phone are mandatory.", 400);
        }
        const updatedSalon =  await this.salonRepository.updateSalonProfile(updatedData)
        return updatedSalon
@@ -136,43 +138,85 @@ class SalonService {
   async deleteSalonImage(salonId:string,imageId:string,cloudinaryImageId:string):Promise<ISalonDocument | null>{
     const salon = await this.salonRepository.getSalonById(salonId)
     if(!salon){
-        throw new Error("Salon not found")
+        throw new CustomError("Salon not found. Please verify the salon ID.", 404);
     }
     await cloudinary.uploader.destroy(cloudinaryImageId);
     const imageExist = salon.images.some((image)=>image._id.toString() === imageId)
     if(!imageExist){
-        throw new Error("Image doesn't exist")
+        throw new CustomError("The image you are trying to delete does not exist.", 404);
     }
 
     const updatedSalonData = await this.salonRepository.deleteSalonImage(salonId,imageId)
     return updatedSalonData
   }
 
-  async addService(salonId:string,serviceData:{name:string,description:string,service:string,price:number}):Promise<ISalonDocument |null>{
+  async addService(salonId:string,serviceData:{name:string,description:string,service:string,price:number,duration:number,stylist:{}[]}):Promise<ISalonDocument |null>{
     if(!salonId){
-        throw new Error("Id not found")
+        throw new CustomError("Salon ID is required to add a service.", 400);
     }
-    if (!serviceData.name || !serviceData.price || !serviceData.description || !serviceData.service) {
-        throw new Error("All Fields required");
+    if (!serviceData.name || !serviceData.price || !serviceData.description || !serviceData.service || !serviceData.duration ) {
+        throw new CustomError("All fields are required to add a service.", 400);
     }
     const result =  await this.salonRepository.addService(salonId,serviceData)
 
    return result
   }
 
-  async updateService(serviceData:{salonId:string,serviceId:string,name:string,description:string,price:number,service:string}):Promise<ISalonDocument | null>{
-    if(!serviceData.salonId){
-        throw new Error("No Id found")
+  async updateService(serviceData:{salonId:string,serviceId:string,name:string,description:string,price:number,service:string,duration:number,stylists:string[]}):Promise<ISalonDocument | null>{
+    // Update validation
+    const requiredFields: (keyof typeof serviceData)[] = [
+        'name', 
+        'description', 
+        'price', 
+        'service', 
+        'duration', 
+        'stylists'
+      ];
+    
+      // Add type predicate to filter
+      const missingFields = requiredFields.filter(
+        (field): field is keyof typeof serviceData => 
+          !serviceData[field]
+      );
+      if (missingFields.length > 0) {
+        throw new CustomError(`Missing fields: ${missingFields.join(', ')}`, 400);
+      }
+
+      // Validate service ID before conversion
+    if (!mongoose.Types.ObjectId.isValid(serviceData.service)) {
+        throw new CustomError("Invalid service ID.", 400);
     }
-    if(!serviceData.name ||  !serviceData.description || !serviceData.price || !serviceData.service){
-        throw new Error("Name, Description, Service and price is needed")
-    }
-    const salonId = serviceData.salonId
-    const serviceId =  serviceData.serviceId
-    const data = {name:serviceData.name,description:serviceData.description,price:serviceData.price,service:serviceData.service,}
-    return this.salonRepository.updateService(salonId,serviceId,data)
-  }
+    
+
+    // Convert string IDs to ObjectIds
+    const data = {
+        name: serviceData.name,
+        description: serviceData.description,
+        price: serviceData.price,
+        service: new mongoose.Types.ObjectId(serviceData.service),
+        duration: serviceData.duration,
+        stylists: serviceData.stylists.map(id => new mongoose.Types.ObjectId(id))
+    };
+
+    return this.salonRepository.updateService(
+        serviceData.salonId,
+        serviceData.serviceId,
+        data
+    );
  
+    }
+
+    async removeService(salonId:string,serviceId:string):Promise<ISalonDocument | null>{
+        if(!salonId || !serviceId){
+            throw new CustomError("Both Salon ID and Service ID are required to remove a service.", 400);
+        }
+
+        const salon = this.salonRepository.getSalonById(salonId)
+        if(!salon){
+            throw new CustomError("Salon not found. Please verify the salon ID.", 404);
+        }
+        return this.salonRepository.removeService(salonId,serviceId)
+    }
 }
 
 export default SalonService

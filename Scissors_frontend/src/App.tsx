@@ -3,7 +3,7 @@ import { ToastContainer } from 'react-toastify';
 import AppRoutes from './routes/AppRoutes';
 export default function App() {
   
- 
+
   return (
     <Router>
       <ToastContainer position="top-center" autoClose={3000} />

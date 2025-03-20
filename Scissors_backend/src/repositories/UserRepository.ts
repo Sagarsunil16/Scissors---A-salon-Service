@@ -1,15 +1,19 @@
 import User, { IUserDocument } from "../models/User";
 import { IUser } from "../Interfaces/IUser";
 import { IUserRepostirory } from "../Interfaces/IUserRepository";
+import { BaseRepository } from "./BaseRepository";
 
-class UserRepository implements IUserRepostirory {
+class UserRepository extends BaseRepository<IUserDocument> implements IUserRepostirory {
+  constructor(){
+    super(User)
+  }
   async createUser(userData: Partial<IUser>): Promise<IUserDocument> {
       console.log(userData,"userData")
-      return await User.create(userData);
+      return await this.create(userData);
   }
 
   async getUserById(id: string): Promise<IUserDocument | null> {
-    return await User.findById(id);
+    return await this.findById(id);
   }
 
   async getUserByEmail(email: string): Promise<IUserDocument | null> {

@@ -4,6 +4,9 @@ import SalonSidebar from "../../Components/SalonSidebar";
 import { uploadImage, deleteImage } from "../../Services/salonAPI";
 import { useDispatch, useSelector } from "react-redux";
 import { addImagesSalon, deleteImageSalon,start,stop } from "../../Redux/Salon/salonSlice";
+import { toast } from "react-toastify"
+import "react-toastify/dist/ReactToastify.css";
+import Swal from "sweetalert2";
 const SalonGallery = () => {
   const { salon,loading } = useSelector((state: any) => state.salon);
   const dispatch = useDispatch();
@@ -23,26 +26,39 @@ const SalonGallery = () => {
       const response = await uploadImage(formData);
       console.log(response, "response");
       dispatch(addImagesSalon(response.data.updatedSalonData))
+      toast.success(response.data.message)
       setFile(null); // Clear the selected file
-    } catch (err:any) {
-      console.error("Image upload failed:", err);
-      alert("Failed to upload image.");
-      dispatch(stop(err.message))
+    } catch (error:any) {
+      console.error("Image upload failed:", error);
+      toast.error(error.message);
+      dispatch(stop(error.message))
     }
   };
 
   const handleDelete = async (imageId: string,cloudinaryImageId:string) => {
-    try {
-        dispatch(start())
-      const data = { salonId: salon._id, imageId,cloudinaryImageId };
-      const response = await deleteImage(data);
-      dispatch(deleteImageSalon(response.data.updatedSalonData))
-    } catch (err:any) {
-      console.error("Failed to delete image:", err);
-      alert("Failed to delete image.");
-      dispatch(stop(err.message))
+     const result = await Swal.fire({
+          title:"Are you Sure?",
+          text:"This Action Cannot be Undone!",
+          icon:"warning",
+          showCancelButton:true,
+          confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "Yes, delete it!",
+        })
+        if(result.isConfirmed){
+          try {
+            dispatch(start())
+          const data = { salonId: salon._id, imageId,cloudinaryImageId };
+          const response = await deleteImage(data);
+          dispatch(deleteImageSalon(response.data.updatedSalonData))
+        } catch (err:any) {
+          console.error("Failed to delete image:", err);
+          alert("Failed to delete image.");
+          dispatch(stop(err.message))
+        }
+      };
     }
-  };
+   
 
   return (
     <div>
@@ -71,7 +87,7 @@ const SalonGallery = () => {
             >
               <input
                 type="file"
-                onChange={(e) =>
+                onChange={(e:any) =>
                   setFile(e.target.files ? e.target.files[0] : null)
                 }
                 className="border p-2 rounded w-full sm:w-auto"

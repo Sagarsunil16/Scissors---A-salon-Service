@@ -6,7 +6,7 @@
     import { sendOtpEmail,generateOtp } from "../Utils/otp";
     import admin from "../config/firebase";
     import crypto from 'crypto'
-import { userService } from "../config/di";
+    import CustomError from "../Utils/cutsomError";
 
     class UserService {
         private repository:IUserRepostirory
@@ -39,19 +39,22 @@ import { userService } from "../config/di";
         ): Promise<{ user: IUserDocument; accessToken: string, refreshToken:string } | null> {
             const user = await  this.repository.getUserByEmail(email);
             if (!user) {
-                throw new Error("Invalid email or password");
+                throw new CustomError("The email address you entered is not associated with any account. Please check your email or sign up.", 401);
             }
             if(!user.is_Active){
-                throw new Error("Account has been blocked!")
+                throw new CustomError("Your account has been blocked. Please contact support for further assistance.", 403);
             }
             if(!user.verified){
-                throw new Error("Please verify you account first")
+                throw new CustomError("Please verify your account before logging in. A verification email has been sent.", 401);
             }
+             if (user.role === "Admin") {
+                    throw new CustomError("Unauthorized access. Admin privileges required.", 401);
+                  }
             const isPasswordValid = await bcrypt.compare(password, user.password);
             if (!isPasswordValid) {
-            throw new Error("Invalid email or password");
+                throw new CustomError("The credentials you entered are incorrect. Please try again.", 401);
             }
-            console.log(user,"user")
+           
             const accessToken = jwt.sign({ id: user._id,role:user.role,active:user.is_Active }, process.env.JWT_SECRET as string, {
             expiresIn: "15m",
             });
@@ -76,7 +79,9 @@ import { userService } from "../config/di";
             }
             const username = name.split(" ")
             let user =  await this.repository.getUserByEmail(email)
-        
+            if(!user?.is_Active){
+                throw new CustomError("Your account has been blocked. Please contact support for further assistance.", 403);
+            }
             if(user==null){
             user = await this.repository.createUser({
             firstname: username[0],
@@ -85,7 +90,8 @@ import { userService } from "../config/di";
             phone:" ",
             password:tempPassword,
             verified:true,
-            refreshToken
+            refreshToken,
+            googleLogin:true
             })
             console.log(user);
             
@@ -106,7 +112,7 @@ import { userService } from "../config/di";
             const otpExpiry = new Date(Date.now() + 1 * 60 * 1000) // 1minutes
             await this.repository.updateUserOtp(email,otp,otpExpiry)
             await sendOtpEmail(email,otp)
-            return "OTP Sent to your email."
+            return "An OTP has been sent to your email. Please check your inbox."
         }
 
         async getAllUsers(page:number,limit:number):Promise<{data:IUserDocument[],totalCount:number}>{
@@ -116,13 +122,13 @@ import { userService } from "../config/di";
         async verifyOTP(email:string,otp:string):Promise<string>{
                 const user = await this.repository.getUserByEmail(email)
                 if(!user){
-                    throw new Error("User not found")
+                    throw new CustomError("We couldn't find an account associated with this email address.", 404);
                 }
                 if(!user.otp || !user.otpExpiry || user.otp!==otp){
-                    throw new Error("Invalid or expired OTP")
+                    throw new CustomError("The OTP you entered is invalid. Please check and try again.", 400);
                 }
                 if(user.otpExpiry< new Date()){
-                    throw new Error("OTP has Expired")
+                    throw new CustomError("The OTP has expired. Please request a new one.", 400);
                 }
                 await this.repository.verifyOtpAndUpdate(email)
                 return "Verification Successfull"
@@ -134,7 +140,7 @@ import { userService } from "../config/di";
             }
             const hashedPassword =  await bcrypt.hash(newPassword,10)
             await this.repository.resetPassword(email,hashedPassword)
-            return "Password reset successfully."
+            return "Your password has been reset successfully!"
         }
 
         async updateUser(

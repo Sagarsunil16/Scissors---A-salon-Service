@@ -32,7 +32,7 @@ const Salons = () => {
     { name: "Lip Tinting" },
   ];
 
-  // Update URL with current state
+
   useEffect(() => {
     const params = new URLSearchParams();
 
@@ -43,11 +43,10 @@ const Salons = () => {
     if (filters.offers) params.set("offers", filters.offers);
     params.set("page", String(currentPage));
 
-    // Update the URL without reloading the page
     setSearchParams(params);
   }, [search, location, filters, currentPage, setSearchParams]);
 
-  // Fetch salon data
+ 
   useEffect(() => {
     const fetchSalonData = async () => {
       try {
@@ -60,10 +59,10 @@ const Salons = () => {
           page: currentPage.toString(),
         });
 
-        // Replace this with your actual API call
+        
         const response = await getAllSalons(queryParams);
         console.log(response,"getaLLSalons")
-        setSalonsData(response.data.data.salons); // Assuming response.data contains the salon data
+        setSalonsData(response.data.data.salons); 
       } catch (error:any) {
         console.error(error.message);
       }
@@ -75,7 +74,7 @@ const Salons = () => {
     return () => clearTimeout(delayDebounceFn);
   }, [filters, search, location, currentPage]);
 
-  // Read state from URL on component mount
+  
   useEffect(() => {
     const params = Object.fromEntries(searchParams.entries());
 
@@ -102,8 +101,8 @@ const Salons = () => {
   const handleRatingChange = (star:number) => {
     setFilters((prev:any) => {
       const updatedRatings = prev.ratings.includes(star)
-        ? prev.ratings.filter((rating:any) => rating !== star) // Remove if already selected
-        : [...prev.ratings, star]; // Add if not already selected
+        ? prev.ratings.filter((rating:any) => rating !== star) 
+        : [...prev.ratings, star]; 
       return {
         ...prev,
         ratings: updatedRatings,
@@ -264,7 +263,7 @@ const Salons = () => {
                   <SalonCard
                     key={index}
                     name={salon.salonName}
-                    image={salon.images[0].url}
+                    image={salon.images?salon.images[0].url : "https://content.jdmagicbox.com/comp/ernakulam/g1/0484px484.x484.220123012003.f7g1/catalogue/chop-shop-barber-and-brand-panampilly-nagar-ernakulam-salons-1lafuvkusk.jpg" }
                     rating={salon.rating}
                     comment={`${salon.address.areaStreet}, ${salon.address.city}`} 
                     id={salon._id}

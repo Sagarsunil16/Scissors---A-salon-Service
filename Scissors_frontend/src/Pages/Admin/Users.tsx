@@ -49,7 +49,7 @@ const Users = () => {
       prevUserData.map((user)=>user._id===userId?{...user,isActive:!user.is_Active}:user))
       toast.success(response.data.message);
     } catch (error: any) {
-      toast.error(error.message);
+      toast.error(error.response.data.error);
     }
   };
 
@@ -68,9 +68,9 @@ const Users = () => {
     try {
       const response = await deleteUserAPI({ id });
       dispatch(deleteUser(response.data.deletedUser._id));
-      alert("Deleted Successfully");
+      toast.success(response.data.message || "Deleted Successfully");
     } catch (error: any) {
-      alert(error.message);
+      toast.error(error.response.data.message);
     }
   }
   };

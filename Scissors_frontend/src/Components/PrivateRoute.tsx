@@ -8,7 +8,7 @@ interface PrivateRouteProps {
 const PrivateRoute = ({adminOnly,salonOnly,children}:PrivateRouteProps) => {
     const {currentUser:adminUser} =  useSelector((state:any)=>state.admin)
     const {currentUser:normalUser} = useSelector((state:any)=>state.user)
-
+  
     const currentUser = normalUser || adminUser
    
 

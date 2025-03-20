@@ -6,7 +6,8 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useDispatch } from 'react-redux';
 import { signOut } from '../../Redux/User/userSlice';
-
+import { toast } from "react-toastify"
+import "react-toastify/dist/ReactToastify.css";
 const UserDashboard = () => {
     const dispatch = useDispatch()
     const navigate = useNavigate()
@@ -16,8 +17,9 @@ const UserDashboard = () => {
             console.log(response)
             dispatch(signOut())
             navigate('/login')
+            toast.success(response.data.message)
         } catch (error:any) {
-            console.log(error.message)
+            toast.error(error.response.data.message)
         }
    }
   return (

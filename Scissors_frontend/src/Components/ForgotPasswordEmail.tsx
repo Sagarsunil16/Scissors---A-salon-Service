@@ -4,6 +4,8 @@ import { forgotPassword } from "../Services/UserAPI"
 import * as Yup from "yup"
 import { useState } from "react"
 import { Field, Formik,Form, ErrorMessage } from "formik"
+import { toast } from "react-toastify"
+import "react-toastify/dist/ReactToastify.css";
 const ForgotPasswordEmail = () => {
     const navigate = useNavigate()
     const [serverError,setServerError] = useState("")
@@ -21,10 +23,11 @@ const ForgotPasswordEmail = () => {
         try {
             const response = await forgotPassword(values)
             console.log(response)
-            alert('OTP send Successfully to your email')
+            toast.success(response.data.message || 'OTP send Successfully to your email')
             navigate(`/forgot-password/otp`, { state: { email: values.email } });
         } catch (error:any) {
             setServerError(error.response?.data?.message || "Failed to send OTP. Try again.");
+            toast.error(error.response.data.message)
         }
     }
   return (

@@ -36,6 +36,12 @@ class StylistRepositry implements IStylistRepository{
 
         return query.exec()
     }
+
+    async deleteStylist(id: string): Promise<boolean> {
+        await Stylist.findByIdAndDelete(id)
+        return true
+    }
+
 }
 
 export default StylistRepositry 

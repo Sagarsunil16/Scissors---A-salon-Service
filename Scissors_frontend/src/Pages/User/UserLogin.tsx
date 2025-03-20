@@ -17,12 +17,10 @@ const UserLogin = () => {
       const response = await loginUser(values);
       dispatch(signInSuccess(response.data.user))
       console.log("Before toast success"); // Debugging
-  toast.success("Logged in")
-  console.log("After toast success"); // Debugging
-      navigate("/dashboard")
+      toast.success(response.data.message)
     } catch (error:any) {
       dispatch(signInFailure(true))
-      toast.error(error?.response?.data?.error || "Failed to login. Please try again!")
+      toast.error(error?.response?.data?.message || "Failed to login. Please try again!")
     }
   }
   return (

@@ -6,7 +6,8 @@ import { Field, Form, Formik, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import { updateSalon } from "../../Redux/Salon/salonSlice";
 import { updateSalonProfile } from "../../Services/salonAPI";
-
+import { toast } from "react-toastify"
+import "react-toastify/dist/ReactToastify.css";
 const SalonProfile = () => {
   const { salon } = useSelector((state: any) => state.salon);
   const [isEditing, setIsEditing] = useState(false); // State to toggle between view and edit modes
@@ -43,9 +44,11 @@ const SalonProfile = () => {
       const response = await updateSalonProfile(values); 
       console.log(response);
       dispatch(updateSalon(response.data.updatedData)); 
+      toast.success(response.data.message)
       setIsEditing(false); 
     } catch (error: any) {
       console.error("Error updating salon:", error);
+      toast.error(error.response.data.message)
     }
   };
 

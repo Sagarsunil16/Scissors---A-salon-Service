@@ -5,6 +5,8 @@ import ProfileNavbar from "./ProfileNavbar";
 import { changePassword } from "../Services/UserAPI";
 import { useState } from "react";
 import { useSelector } from "react-redux";
+import { toast } from "react-toastify"
+import "react-toastify/dist/ReactToastify.css";
 const Password = () => {
   const navigate = useNavigate(); 
   const [serverMessage, setServerMessage] = useState(""); 
@@ -23,12 +25,13 @@ const Password = () => {
         try {
          const partials = {id:user._id,currentPassword:values.currentPassword,newPassword:values.newPassword}
           const response = await changePassword(partials)
-          alert("Password changes Successfully");
+          toast.success(response.data.message || "Password changes Successfully");
           navigate('/settings')
         } catch (error: any) {
           setServerMessage(
             error.response?.data?.message || "Failed to change password."
           );
+          toast.error(error.response.data.message)
         }
   }
   return (

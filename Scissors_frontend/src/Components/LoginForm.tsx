@@ -3,7 +3,8 @@ import { useDispatch } from "react-redux";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import { Link } from "react-router-dom";
 import * as Yup from "yup";
-
+import { toast } from "react-toastify"
+import "react-toastify/dist/ReactToastify.css";
 const LoginForm = ({
   loginFunction,
   title,
@@ -32,14 +33,12 @@ const LoginForm = ({
     try {
       const response = await loginFunction(values);
       dispatch(signInSuccess(response.data.details));
-      alert("Login Successful");
+      toast.success(response.data.message);
       navigate(redirectPath);
     } catch (error: any) {
       console.log(error);
       dispatch(signInFailure(true));
-      alert(
-        error?.response?.data?.message || "Failed to login. Please try again!"
-      );
+      toast.error(error.message);
     }
   };
 

@@ -5,7 +5,7 @@ export interface ITimeSlot{
     stylist:mongoose.Types.ObjectId,
     startTime:Date,
     endTime:Date,
-    service:mongoose.Types.ObjectId,
+    service:mongoose.Types.ObjectId[],
     status:'available' | 'booked' | 'cancelled'
 }
 
@@ -14,6 +14,6 @@ export interface ITimeSlotDocument extends Document{
     stylist:mongoose.Types.ObjectId,
     startTime:Date,
     endTime:Date,
-    service:mongoose.Types.ObjectId,
+    service:mongoose.Types.ObjectId[],
     status:'available' | 'booked' | 'cancelled'
 }

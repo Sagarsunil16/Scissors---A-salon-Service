@@ -1,6 +1,7 @@
 import mongoose ,{Document} from "mongoose";
 
 export interface IStylist{
+  _id:mongoose.Types.ObjectId
     name:string;
     salon:mongoose.Types.ObjectId;
     email:string;
@@ -10,7 +11,7 @@ export interface IStylist{
         startTime:string,
         endTime:String
     }[];
-    services:mongoose.Types.ObjectId[];
+    services:string[];
     isAvailable:boolean
 }
 
@@ -25,7 +26,7 @@ export interface IStylistDocument extends Document{
         startTime:string,
         endTime:String
     }[];
-    services:mongoose.Types.ObjectId[];
+    services:string[];
     isAvailable:boolean,
    
 }

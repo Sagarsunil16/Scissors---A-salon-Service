@@ -61,6 +61,11 @@ const UserSchema: Schema = new Schema({
   refreshToken:{
     type:String,
     default:null
+  },
+  googleLogin:{
+    type:Boolean,
+    required:true,
+    default:false
   }
 });
 

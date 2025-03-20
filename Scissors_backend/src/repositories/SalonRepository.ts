@@ -1,11 +1,12 @@
 import Salon from "../models/Salon";
 import Service from "../models/Service";
 import { ISalonRepository } from "../Interfaces/Salon/ISalonRepository";
-import { ISalon, SalonQueryParams } from "../Interfaces/Salon/ISalon";
+import { ISalon, ISalonService, SalonQueryParams } from "../Interfaces/Salon/ISalon";
 import { ISalonDocument } from "../models/Salon";
 import { IService } from "../Interfaces/Service/IService";
 import MasterService from "../models/MasterService";
 import { StdioNull } from "node:child_process";
+import mongoose from "mongoose";
 ;
 
 
@@ -18,7 +19,9 @@ class SalonRepository implements ISalonRepository{
     }
 
     async getSalonById(id:string):Promise<ISalonDocument | null>{
-        return await Salon.findById(id).populate('services')
+        return await Salon.findById(id).populate('services.service')
+        .populate('services.stylists')
+        .exec();
     }
     async getAllSalon(page:number):Promise<{data:ISalonDocument[],totalCount:number}>{
         try {
@@ -30,6 +33,11 @@ class SalonRepository implements ISalonRepository{
             console.log("Error fetching salon data",error);
             throw new Error("Could not fetch salons")
         }
+    }
+
+    async getSalonService(SalonId: string, serviceId: string): Promise<ISalonService | null> {
+        const salon = await this.getSalonById(SalonId)
+        return salon?.services.find(s=>s._id.toString() == serviceId) || null;
     }
 
     async updateSalonOtp(email:string,otp:string,otpExpiry:Date):Promise<ISalonDocument | null>{
@@ -65,24 +73,41 @@ class SalonRepository implements ISalonRepository{
         return salon
     }
 
-    async addService(salonId:string,serviceData:{name:string,description:string,service:string,price:number}):Promise<ISalonDocument | null>{
+    async addService(salonId:string,serviceData:{name:string,description:string,service:string,price:number,duration:number,stylist:{}[]}):Promise<ISalonDocument | null>{
         return await Salon.findByIdAndUpdate(salonId,{$push:{services:serviceData}},{new:true})
     }
 
-    async updateService(salonId: string,serviceId:string, serviceData: { name: string; description: string; service: string; price: number; }): Promise<ISalonDocument | null> {
-          
-            return await Salon.findOneAndUpdate({_id:salonId,"services._id":serviceId},{
-
-                $set:{
-                    "services.$.name":serviceData.name,
-                    "services.$.description":serviceData.description,
-                    "services.$.service":serviceData.service,
-                    "services.$.price":serviceData.price
-                }
-            },{new:true})
-        
-       
-    }
+    async updateService(
+        salonId: string,
+        serviceId: string,
+        serviceData: {
+          name: string;
+          description: string;
+          service: mongoose.Types.ObjectId;
+          price: number;
+          duration: number;
+          stylists: mongoose.Types.ObjectId[];
+        }
+      ): Promise<ISalonDocument | null> {
+        return await Salon.findOneAndUpdate(
+          {
+            _id: new mongoose.Types.ObjectId(salonId),
+            "services._id": new mongoose.Types.ObjectId(serviceId),
+          },
+          {
+            $set: {
+              "services.$.name": serviceData.name,
+              "services.$.description": serviceData.description,
+              "services.$.service": serviceData.service,
+              "services.$.price": serviceData.price,
+              "services.$.duration": serviceData.duration,
+              "services.$.stylists": serviceData.stylists
+            },
+          },
+          { new: true }
+        ).populate("services.service services.stylists");
+      }
+      
 
     async findOrCreateService(serviceData:{serviceName:string,serviceDescription:string,category:string,price:number}):Promise<any>{
         let service =  await MasterService.findOne({serviceName:serviceData.serviceName,
@@ -138,6 +163,11 @@ class SalonRepository implements ISalonRepository{
         const total =  await Salon.countDocuments(query)
 
         return {salons,total}
+    }
+    async removeService(salonId: string, serviceId: string): Promise<ISalonDocument | null> {
+        return await Salon.findByIdAndUpdate(salonId,{
+            $pull:{services:{_id:serviceId}}
+        },{new:true})
     }
 }
 

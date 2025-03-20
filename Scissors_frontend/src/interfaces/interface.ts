@@ -112,3 +112,10 @@ export interface Address {
     services:Array<{name:string,description:string}>,
     isAvailable:boolean
   }
+
+  export interface WorkingHours {
+    day: string;
+    startTime: string;
+    endTime: string;
+  }
+  

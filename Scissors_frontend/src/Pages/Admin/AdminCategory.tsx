@@ -33,8 +33,9 @@ const AdminCategory = () => {
         const response = await deleteCategory(data);
         console.log(response.data);
         setCategories(categories.filter((cat: any) => cat._id !== id));
+        toast.success(response.data.message)
       } catch (error: any) {
-        toast.error(error.message);
+        toast.error(error.response.data.message);
       }
     }
   };

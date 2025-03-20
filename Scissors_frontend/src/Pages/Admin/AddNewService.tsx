@@ -4,7 +4,8 @@ import AdminHeader from "../../Components/AdminHeader";
 import Sidebar from "../../Components/Sidebar";
 import { addService } from "../../Services/adminAPI"; // Replace with the correct API method for adding services
 import { useNavigate } from "react-router-dom";
-
+import { toast } from "react-toastify"
+import "react-toastify/dist/ReactToastify.css";
 const AddNewService = () => {
   const navigate = useNavigate();
 
@@ -22,11 +23,13 @@ const AddNewService = () => {
       const response = await addService(values); // API call to add service
       if (response.status === 200) {
         navigate("/admin/service"); // Redirect to services list page
+        toast.success(response.data.message)
       } else {
         console.error("Failed to add service");
       }
-    } catch (error) {
+    } catch (error:any) {
       console.log("An error occurred while adding the service.", error);
+      toast.error(error.response.data.message)
     }
   };
 

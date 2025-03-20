@@ -29,8 +29,9 @@ const AdminProfile = () => {
     try {
       const data = {id:currentUser._id,...values}
       const response = await UpdateProfile(data)
-      toast.success(response.data.message)
+      console.log(response)
       dispatch(updateProfileData(response.data.updatedAdmin))
+      toast.success(response.data.message || "Profile Updated Successfully")
     } catch (error) {
       console.error("Error updating profile:", error);
       toast.error("Failed to update profile. Please try again.");

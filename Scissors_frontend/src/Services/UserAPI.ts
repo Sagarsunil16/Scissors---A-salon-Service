@@ -1,8 +1,9 @@
 import axios from "axios";
 import { store } from "../Redux/store";
 import { signOut } from "../Redux/User/userSlice";
+import { API_ENDPOINTS } from '../Constants';
 const API = axios.create({
-  baseURL: "http://localhost:3000",
+  baseURL: API_ENDPOINTS.BASE_URL,
   withCredentials: true, // This ensures cookies are sent with requests
 });
 
@@ -24,7 +25,8 @@ API.interceptors.response.use(
       originalRequest._retry = true;
       try {
         await axios.post(
-          "http://localhost:3000/refresh-token",
+          `${API_ENDPOINTS.BASE_URL}${API_ENDPOINTS.REFRESH_TOKEN}`,
+          // "http://localhost:3000/refresh-token",
           {},
           {
             withCredentials: true,
@@ -111,3 +113,30 @@ export const getSalonDetails = async (id: string) => {
     params: { id: id },
   });
 };
+
+export const getAvailableSlot = async(data:{id:string,serviceId:string,selectedDate:string})=>{
+  return await API.get(`/available-slot/${data.id}/${data.serviceId}?date=${data.selectedDate}`)
+}
+
+export const getSalonDetailsWithSlots = async (data: { id: string; serviceId?: string;
+  stylistId?:string; selectedDate?: string }) => {
+  return await API.get("/salon-details", {
+      params: {
+          id: data.id,
+          serviceId: data.serviceId,
+          date: data.selectedDate,
+          stylistId:data.stylistId
+      },
+  });
+};
+export const fetchServiceStylist = async(data:{salonId:string,serviceIds:string[]})=>{
+  return API.get(`/salons/${data.salonId}/stylist`,{
+    params: {
+      serviceIds: data.serviceIds.join(','), // Convert array to comma-separated string
+  },
+  })
+}
+
+export const paymentIntentResponse = async(data:{amount:number,currency:string})=>{
+    return await API.post('/create-payment-intent',data)
+}

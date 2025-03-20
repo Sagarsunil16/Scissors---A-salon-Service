@@ -60,7 +60,7 @@ const SalonRegistration = () => {
       navigate("/salon/register/otp", { state: values });
     } catch (error: any) {
       toast.error(
-        error?.response?.data?.message ||
+        error.message||
           "Failed to submit the form. Please try again."
       );
     }

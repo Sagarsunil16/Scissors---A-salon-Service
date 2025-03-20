@@ -4,10 +4,13 @@ import * as Yup from "yup";
 import SalonHeader from "../../Components/SalonHeader";
 import SalonSidebar from "../../Components/SalonSidebar";
 import { useDispatch, useSelector } from "react-redux";
-import { addService, getAllService } from "../../Services/salonAPI";
+import { addService, getAllService, getStylists } from "../../Services/salonAPI";
 import { useEffect, useState } from "react";
 // import { addNewService } from "../../Redux/Salon/salonSlice";
 import { useNavigate } from "react-router-dom";
+import { IStylist } from "../../interfaces/interface";
+import { toast } from "react-toastify"
+import "react-toastify/dist/ReactToastify.css";
 interface Service {
   _id: string;
   name: string;
@@ -18,6 +21,7 @@ interface Service {
 const SalonAddService = () => {
   const {salon} = useSelector((state:any)=>state.salon)
   const [fetchedServices, setFetchedServices] = useState<Service[]>([]);
+  const [stylists, setStylists] = useState<IStylist | null>(null);
   // const dispatch = useDispatch()
   const navigate = useNavigate()
 
@@ -26,6 +30,8 @@ const SalonAddService = () => {
         try {
           const serviceData = await getAllService();
           setFetchedServices(serviceData.data.services);
+          const stylistData = await getStylists({id:salon._id});
+          setStylists(stylistData.data.result.stylists)
         } catch (error) {
           console.error("Error fetching services:", error);
         }
@@ -34,28 +40,21 @@ const SalonAddService = () => {
     }, []);
 
   const initialValues = {
-    serviceName: "",
-    serviceDescription: "",
+    name: "",
+    description: "",
     service: "",
     price: "",
     duration:30,
     stylists:[] as string[]
   };
 
-  const stylists = [
-    { _id: "1", name: "John Doe" },
-    { _id: "2", name: "Jane Smith" },
-    { _id: "3", name: "Michael Brown" },
-    { _id: "4", name: "Emily Johnson" },
-  ];
-  
-
+ 
   // Validation schema using Yup
   const validationSchema = Yup.object({
-    serviceName: Yup.string()
+      name: Yup.string()
       .min(2, "Service name must be at least 2 characters")
       .required("Service name is required"),
-    serviceDescription: Yup.string()
+      description: Yup.string()
       .min(5, "Description must be at least 5 characters")
       .required("Service description is required"),
       service: Yup.string()
@@ -73,25 +72,28 @@ const SalonAddService = () => {
     .typeError("Duration must be a number")
     .positive("Duration must be positive")
     .required("Duraion is required"),
-    stylist:Yup.array()
-    .min(1,"Select at least one stylist")
-    .required("At least one stylist is required"),
+    // stylists:Yup.array()
+    // .min(1,"Select at least one stylist")
+    // .required("At least one stylist is required"),
   });
 
   // Form submission
-  const handleSubmit = async (values:any, { resetForm }) => {
+  const handleSubmit = async (values: any, { resetForm }) => {
     try {
-      const data  = {id:salon._id,...values}
-    const response = await addService(data)
-    console.log(response)
-      // dispatch(addNewService(response.data.updatedSalonData))
-      navigate('/salon/service')
+      const data = { id: salon._id, ...values };
+      console.log("Submitting Data:", data); // Debugging
+  
+      const response = await addService(data);
+      console.log("Response:", response); // Debugging
+      navigate("/salon/service");
+      toast.success(response.data.message)
       resetForm();
     } catch (error) {
       console.error("Error adding service:", error);
-      alert("Failed to add service. Please try again.");
+      toast.error("Failed to add service. Please try again.");
     }
   };
+  
 
   return (
     <div className="flex h-screen">
@@ -115,18 +117,18 @@ const SalonAddService = () => {
               <Form className="max-w-md mx-auto bg-white p-6 shadow-lg rounded-lg">
                 {/* Service Name */}
                 <div className="mb-4">
-                  <label htmlFor="serviceName" className="block font-medium mb-1">
+                  <label htmlFor="name" className="block font-medium mb-1">
                     Service Name
                   </label>
                   <Field
                     type="text"
-                    id="serviceName"
-                    name="serviceName"
+                    id="name"
+                    name="name"
                     placeholder="Enter service name"
                     className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-300"
                   />
                   <ErrorMessage
-                    name="serviceName"
+                    name="name"
                     component="div"
                     className="text-red-500 text-sm mt-1"
                   />
@@ -134,18 +136,18 @@ const SalonAddService = () => {
 
                 {/* Service Description */}
                 <div className="mb-4">
-                  <label htmlFor="serviceDescription" className="block font-medium mb-1">
+                  <label htmlFor="description" className="block font-medium mb-1">
                     Service Description
                   </label>
                   <Field
                     type="text"
-                    id="serviceDescription"
-                    name="serviceDescription"
+                    id="description"
+                    name="description"
                     placeholder="Enter service description"
                     className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring focus:ring-blue-300"
                   />
                   <ErrorMessage
-                    name="serviceDescription"
+                    name="description"
                     component="div"
                     className="text-red-500 text-sm mt-1"
                   />

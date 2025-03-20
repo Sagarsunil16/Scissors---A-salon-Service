@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const API = axios.create({
-    baseURL: "http://localhost:3000/admin",
+    baseURL: `${import.meta.env.VITE_API_URL}/admin`,
     withCredentials: true, // Ensure cookies are sent with the request
 });
 
@@ -26,7 +26,8 @@ API.interceptors.response.use(
             try {
                 console.log("🔄 Sending refresh token request...");
                 const refreshResponse = await axios.post(
-                    "http://localhost:3000/auth/refresh-token",
+                    `${import.meta.env.VITE_API_URL}/auth/refresh-token`,
+                    // "http://localhost:3000/auth/refresh-token",
                     {},
                     { withCredentials: true }
                 );

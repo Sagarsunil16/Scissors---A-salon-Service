@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react"
 import SalonHeader from "../../Components/SalonHeader"
 import SalonSidebar from "../../Components/SalonSidebar"
-import { getStylists } from "../../Services/salonAPI"
+import { getStylists,deleteStylist } from "../../Services/salonAPI"
 import { useSelector } from "react-redux"
 import { Link } from "react-router-dom"
 import SearchInput from "../../Components/SearchInput"
 import { IStylist } from "../../interfaces/interface"
 import Pagination from "../../Components/Pagination"
 import ConfirmationModal from "../../Components/ConfirmationModal"
+import { toast } from "react-toastify"
+import "react-toastify/dist/ReactToastify.css";
 const Stylists = () => {
     const [stylists,setStylists] = useState<IStylist[]>([])
     const {salon} = useSelector((state:any)=>state.salon)
@@ -21,21 +23,30 @@ const Stylists = () => {
     useEffect(()=>{
       const fetchSalonData = async()=>{
         try {
+          if (!salon?._id) return; // Ensure salon._id is available before making API call
           const data = {id:salon._id,page:currentPage,limit:itemsPerPage,search:searchTerm}
           const response = await getStylists(data)
+          console.log(response,"stylist data")
           setStylists(response.data.result.stylists)
         } catch (error:any) {
           console.log(error)
         }
       }
       fetchSalonData()
-    },[currentPage, searchTerm, salon])
+    },[salon._id, currentPage, searchTerm])
 
     const handleDelete = async () => {
-      if(selectedStylist?._id) {
-        // await dispatch(deleteStylist(selectedStylist._id));
-        setShowDeleteModal(false);
+      try {
+        if(selectedStylist?._id) {
+          const response = await deleteStylist(selectedStylist?._id)
+          setShowDeleteModal(false);
+          setStylists((prevStylists)=>prevStylists.filter((stylist)=>stylist._id!==selectedStylist._id))
+          toast.success(response.data.message)
+        }
+      } catch (error:any) {
+        toast.error(error.response.data.message)
       }
+     
     };
     
   return (

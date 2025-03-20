@@ -6,6 +6,8 @@ import {useSelector } from "react-redux";
 import { updatePassword } from "../../Services/adminAPI";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { toast } from "react-toastify"
+import "react-toastify/dist/ReactToastify.css";
 const AdminChangePassword = () => {
   const navigate = useNavigate()
   const { currentUser } = useSelector((state: any) => state.admin);
@@ -35,14 +37,16 @@ const AdminChangePassword = () => {
       const response = await updatePassword(data);
       setResponseMessage(response.data.message);
       setResponseType("success");
+      toast.success(response.data.message)
       resetForm()
       // navigate('/admin/profile');
     } catch (error:any) {
       console.error("Error updating password:", error);
       setResponseMessage(
-        error.response?.data?.message || "Failed to change password. Please try again."
+        error.response?.data?.error || "Failed to change password. Please try again."
       );
       setResponseType("error");
+      toast.error(error.response.data.error)
     }
   };
 

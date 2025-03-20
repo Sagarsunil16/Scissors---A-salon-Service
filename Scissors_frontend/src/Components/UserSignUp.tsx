@@ -50,7 +50,7 @@ const UserSignUp = () => {
         const response =  await signUpUser(values)
         await sentOTP(values.email)
         dispatch(signUpSuccess());
-        toast.success("Sign-up successful! OTP sent to your email.");
+        toast.success("Please verify the OTP sent to your email.");
         navigate("/signup/verify",{state:values});
        } catch (error:any) {
         const errorMessage = error?.response?.data?.message || "Sign-up failed";

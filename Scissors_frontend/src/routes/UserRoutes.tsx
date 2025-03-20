@@ -13,25 +13,19 @@ import ForgotPassword from "../Pages/User/ForgotPassword"
 import ForgotOtp from "../Pages/User/ForgotOtp"
 import ResetPass from "../Pages/User/ResetPass"
 import Salons from "../Pages/User/Salons"
+import BookingConfirmation from "../Pages/User/BookingConfirmation"
+
 
 const UserRoutes = () => {
     const { currentUser } = useSelector((state: any) => state.user);
   return (
     <Routes>
-      <Route
-          path="/"
-          element={<HomePage />}
-        />
+      {/* Public Routes */}
+      <Route path="/" element={<HomePage />} />
 
-        <Route
-          path="/salons"
-          element={ <Salons />}
-        />
-
-        <Route
-          path="/salon-details/:id"
-          element={ <SalonDetails />}
-        />
+      <Route path="/salons" element={<Salons />} />
+      
+      <Route path="/salon-details/:id" element={<SalonDetails />} />
 
         <Route
           path="/login"
@@ -95,6 +89,15 @@ const UserRoutes = () => {
           element={
             <PrivateRoute adminOnly={false}>
               <ChangePassword />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/salons/:salonName/book"
+          element={
+            <PrivateRoute adminOnly={false}>
+              <BookingConfirmation />
             </PrivateRoute>
           }
         />

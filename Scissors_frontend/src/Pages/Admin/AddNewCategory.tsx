@@ -4,7 +4,8 @@ import AdminHeader from "../../Components/AdminHeader";
 import Sidebar from "../../Components/Sidebar";
 import { addCategory } from "../../Services/adminAPI";
 import { useNavigate } from "react-router-dom";
-
+import { toast } from "react-toastify"
+import "react-toastify/dist/ReactToastify.css";
 const AddCategory = () => {
   const navigate = useNavigate();
 
@@ -23,11 +24,13 @@ const AddCategory = () => {
       if (response.status==200) {
         navigate("/admin/category"); // Redirect to categories list page
       } 
+      toast.success(response.data.message)
       // else {
       //   setErrors({ general: response.data.message || "Failed to add category" });
       // }
-    } catch (error) {
+    } catch (error:any) {
       console.log("An error occurred while adding the category.");
+      toast.error(error.response.data.message)
     } 
   };
 

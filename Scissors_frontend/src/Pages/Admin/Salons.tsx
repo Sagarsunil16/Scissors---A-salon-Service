@@ -41,9 +41,9 @@ const Salons = () => {
         try {
             const response = await blockAndUnblockSalon({salonId,isActive})
             setSalonData((prevSalonData)=>prevSalonData.map((salon)=>salon._id==salonId?{...salon,is_Active:!salon.is_Active}:salon))
-            toast.success("Salon status updated successfully", { position: "top-right" });
+            toast.success(response.data.message || "Salon status updated successfully", { position: "top-right" });
         } catch (error:any) {
-          toast.error(`Error: ${error.message}`, { position: "top-right" });
+          toast.error(error.response.data.error || `Error: ${error.message}`, { position: "top-right" });
         }
     }
 

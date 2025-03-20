@@ -1,12 +1,10 @@
 const express = require('express')
 const dotenv = require('dotenv')
 import cors from 'cors'
-import userRoute from './routes/userRoutes'
-import adminRoute from './routes/adminRoute'
-import salonRoute from './routes/salonRoute'
-import authRoute from './routes/authRoute'
+import mainRouter from './routes/index'
 import mongoConnect from "./config/mongoConfig"
 import cookieParser = require('cookie-parser')
+import globalErrorHandler from './middleware/globalErrorHandler'
 dotenv.config()
 const app = express()
 mongoConnect()
@@ -23,11 +21,7 @@ app.use(cors({
 }))
 
 
-app.use('/',userRoute)
-app.use('/admin/',adminRoute)
-app.use('/salon/',salonRoute)
-app.use('/auth/',authRoute)
-
+app.use(mainRouter);
 app.listen(process.env.PORT,()=>{
     console.log(`Server is listening on ${process.env.PORT} `)
 })

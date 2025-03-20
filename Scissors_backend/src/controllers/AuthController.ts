@@ -1,7 +1,7 @@
-import { Request,Response } from "express";
+import { NextFunction, Request,Response } from "express";
 import jwt from 'jsonwebtoken'
 import { userService } from "../config/di";
-import { decode } from "punycode";
+import CustomError from "../Utils/cutsomError";
 
 export interface TokenPayload {
     id: string;
@@ -10,13 +10,13 @@ export interface TokenPayload {
   }
   
 class AuthController{
-    async refreshToken(req:Request,res:Response):Promise<any>{
+    async refreshToken(req:Request,res:Response,next:NextFunction):Promise<any>{
         try {
             console.log(req.cookies)
             const refreshToken  = req.cookies.refreshToken
             console.log(refreshToken,"refreshToken")
             if(!refreshToken){
-                return res.status(401).json({message:"No Refresh token provided"})
+                return next(new CustomError( "No refresh token provided. Please log in again.",401));
             }
 
             const decoded =  jwt.verify(refreshToken,process.env.REFRESH_TOKEN_SECRET!) as TokenPayload
@@ -27,7 +27,7 @@ class AuthController{
 
             const user = await userService.getUserById(decoded.id);
             if(!user || user.refreshToken!==refreshToken){
-                return res.status(401).json({message:"Invalid Refresh token"})
+                return next(new CustomError("Invalid refresh token. Please log in again.",401));
             }
 
             const newAccessToken = jwt.sign({
@@ -40,9 +40,9 @@ class AuthController{
                 httpOnly:true,
                 maxAge:15*60*1000,
                 secure:false,
-            }).json({message:"Token refreshed Successfully",accesstoken:newAccessToken})
+            }).json({message:"Token refreshed successfully",accesstoken:newAccessToken})
         } catch (error:any) {
-            return res.status(500).json({message:"Invalid Refresh token",error:error.message})
+            return next(new CustomError(error.message || "An unexpected error occurred while refreshing the token.",500));
         }
     }
 }

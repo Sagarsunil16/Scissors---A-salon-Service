@@ -3,6 +3,8 @@ import * as Yup from 'yup'
 import { Formik,Form,Field,ErrorMessage } from "formik"
 import { useLocation, useNavigate } from "react-router-dom"
 import { resendOTP,verifyOTP } from "../Services/UserAPI"
+import { toast } from "react-toastify"
+import "react-toastify/dist/ReactToastify.css";
 const ForgotPasswordOTP = () => {
 
     const [serverError,setServerError] = useState('');
@@ -45,12 +47,13 @@ const ForgotPasswordOTP = () => {
     const resend = async()=>{
         setServerError("")
         try {
-            await resendOTP(email)
-            alert("Otp resended")
+            const response = await resendOTP(email)
+            toast(response.data.message || "Otp resended")
             setTimer(60);
             setIsResendEnabled(false);
         } catch (error:any) {
             setServerError(error.message)
+            toast.error(error.response.data.message)
         }
     }
 
@@ -58,10 +61,11 @@ const ForgotPasswordOTP = () => {
         setServerError("")
         try {
             const response = await verifyOTP({email,otp:values.otp})
-            alert("done")
+            toast.success(response.data.message)
             navigate('/forgot-password/reset',{state:{email}})
         } catch (error:any) {
             setServerError(error.message)
+            toast.error(error.response.data.message)
         }
     }
   return (

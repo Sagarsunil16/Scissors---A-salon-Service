@@ -7,6 +7,8 @@ import { provider,auth } from "../Config/firebase";
 import { googleLogin } from "../Services/UserAPI";
 import { signInstart,signInSuccess,signInFailure } from "../Redux/User/userSlice";
 import { useDispatch } from "react-redux";
+import { toast } from "react-toastify"
+import "react-toastify/dist/ReactToastify.css";
 const SignIn  = ({title,onSubmit}:UserSignInProps) => {
   const dispatch = useDispatch()
   const initialValues = {
@@ -29,11 +31,13 @@ const SignIn  = ({title,onSubmit}:UserSignInProps) => {
       const refreshToken = user.refreshToken;
       const Idtoken = await user.getIdToken()
       const response =  await googleLogin({token:Idtoken,refreshToken:refreshToken})
+      toast.success(response.data.message)
       console.log(response.data)
      dispatch(signInSuccess(response.data.user))
     } catch (error:any) {
       console.error("Error during sign-in:", error);
       dispatch(signInFailure(error.response.data.message))
+      toast.error(error.response.data.message)
     }
   }
   return (
