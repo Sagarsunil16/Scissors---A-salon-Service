@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { application, Router } from "express";
 import UserController from "../controllers/UserController";
 import verifyToken from "../middleware/verifyToken";
 import authMiddleware from "../middleware/auth";
@@ -6,7 +6,7 @@ import checkRole from "../middleware/checkRole";
 import SalonController from "../controllers/SalonController";
 import BookingController from "../controllers/BookingController";
 import { ROLES,API_ENDPOINTS } from "../constants";
-
+import express from 'express'
 const userRouter = Router();
 
 // Public routes
@@ -29,6 +29,7 @@ userRouter.get('/salons/:salonId/stylist', BookingController.getServiceStylist);
 userRouter.put('/profile', verifyToken, authMiddleware, checkRole([ROLES.USER]), UserController.updateUser);
 userRouter.put('/change-password', verifyToken, authMiddleware, checkRole([ROLES.USER]), UserController.changePassword);
 // userRouter.put('/booking',verifyToken,authMiddleware,checkRole([ROLES.USER]),BookingController.booking)
-userRouter.post('/create-payment-intent',verifyToken,authMiddleware,checkRole([ROLES.USER]),BookingController.createPaymentIntent)
+userRouter.post('/create-checkout-session',verifyToken,authMiddleware,checkRole([ROLES.USER]),BookingController.createCheckoutSession)
+userRouter.post('/webhook',BookingController.webHooks)
 
 export default userRouter;

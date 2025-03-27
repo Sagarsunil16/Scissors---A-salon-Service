@@ -137,6 +137,10 @@ export const fetchServiceStylist = async(data:{salonId:string,serviceIds:string[
   })
 }
 
-export const paymentIntentResponse = async(data:{amount:number,currency:string})=>{
-    return await API.post('/create-payment-intent',data)
+export const paymentIntentResponse = async(data:{amount:number,currency:string,metadata:Record<string,any>})=>{
+    return await API.post('/create-checkout-session',data)
+}
+
+export const createAppointment = async(data:{user:string,salon:string,stylist:string[],services:string[],slot:string,status:string,totalPrice:number,paymentStatus:string,serviceOption:string,address?:string})=>{
+  return await API.post('/appointments',data)
 }

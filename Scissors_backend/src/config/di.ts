@@ -10,6 +10,8 @@ import StylistRepositry from "../repositories/StylistRepository";
 import StylistService from "../services/StylistService";
 import SlotService from "../services/SlotService";
 import TimeSlotRepository from "../repositories/TimeSlotRepository";
+import AppointmentRepositry from "../repositories/AppointmentRepository";
+import AppointmentService from "../services/AppointmentService";
 
 // Repositories
 const userRepository = new UserRepository();
@@ -18,6 +20,7 @@ const salonRepository = new SalonRepository();
 const serviceRepository = new ServiceRepository()
 const stylistRepository = new StylistRepositry()
 const timeSlotRepository = new TimeSlotRepository()
+const appointmentRepository =  new AppointmentRepositry()
 
 // Services
 const userService = new UserService(userRepository);
@@ -26,5 +29,6 @@ const salonService = new SalonService(salonRepository, categoryRepository);
 const serService = new SerService(serviceRepository)
 const stylistService = new StylistService(stylistRepository,serviceRepository,salonRepository)
 const timeSlotService = new SlotService(salonRepository,timeSlotRepository)
+const appointmentService = new AppointmentService(appointmentRepository)
 
-export { userService, salonService, categoryService,serService,stylistService,timeSlotService };
+export { userService, salonService, categoryService,serService,stylistService,timeSlotService,appointmentService };

@@ -8,7 +8,7 @@ class AppointmentRepositry extends BaseRepository<IAppointmentDocument> implemen
         super(Appointment)
     }
 
-    async create(data: Partial<IAppointment>): Promise<IAppointmentDocument> {
+    async createAppointment(data: Partial<IAppointment>): Promise<IAppointmentDocument> {
         return await this.create(data)
     }
 }

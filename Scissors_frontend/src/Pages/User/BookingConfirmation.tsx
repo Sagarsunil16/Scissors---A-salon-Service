@@ -1,22 +1,26 @@
-import {Elements,CardElement,useStripe,useElements} from '@stripe/react-stripe-js'
+import {Elements,useStripe} from '@stripe/react-stripe-js'
 import { Link, useLocation } from "react-router-dom";
 import Navbar from "../../Components/Navbar";
 import Footer from "../../Components/Footer";
 import { useState } from "react";
-import { paymentIntentResponse } from "../../Services/UserAPI";
+import { createAppointment, paymentIntentResponse } from "../../Services/UserAPI";
+import { useNavigate } from 'react-router-dom';
 import {loadStripe} from '@stripe/stripe-js'
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
 const CheckoutForm = () => {
+  const navigate = useNavigate()
     const stripe = useStripe()
-    const elements = useElements()
   const location = useLocation();
   const {
+    user,
+    salon,
     selectedServices,
     selectedSlot,
     selectedDate,
     selectedStylist,
     stylistName,
     serviceNames,
+    slotId,
     serviceOption,
     totalPrice,
     selectedAddress, // Address for home service
@@ -54,8 +58,18 @@ const CheckoutForm = () => {
 
     try {
         const finalAmount = calculateFinalAmount();
-       
-        const data = { amount: finalAmount, currency: "inr" };
+      
+        const metadata = {
+          user: user, // User ID
+          salon: salon, // Salon ID
+          stylist: selectedStylist, // Stylist ID
+          services: selectedServices.join(","), // Convert array of service IDs to a comma-separated string
+          slot: slotId, // Slot ID
+          serviceOption: serviceOption, // Service option (home or store)
+          address: serviceOption === "home" ? JSON.stringify(selectedAddress) : undefined, // Address for home service
+        };
+
+        const data = { amount: finalAmount, currency: "inr",metadata };
         const response = await paymentIntentResponse(data);
         const {id:sessionId} = response.data
         if(!sessionId){
@@ -70,6 +84,27 @@ const CheckoutForm = () => {
         const { error } = await stripe.redirectToCheckout({
             sessionId:sessionId
         })
+
+        // const appointmentData = {
+        //   user:user,
+        //   salon:salon,
+        //   stylist:selectedStylist,
+        //   services:selectedServices,
+        //   slot:selectedSlot,
+        //   status:'pending',
+        //   totalPrice:finalAmount,
+        //   paymentStatus:'paid',
+        //   serviceOption:serviceOption,
+        //   address:serviceOption==='home'? selectedAddress : undefined
+        // }
+
+        // const appointmentResponse = await createAppointment(appointmentData)
+
+        // if(appointmentResponse.status === 200){
+        //   navigate('/booking-sucess',{state:{appointmentId:appointmentResponse.data._id}})
+        // }else{
+        //   throw new Error('Failed to create appointment')
+        // }
 
         if (error) {
             console.log("Payment Failed", error);

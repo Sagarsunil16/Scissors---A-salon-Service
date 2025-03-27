@@ -1,18 +1,36 @@
 import mongoose, {Document} from "mongoose";
 
-export interface IAppointment {
+export enum AppointmentStatus {
+    Pending = "pending",
+    Confirmed = "confirmed",
+    Completed = "completed",
+}
+
+export enum PaymentStatus {
+    Pending = "pending",
+    paid = "paid",
+    Failed = "failed"
+}
+
+export enum PaymentMethod {
+    Cash  = 'cash',
+    Online = 'online'
+}
+
+
+export interface IAppointment extends Document {
     user:mongoose.Types.ObjectId,
     salon:mongoose.Types.ObjectId,
     stylist:mongoose.Types.ObjectId,
-    service:mongoose.Types.ObjectId,
+    services:mongoose.Types.ObjectId[],
     slot:mongoose.Types.ObjectId,
-    status:'pending' | 'confirmed' |  'completed',
+    status:AppointmentStatus
     totalPrice: number; // Total price of the appointment
-    paymentStatus: "pending" | "paid" | "failed"; // Payment status
+    paymentStatus: PaymentStatus // Payment status
     paymentMethod: "cash" | "online"; // Payment method
     serviceOption: "home" | "store"; // Service option (home or store)
-    createdAt: Date; // Timestamp when the appointment was created
-    updatedAt: Date; // Timestamp when the appointment was last updated
+    address?:string
+
 }
 
 export interface IAppointmentDocument extends IAppointment, Document{

@@ -33,6 +33,7 @@ interface Address {
 }
 
 interface SalonData {
+  _id:string
   salonName: string;
   email: string;
   phone: number;
@@ -76,15 +77,17 @@ const SalonDetails = () => {
   const [stylists, setStylists] = useState<any[]>([]);
   const [selectedStylist, setSelectedStylist] = useState<string | null>(null);
   const [availableSlots, setAvailableSlots] = useState<
-    { startTime: string; endTime: string }[]
+    { _id:string, startTime: string; endTime: string }[]
   >([]);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  const [selectedSlotId,setSelectedSlotId] = useState<string>('')
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split("T")[0]
   );
 
   const navigate = useNavigate()
 
+  console.log(availableSlots,"AvailableSlots")
   useEffect(() => {
     const fetchStylists = async () => {
       if (selectedServices.length > 0 && id) {
@@ -339,8 +342,11 @@ const SalonDetails = () => {
               }).filter(Boolean)
               navigate(`/salons/${salon.salonName}/book`, {
                 state: {
+                  user:currentUser._id,
+                  salon:salon._id,
                   selectedServices,
                   selectedSlot,
+                  slotId:selectedSlotId,
                   selectedDate,
                   selectedStylist,
                   stylistName,
@@ -413,7 +419,7 @@ const SalonDetails = () => {
         availableSlots.map((slot) => (
           <button
             key={`${slot.startTime}-${slot.endTime}`}
-            onClick={() => setSelectedSlot(slot.startTime)}
+            onClick={() => {setSelectedSlot(slot.startTime); setSelectedSlotId(slot._id)}}
             className={`px-4 py-2 rounded-lg text-sm ${
               selectedSlot === slot.startTime
                 ? "bg-blue-600 text-white"

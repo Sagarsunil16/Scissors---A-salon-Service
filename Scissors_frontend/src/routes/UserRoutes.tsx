@@ -14,6 +14,7 @@ import ForgotOtp from "../Pages/User/ForgotOtp"
 import ResetPass from "../Pages/User/ResetPass"
 import Salons from "../Pages/User/Salons"
 import BookingConfirmation from "../Pages/User/BookingConfirmation"
+import BookingSuccess from "../Pages/User/BookingSuccess"
 
 
 const UserRoutes = () => {
@@ -98,6 +99,15 @@ const UserRoutes = () => {
           element={
             <PrivateRoute adminOnly={false}>
               <BookingConfirmation />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/booking-success"
+          element={
+            <PrivateRoute adminOnly={false}>
+              <BookingSuccess />
             </PrivateRoute>
           }
         />

@@ -8,7 +8,7 @@ class AppointmentService{
     }
 
     async createAppointment(appointment:IAppointment):Promise<IAppointmentDocument>{
-        return this.repository.create(appointment)
+        return this.repository.createAppointment(appointment)
     }
 }
 

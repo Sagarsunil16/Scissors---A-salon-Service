@@ -4,11 +4,13 @@ import cors from 'cors'
 import mainRouter from './routes/index'
 import mongoConnect from "./config/mongoConfig"
 import cookieParser = require('cookie-parser')
-import globalErrorHandler from './middleware/globalErrorHandler'
 dotenv.config()
 const app = express()
 mongoConnect()
 
+
+
+app.use('/webhook', express.raw({ type: 'application/json' })); 
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser())
