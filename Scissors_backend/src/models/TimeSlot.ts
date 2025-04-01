@@ -33,6 +33,7 @@ const timeSlotSchema:Schema = new Schema({
     }
 })
 
-timeSlotSchema.index({salon:1,stylist:1,startTime:1})
+timeSlotSchema.index({salon:1,stylist:1,startTime:1}),
+{unique:true, partialFilterExpression: { status: 'available' }}
 
 export default mongoose.model<ITimeSlotDocument>("TimeSlot",timeSlotSchema)

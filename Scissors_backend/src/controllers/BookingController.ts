@@ -6,6 +6,7 @@ import { salonService } from "../config/di";
 import Stripe from "stripe";
 import mongoose from "mongoose";
 import { AppointmentStatus, IAppointment, PaymentMethod, PaymentStatus } from "../Interfaces/Appointment/IAppointment";
+import Appointment from "../models/Appointment";
 const stripe =  new Stripe(process.env.STRIPE_SECRET_KEY as string)
 class bookingController{
     constructor(){
@@ -159,12 +160,13 @@ class bookingController{
             console.error(`Webhook signature verification failed: ${error.message}`);
             return res.status(400).send(`Webhook Error: ${error.message}`);
         }
-    
+        const dbSession = await mongoose.startSession();
+        dbSession.startTransaction();
         try {
             switch (event.type) {
                 case 'checkout.session.completed':
                     const session = event.data.object;
-                    
+                   
                     // Verify payment was successful
                     if (session.payment_status !== 'paid') {
                         console.warn(`Unpaid session: ${session.id}`);
@@ -178,10 +180,16 @@ class bookingController{
     
                     const { metadata } = session;
                     
+
+                    await timeSlotService.updateSlotStatus(
+                        metadata.slot.toString(),
+                        'booked'
+                    );
                     // Create appointment
                     const appointmentData = await this.prepareAppointmentData(metadata, session);
-                    await appointmentService.createAppointment(appointmentData);
-                    
+                    const appointment = await Appointment.create([appointmentData], { session: dbSession });
+          
+                    await dbSession.commitTransaction();
                     console.log(`Appointment created for session: ${session.id}`);
                     break;
                     
@@ -191,8 +199,11 @@ class bookingController{
     
             res.status(200).send();
         } catch (error: any) {
+            await dbSession.abortTransaction();
             console.error(`Webhook processing error: ${error.message}`);
             res.status(400).send(`Processing failed: ${error.message}`);
+        } finally {
+            dbSession.endSession();
         }
     }
     

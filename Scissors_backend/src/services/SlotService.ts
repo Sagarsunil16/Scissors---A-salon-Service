@@ -18,130 +18,169 @@ class SlotService {
 
     async generateSlots(salonId: string, serviceIds: string[], date: Date, stylistId: string) {
 
-        const existingSlots = await this.timeSlotRepository.findavailableSlots(
-            salonId,
-            serviceIds,
-            new Date(date),
-            stylistId
-        );
-
-        const salon = await this.salonRepository.getSalonById(salonId);
-        if (!salon) {
-            throw new CustomError("Salon not found. Please verify the salon ID and try again.", 404);
-        }
-
-        const services = salon.services.filter(service =>
-            serviceIds.includes(service._id.toString())
-        );
-        if (services.length === 0) {
-            throw new CustomError("No valid services found", 400);
-        }
-        console.log(services,"services before generating slots")
-        const totalDuration = services.reduce((sum, service) => sum + service.duration, 0);
-
-        const newSlots = await this.generateHybridSlots(
-            salon,
-            services,
-            new Date(date),
-            stylistId,
-            totalDuration,
-            existingSlots
-        );
-
-        if (newSlots.length > 0) {
-            try {
-                await this.timeSlotRepository.bulkCreate(newSlots);
-                console.log("New slots saved successfully.");
-            } catch (error) {
-                console.error("Error saving slots:", error);
-                throw new CustomError("Failed to save generated slots. Please try again later.", 500);
+        try {
+            const existingSlots = await this.timeSlotRepository.findAllSlots(
+                salonId,
+                serviceIds,
+                new Date(date),
+                stylistId
+            )
+    
+            const salon = await this.salonRepository.getSalonById(salonId);
+            if (!salon) {
+                throw new CustomError("Salon not found. Please verify the salon ID and try again.", 404);
             }
+    
+            const services = salon.services.filter(service =>
+                serviceIds.includes(service._id.toString())
+            );
+            if (services.length === 0) {
+                throw new CustomError("No valid services found", 400);
+            }
+            console.log(services,"services before generating slots")
+            const totalDuration = services.reduce((sum, service) => sum + service.duration, 0);
+    
+            const newSlots = await this.generateHybridSlots(
+                salon,
+                services,
+                new Date(date),
+                stylistId,
+                totalDuration,
+                existingSlots
+            );
+    
+            if (newSlots.length > 0) {
+                await this.timeSlotRepository.bulkCreate(newSlots);
+            }
+    
+            return await this.timeSlotRepository.findavailableSlots(salonId, serviceIds, new Date(date), stylistId);
+        } catch (error:any) {
+            console.error("Error in generateSlots:", error);
+            throw new CustomError(error.message || "Failed to generate slots", 500);
         }
-
-        return await this.timeSlotRepository.findavailableSlots(salonId, serviceIds, new Date(date), stylistId);
+        
     }
 
-    async generateHybridSlots(
-        salon: ISalonDocument,
-        services: ISalonService[],
-        date: Date,
-        stylistId: string,
-        totalDuration: number,
-        existingSlots: ITimeSlotDocument[]
-    ): Promise<ITimeSlot[]> {
-        console.log("entered in the hybridslot generation logiv")
-        console.log(salon,services,stylistId,totalDuration,existingSlots,"params")
-        const newSlots: ITimeSlot[] = [];
-        const timeZone = salon.timeZone;
-        const localDate = moment.tz(date, timeZone).startOf("day");
-        const dayOfWeek = localDate.format("dddd");
+    // Update the generateHybridSlots method
+async generateHybridSlots(
+    salon: ISalonDocument,
+    services: ISalonService[],
+    date: Date,
+    stylistId: string,
+    totalDuration: number,
+    existingSlots: ITimeSlotDocument[]
+): Promise<ITimeSlot[]> {
+    console.log("entered in the hybridslot generation logic");
+    const newSlots: ITimeSlot[] = [];
+    const timeZone = salon.timeZone;
+    const localDate = moment.tz(date, timeZone).startOf("day");
+    const dayOfWeek = localDate.format("dddd");
 
-        const [openH, openM] = salon.openingTime.split(":").map(Number);
-        const [closeH, closeM] = salon.closingTime.split(":").map(Number);
-        const salonStart = localDate.clone().set({ hour: openH, minute: openM });
-        const salonClose = localDate.clone().set({ hour: closeH, minute: closeM });
+    const [openH, openM] = salon.openingTime.split(":").map(Number);
+    const [closeH, closeM] = salon.closingTime.split(":").map(Number);
+    const salonStart = localDate.clone().set({ hour: openH, minute: openM });
+    const salonClose = localDate.clone().set({ hour: closeH, minute: closeM });
 
-        const bufferTime = 10; 
+    const bufferTime = 10;
 
-        for (const service of services) {
-            console.log("service to check",service)
-            for (const stylist of service.stylists) {
-                console.log(stylist,"stylists")
-                if (stylistId && stylist._id.toString() !== stylistId) continue;
-                console.log("services in string",stylist.services.toString())
-                console.log("details",service,"service detals")
-                if (!stylist.services.map(id => id.toString()).includes(service.service._id.toString())) continue;
-                console.log("No probelem in the stylist services")
-                const workingHours = stylist.workingHours.find(wh => wh.day === dayOfWeek);
-                console.log(workingHours,"workinghours")
-                if (!workingHours) continue;
+    // Validate services first
+    if (!services || services.length === 0) {
+        console.error("No valid services provided");
+        return newSlots;
+    }
 
-                const [startH, startM] = workingHours.startTime.split(":").map(Number);
-                const [endH, endM] = workingHours.endTime.split(":").map(Number);
-                const stylistStart = localDate.clone().set({ hour: startH, minute: startM });
-                const stylistEnd = localDate.clone().set({ hour: endH, minute: endM });
+    for (const service of services) {
+        console.log("Processing service:", service._id);
+        
+        for (const stylist of service.stylists) {
+            console.log("Processing stylist:", stylist._id);
+            
+            // Skip if stylistId is provided and doesn't match
+            if (stylistId && stylist._id.toString() !== stylistId) {
+                console.log("Skipping stylist - ID mismatch");
+                continue;
+            }
 
-                console.log("Salon Opening Time:", salonStart.format("YYYY-MM-DD HH:mm"));
-console.log("Salon Closing Time:", salonClose.format("YYYY-MM-DD HH:mm"));
+            // Verify stylist provides this service
+            const providesService = stylist.services.some(s => 
+                s.toString() === service.service._id.toString()
+            );
+            
+            if (!providesService) {
+                console.log("Skipping stylist - doesn't provide this service");
+                continue;
+            }
 
+            const workingHours = stylist.workingHours.find(wh => wh.day === dayOfWeek);
+            if (!workingHours) {
+                console.log("Skipping stylist - no working hours for this day");
+                continue;
+            }
 
-                const slotStart = moment.max(salonStart, stylistStart);
-                const slotEnd = moment.min(salonClose, stylistEnd);
+            const [startH, startM] = workingHours.startTime.split(":").map(Number);
+            const [endH, endM] = workingHours.endTime.split(":").map(Number);
+            const stylistStart = localDate.clone().set({ hour: startH, minute: startM });
+            const stylistEnd = localDate.clone().set({ hour: endH, minute: endM });
 
-                console.log("Stylist Working Hours:", stylistStart.format("YYYY-MM-DD HH:mm"), "to", stylistEnd.format("YYYY-MM-DD HH:mm"));
-console.log("Effective Slot Window:", slotStart.format("YYYY-MM-DD HH:mm"), "to", slotEnd.format("YYYY-MM-DD HH:mm"));
+            const slotStart = moment.max(salonStart, stylistStart);
+            const slotEnd = moment.min(salonClose, stylistEnd);
 
-                if (slotStart.isSameOrAfter(slotEnd)) continue;
+            if (slotStart.isSameOrAfter(slotEnd)) {
+                console.log("Skipping - no valid time window");
+                continue;
+            }
 
-                let current = slotStart.clone();
-                while (current.isBefore(slotEnd)) {
-                    const endTime = current.clone().add(totalDuration + bufferTime, "minutes");
+            let current = slotStart.clone();
+            while (current.isBefore(slotEnd)) {
+                const endTime = current.clone().add(totalDuration + bufferTime, "minutes");
 
-                    if (endTime.isAfter(slotEnd)) break;
+                if (endTime.isAfter(slotEnd)) break;
 
-                    const exists = existingSlots.some(slot =>
-                        moment(slot.startTime).isBefore(endTime) &&
-                        moment(slot.endTime).isAfter(current)
-                    );
-                    if (!exists) {
-                        newSlots.push({
-                            startTime: current.toDate(),
-                            endTime: endTime.toDate(),
-                            stylist: new mongoose.Types.ObjectId(stylist._id.toString()),
-                            service: services.map(service =>
-                                new mongoose.Types.ObjectId(service._id.toString())
-                            ),
-                            salon: new mongoose.Types.ObjectId(salon._id.toString()),
-                            status: "available" as ITimeSlot["status"],
-                        });
-                    }
+                                // In generateHybridSlots - update the conflict check:
+                    const slotConflict = existingSlots.some(slot => {
+                        const slotStart = moment(slot.startTime);
+                        const slotEnd = moment(slot.endTime);
+                        return (
+                            (current.isSameOrAfter(slotStart) && current.isBefore(slotEnd)) ||
+                            (endTime.isAfter(slotStart) && endTime.isSameOrBefore(slotEnd)) ||
+                            (current.isBefore(slotStart) && endTime.isAfter(slotEnd))
+                        );
+                    });
 
-                    current = current.clone().add(totalDuration + bufferTime, "minutes");
+                if (!slotConflict) {
+                    newSlots.push({
+                        startTime: current.toDate(),
+                        endTime: endTime.toDate(),
+                        stylist: new mongoose.Types.ObjectId(stylist._id.toString()),
+                        service: [new mongoose.Types.ObjectId(service._id.toString())],
+                        salon: new mongoose.Types.ObjectId(salon._id.toString()),
+                        status: "available"
+                    });
                 }
+        
+                current = current.clone().add(totalDuration + bufferTime, "minutes");
             }
         }
+    }
 
-        return newSlots;
+    return newSlots;
+}
+
+    async updateSlotStatus(slotId:string,slotStatus:ITimeSlot["status"]):Promise<ITimeSlotDocument | null>{
+        try {
+            const updatedSlot  = await this.timeSlotRepository.updateSlotStatus(
+                slotId,
+               slotStatus,
+                {new:true}
+            )
+            if(!updatedSlot){
+                throw new CustomError("Slot not found",500)
+            }
+            return updatedSlot
+        } catch (error:any) {
+            console.log("Error in the UpdateSlot Status service",error)
+            throw new CustomError(error.message || "Internal Server Issues",500)
+        }
     }
 }
 
