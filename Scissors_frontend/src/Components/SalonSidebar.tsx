@@ -76,7 +76,18 @@ const   SalonSidebar = () => {
             Stylists
           </Link>
 
-         
+          <Link
+            to="/salon/bookings"
+            className="text-gray-300 hover:text-white hover:bg-gray-700 px-4 py-2 rounded"
+          >
+            Bookings
+          </Link>
+          <Link
+            to="/salon/messages"
+            className="text-gray-300 hover:text-white hover:bg-gray-700 px-4 py-2 rounded"
+          >
+            Messages
+          </Link>
 
           <Link
             to="/salon/gallery"

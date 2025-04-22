@@ -4,6 +4,12 @@ import verifyToken from "../middleware/verifyToken";
 import upload from "../config/multer";
 import ServiceController from "../controllers/ServiceController";
 import StylistController from "../controllers/StylistController";
+import ChatController from "../controllers/ChatController.ts";
+import MessageController from "../controllers/MessageController";
+import AppointmentController from "../controllers/AppointmentController";
+import authMiddleware from "../middleware/auth";
+import checkRole from "../middleware/checkRole";
+import { ROLES } from "../constants";
 
 const salonRouter = Router();
 
@@ -29,5 +35,16 @@ salonRouter.put('/delete-service', SalonController.deleteService);
 
 // Protected route
 salonRouter.put("/profile", verifyToken, SalonController.updateSalon);
+
+// Chat-related routes
+salonRouter.get("/chats", verifyToken,authMiddleware,checkRole([ROLES.SALON]), ChatController.getSalonChats);
+salonRouter.get("/messages/:userId", verifyToken, MessageController.getMessages);
+salonRouter.post("/messages/upload", verifyToken, upload.single("file"), MessageController.uploadAttachment);
+
+
+salonRouter.get('/appointments', verifyToken, AppointmentController.getSalonAppointments);
+salonRouter.put('/appointments/:id/cancel', verifyToken, AppointmentController.cancelAppointment);
+salonRouter.put('/appointments/:id/complete', verifyToken, AppointmentController.completeAppointment);
+
 
 export default salonRouter;

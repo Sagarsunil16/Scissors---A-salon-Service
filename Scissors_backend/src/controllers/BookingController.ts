@@ -190,7 +190,7 @@ class bookingController{
                     const appointment = await Appointment.create([appointmentData], { session: dbSession });
           
                     await dbSession.commitTransaction();
-                    console.log(`Appointment created for session: ${session.id}`);
+                    // console.log(`Appointment created for session: ${session.`id}`);
                     break;
                     
                 default:
@@ -223,12 +223,13 @@ class bookingController{
             stylist: new mongoose.Types.ObjectId(metadata.stylist),
             services: metadata.services.split(",").map((s: string) => new mongoose.Types.ObjectId(s)),
             slot: new mongoose.Types.ObjectId(metadata.slot),
-            status: AppointmentStatus.Pending,
+            status: AppointmentStatus.Confirmed,
             totalPrice: session.amount_total ? session.amount_total / 100 : 0, // convert back to dollars
             paymentStatus: PaymentStatus.paid,
             paymentMethod: PaymentMethod.Online,
             serviceOption: metadata.serviceOption === 'home' ? 'home' : 'store',
-            address: metadata.serviceOption === 'home' ? JSON.parse(metadata.address) : undefined
+            address: metadata.serviceOption === 'home' ? JSON.parse(metadata.address) : undefined,
+            stripeSessionId:session.id
         } as IAppointment;
     }
 }

@@ -15,6 +15,9 @@ import ResetPass from "../Pages/User/ResetPass"
 import Salons from "../Pages/User/Salons"
 import BookingConfirmation from "../Pages/User/BookingConfirmation"
 import BookingSuccess from "../Pages/User/BookingSuccess"
+import MessagesPage from "../Pages/User/Messages"
+import { AppointmentDetails } from "../Pages/User/AppointmentDetails"
+import Appointments from "../Pages/User/Appointment"
 
 
 const UserRoutes = () => {
@@ -77,6 +80,24 @@ const UserRoutes = () => {
           }
         />
 
+<Route
+          path="/messages"
+          element={
+            <PrivateRoute adminOnly={false}>
+              <MessagesPage />
+            </PrivateRoute>
+          }
+        />
+
+<Route
+          path="/appointments"
+          element={
+            <PrivateRoute adminOnly={false}>
+              <Appointments />
+            </PrivateRoute>
+          }
+        />
+
         <Route
           path="/settings"
           element={
@@ -111,6 +132,16 @@ const UserRoutes = () => {
             </PrivateRoute>
           }
         />
+
+        <Route
+          path="/booking-confirmed"
+          element={
+            <PrivateRoute adminOnly={false}>
+              <AppointmentDetails />
+            </PrivateRoute>
+          }
+        />
+
     </Routes>
   )
 }

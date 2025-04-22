@@ -1,7 +1,18 @@
 import mongoose from "mongoose";
-import { ObjectId } from "mongoose";
-import { Address } from "../IUser";
+
+export interface Address{
+  areaStreet: string | null;
+  city: string | null;
+  state: string | null;
+  pincode: string | null;
+  location?:{
+    type:'Point';
+    coordinates:[number,number]
+  }
+}
+
 export interface ISalon {
+  
   salonName: string;
   email: string;
   phone: number;
@@ -48,7 +59,10 @@ export interface ISalon {
   }
   ],
   timeZone:string
-  rating:string
+  rating:Number,
+  reviewCount:Number,
+  refreshToken:String
+  role:string
 }
 
 export interface ISalonService {
@@ -85,3 +99,19 @@ export interface SalonQueryParams {
 }
 
  
+
+export interface GeolocationResult {
+  formatted_address: string;
+  geometry: {
+    location: {
+      lat: number;
+      lng: number;
+    };
+  };
+
+}
+
+export interface GeolocationApiResponse {
+  status: string;
+  results: GeolocationResult[];
+}

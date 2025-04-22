@@ -1,6 +1,6 @@
 import { NextFunction, Request,Response } from "express";
 import jwt from 'jsonwebtoken'
-import { userService } from "../config/di";
+import { salonService, userService } from "../config/di";
 import CustomError from "../Utils/cutsomError";
 
 export interface TokenPayload {
@@ -24,12 +24,17 @@ class AuthController{
             // if(!decoded.refresh){
             //    return  res.status(401).json({message:"Invalid Token Type"})
             // }
+            let user
+            console.log(decoded,"decoded")
+            if (decoded.role === 'User' || decoded.role === 'Admin') {
+                user = await userService.getUserById(decoded.id);
+            }
 
-            const user = await userService.getUserById(decoded.id);
+            user = await salonService.findSalon(decoded.id)
+           
             if(!user || user.refreshToken!==refreshToken){
                 return next(new CustomError("Invalid refresh token. Please log in again.",401));
             }
-
             const newAccessToken = jwt.sign({
                 id:user?._id,
                 role:user?.role

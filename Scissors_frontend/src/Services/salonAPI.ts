@@ -4,6 +4,54 @@ const API =  axios.create({
     baseURL:`${import.meta.env.VITE_API_URL}/salon`,
     withCredentials: true,
 })
+import { API_ENDPOINTS } from "../Constants"; 
+import { store } from "../Redux/store";
+import { signOut } from "../Redux/Salon/salonSlice";
+import { Chat } from "../types/Imessage";
+
+API.interceptors.request.use((config)=>{
+    const token = document.cookie.split(";").find((row)=>row.trim().startsWith("authToken"))?.split("=")[1]
+    if(token){
+        config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+})
+
+API.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+      const originalRequest = error.config;
+  
+      if (error.response?.status === 401 && !originalRequest._retry) {
+        console.log('401 detected, attempting to refresh token...');
+        originalRequest._retry = true;
+        try {
+          const refreshResponse = await axios.post(
+            `${API_ENDPOINTS.BASE_URL}${API_ENDPOINTS.REFRESH_TOKEN}`,
+            {},
+            { withCredentials: true }
+          );
+          console.log('Token refreshed:', refreshResponse.data);
+          return API(originalRequest);
+        } catch (refreshError) {
+          console.error('Token refresh failed:', refreshError);
+          await API.post('/signout');
+          store.dispatch(signOut());
+          window.location.href = '/salon/login';
+          return Promise.reject(refreshError);
+        }
+      }
+  
+      if (error.response?.status === 403) {
+        alert('You have been blocked by the admin. Logging out');
+        await API.post('/signout');
+        store.dispatch(signOut());
+        window.location.href = '/salon/login';
+      }
+  
+      return Promise.reject(error);
+    }
+  );
 
 export const signUpSalon = async(data:any)=>{
     return await API.post('/register',data)
@@ -87,4 +135,16 @@ export const updateStylist = async(id:string,data:{name:string,email:string,phon
 
 export const deleteService = async(data:{serviceId:string,salonId:string})=>{
     return await API.put('/delete-service',data)
+}
+
+export const getChats  = async()=>{
+    return await API.get<Chat[]>('/chats')
+}
+
+export const cancelAppointment = async(appointmentId:string)=>{
+    return await API.put(`/appointments/${appointmentId}/cancel`)
+}
+
+export const completeAppointment = async(appointmentId:string)=>{
+    return await API.put(`/appointments/${appointmentId}/complete`)
 }

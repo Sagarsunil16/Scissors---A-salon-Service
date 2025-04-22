@@ -13,6 +13,7 @@ export interface IStylist{
     }[];
     services:string[];
     isAvailable:boolean
+
 }
 
 export interface IStylistDocument extends Document{

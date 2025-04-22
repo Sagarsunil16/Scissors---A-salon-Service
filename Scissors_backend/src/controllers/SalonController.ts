@@ -7,7 +7,15 @@ class SalonController {
     async createSalon(req:Request,res:Response,next:NextFunction):Promise<any>{
         try {
            const newSalon =  await salonService.createSalon(req.body)
-           res.status(201).json({message:"Salon Registered Successfully",salon:newSalon}) 
+           res.status(201).json({message:"Salon Registered Successfully",salon:{ _id: newSalon._id,
+            salonName: newSalon.salonName,
+            email: newSalon.email,
+            phone: newSalon.phone,
+            address: newSalon.address,
+            category: newSalon.category,
+            openingTime: newSalon.openingTime,
+            closingTime: newSalon.closingTime,
+            rating: newSalon.rating}}) 
         } catch (error:any) {
             next(new CustomError(error.message || "Failed to register the salon. Please try again.", 500))       }
     }
@@ -36,7 +44,9 @@ class SalonController {
         try {
             const {email,password} = req.body
             const  result = await salonService.loginSalon(email,password)
-            res.cookie("authToken",result?.token,{httpOnly:true,maxAge:60 * 60 * 1000}).status(200).json({message:"Login Successfull",details:result?.salon})
+            res.cookie("authToken",result?.accessToken,{httpOnly:true,maxAge:15 * 60 * 1000}).cookie("refreshToken",result.refreshToken,{
+                httpOnly:true,maxAge:7*24*60*60*1000
+            }).status(200).json({message:"Login Successfull",details:result?.salon})
         } catch (error:any) {
             next(new CustomError(error.message || "Login failed. Please check your credentials and try again.", 500))
         }
@@ -78,6 +88,24 @@ class SalonController {
             })
         } catch (error:any) {
             next(new CustomError(error.message || "Failed to fetch salon data. Please try again later.", 500)); // Forward the error
+        }
+    }
+
+    async getNearbySalons(req:Request,res:Response,next:NextFunction){
+        try {
+            const {longitude,latitude,radius = 5000} = req.body
+            if(!longitude ||  !latitude){
+                next(new CustomError("Longitude and latitude are required.", 400))
+            }
+
+            const salons = await salonService.getNearbySalons(
+                parseFloat(latitude),
+                parseFloat(longitude),
+                parseInt(radius)
+            );
+            res.status(200).json({ message: "Nearby salons retrieved successfully", salons });
+        } catch (error:any) {
+            next(new CustomError(error.message || "Failed to retrieve nearby salons.", 500))
         }
     }
 

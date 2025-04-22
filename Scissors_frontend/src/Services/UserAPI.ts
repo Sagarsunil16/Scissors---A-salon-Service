@@ -10,7 +10,7 @@ const API = axios.create({
 API.interceptors.request.use((config) => {
   const token = document.cookie
     .split(";")
-    .find((row) => row.startsWith("authToken"))
+    .find((row) => row.trim().startsWith("authToken"))
     ?.split("=")[1];
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
@@ -37,6 +37,7 @@ API.interceptors.response.use(
       } catch (refreshError) {
         await API.post("/signout");
         window.location.href = "/login";
+         store.dispatch(signOut())
         return Promise.reject(refreshError);
       }
     }
@@ -143,4 +144,33 @@ export const paymentIntentResponse = async(data:{amount:number,currency:string,m
 
 export const createAppointment = async(data:{user:string,salon:string,stylist:string[],services:string[],slot:string,status:string,totalPrice:number,paymentStatus:string,serviceOption:string,address?:string})=>{
   return await API.post('/appointments',data)
+}
+
+export const getUserAppointments = async(data:{page:number,limit:number})=>{
+  return await API.get('/appointments',{
+    params:{
+      page:data.page,
+      limit:data.limit
+    }
+  })
+}
+
+export const getChats = async()=>{
+  return await API.get(`/user/chats`)
+}
+
+export const cancelAppointment = async(id:string)=>{
+  return await API.put(`/appointment/cancel/${id}`,{
+    params:{
+      id:id
+    }
+  })
+}
+
+export const getSalons = async(longitude:number,latitude:number)=>{
+  return await API.post('/salons/nearby',{
+    longitude,
+    latitude,
+    radius:5000
+  })
 }

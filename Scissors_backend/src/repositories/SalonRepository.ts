@@ -7,15 +7,22 @@ import { IService } from "../Interfaces/Service/IService";
 import MasterService from "../models/MasterService";
 import { StdioNull } from "node:child_process";
 import mongoose from "mongoose";
+import { BaseRepository } from "./BaseRepository";
 ;
 
 
-class SalonRepository implements ISalonRepository{
+class SalonRepository extends BaseRepository<ISalonDocument> implements ISalonRepository{
+    constructor(){
+        super(Salon)
+    }
     async createSalon(salonData:ISalon):Promise<ISalonDocument>{
         return await Salon.create(salonData)
     }
     async getSalonByEmail(email: string): Promise<ISalonDocument | null> {
         return await Salon.findOne({ email });
+    }
+    async updateSalon(id: string, update: Partial<ISalonDocument>, options?: mongoose.QueryOptions): Promise<ISalonDocument | null> {
+        return await this.findByIdAndUpdate(id,update,options)
     }
 
     async getSalonById(id:string):Promise<ISalonDocument | null>{
@@ -23,6 +30,21 @@ class SalonRepository implements ISalonRepository{
         .populate('services.stylists')
         .exec();
     }
+
+    async getNearbySalons(longitude: number, latitude: number, radius: number): Promise<ISalonDocument[]> {
+        return await Salon.find({
+            'address.location':{
+                $near:{
+                    $geometry:{
+                        type:'Point',
+                        coordinates:[longitude,latitude]
+                    },
+                    $maxDistance:radius
+                }
+            }
+        }).select(`salonName address services rating`).lean()
+    }
+    
     async getAllSalon(page:number):Promise<{data:ISalonDocument[],totalCount:number}>{
         try {
             const skip = (page - 1) * 10
@@ -168,6 +190,10 @@ class SalonRepository implements ISalonRepository{
         return await Salon.findByIdAndUpdate(salonId,{
             $pull:{services:{_id:serviceId}}
         },{new:true})
+    }
+
+    async allSalonListForChat(): Promise<Partial<ISalonDocument>[]> {
+        return await Salon.find({},'_id salonName email images')
     }
 }
 

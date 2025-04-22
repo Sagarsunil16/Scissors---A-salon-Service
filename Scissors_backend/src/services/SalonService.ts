@@ -1,4 +1,4 @@
-import { ISalon } from "../Interfaces/Salon/ISalon";
+import { GeolocationApiResponse, GeolocationResult, ISalon } from "../Interfaces/Salon/ISalon";
 import { ISalonDocument } from "../models/Salon";
 import { ISalonRepository } from "../Interfaces/Salon/ISalonRepository";
 import { sendOtpEmail,generateOtp } from "../Utils/otp";
@@ -10,6 +10,8 @@ import { ICategoryRepository } from "../Interfaces/Category/ICategoryRepository"
 import mongoose, { Mongoose } from "mongoose";
 import { salonService } from "../config/di";
 import CustomError from "../Utils/cutsomError";
+import axios from "axios";
+import { GEOLOCATION_API } from "../constants";
 
 class SalonService {
     private salonRepository: ISalonRepository;
@@ -24,8 +26,38 @@ class SalonService {
             throw new CustomError("Category not found. Please choose a valid category.", 400);
          }
         salonData.category = categoryData._id as mongoose.Types.ObjectId
+
+        //Geocode address
+        const address = `${salonData.address.areaStreet}, ${salonData.address.city}, ${salonData.address.state}, ${salonData.address.pincode}`
+        
+        try {
+            const response =  await axios.get<GeolocationApiResponse>(GEOLOCATION_API,{
+                params:{
+                    address,
+                    key:process.env.GOOGLE_MAPS_API_KEY
+                }
+            });
+    
+            if (response.data.status !== 'OK' || !response.data.results[0]){
+                throw new CustomError("Failed to geocode address. Please provide a valid address",400)
+            }
+            
+            const {lng,lat} = response.data.results[0].geometry.location
+            salonData.address.location = {
+                type:'Point',
+                coordinates:[lng,lat]
+            }
+        } catch (error:any) {
+            console.log(error.message,"error in the geocoding")
+        }
+        
+
         salonData.password = await bcrypt.hash(salonData.password,10)
         return await this.salonRepository.createSalon(salonData)
+    }
+
+    async findSalon(id:string):Promise<ISalonDocument | null>{
+        return this.salonRepository.getSalonById(id)
     }
 
     async sendOtp(email:string):Promise<string>{
@@ -55,7 +87,7 @@ class SalonService {
         return "Verification successful. You may now log in.";
     }
 
-    async loginSalon(email:string,password:string):Promise<{salon:ISalonDocument,token:string}>{
+    async loginSalon(email:string,password:string):Promise<{salon:ISalonDocument,accessToken:string,refreshToken:string}>{
         const salon = await this.salonRepository.getSalonByEmail(email)
         if(!salon){
             throw new CustomError("Salon not found. Please check your email or create an account.", 404);
@@ -74,11 +106,19 @@ class SalonService {
         }
 
       
-        const token  =  jwt.sign({id:salon._id},process.env.JWT_SECRET as string,{
-            expiresIn:'1h'
+        const accessToken  =  jwt.sign({id:salon._id,role:salon.role,active:salon.is_Active},process.env.JWT_SECRET as string,{
+            expiresIn:'15m'
         })
 
-        return {salon,token}
+        const refreshToken = jwt.sign({id:salon._id,role:salon.role,active:salon.is_Active},process.env.JWT_SECRET as string,{
+            expiresIn: '7d'
+        })
+        const updateData = {
+            refreshToken:refreshToken
+        }
+        this.salonRepository.updateSalon(salon.id,updateData,{new:true})
+
+        return {salon,accessToken,refreshToken}
     }
 
     async getSalonData(id:string):Promise<ISalonDocument | null>{
@@ -86,6 +126,10 @@ class SalonService {
             throw new CustomError("Salon ID is required to fetch salon data.", 400);
         }
         return this.salonRepository.getSalonById(id)
+    }
+
+    async getNearbySalons(latitude:number,longitude:number,radius:number):Promise<ISalonDocument[]>{
+        return await this.salonRepository.getNearbySalons(longitude,latitude,radius)
     }
 
     async getFilteredSalons(filters:{search?: string;
@@ -124,6 +168,10 @@ class SalonService {
 
     async getAllSalons(page:number):Promise<{data:ISalonDocument[],totalCount:number}>{
         return await this.salonRepository.getAllSalon(page)
+    }
+
+    async allSalonListForChat():Promise <Partial<ISalonDocument>[]>{
+        return await this.salonRepository.allSalonListForChat()
     }
 
   async uploadSalonImage(salonId:string,filePath:string):Promise<ISalonDocument | null>{

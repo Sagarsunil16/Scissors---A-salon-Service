@@ -21,4 +21,7 @@ export interface ISalonRepository{
     totalPages():Promise<number>
     findAllSalons(filters:SalonQueryParams,page:number,itemsPerPage:number):Promise<{salons:ISalonDocument[];total:number}>
     removeService(salonId:string,serviceId:string):Promise<ISalonDocument | null>
+    allSalonListForChat():Promise<Partial<ISalonDocument>[]>
+    updateSalon(id:string,update:Partial<ISalonDocument>,options?:mongoose.QueryOptions):Promise<ISalonDocument | null>
+    getNearbySalons(longitude:number,latitude:number,radius:number):Promise<ISalonDocument[]>
 }

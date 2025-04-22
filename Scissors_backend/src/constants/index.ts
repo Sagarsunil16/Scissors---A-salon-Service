@@ -29,3 +29,6 @@ export const SUCCESS_MESSAGES = {
     USER_CREATED: 'User created successfully',
     PASSWORD_RESET: 'Password reset successfully',
   };
+
+
+  export const GEOLOCATION_API = 'https://maps.googleapis.com/maps/api/geocode/json'

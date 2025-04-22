@@ -1,8 +1,9 @@
-import mongoose, { Schema, Document,ObjectId } from "mongoose";
+import mongoose, { Schema, Document, ObjectId } from "mongoose";
 import { ISalon } from "../Interfaces/Salon/ISalon";
+import { refreshToken } from "firebase-admin/app";
 
 export interface ISalonDocument extends ISalon, Document {
-  _id:ObjectId
+  _id: ObjectId;
   _doc?: ISalon;
 }
 
@@ -29,6 +30,17 @@ const salonSchema: Schema = new Schema({
     city: { type: String, default: null },
     state: { type: String, default: null },
     pincode: { type: String, default: null },
+    location: {
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: "Point",
+      },
+      coordinates: {
+        type: [Number],
+        default: [],
+      },
+    },
   },
   category: {
     type: mongoose.Schema.Types.ObjectId,
@@ -72,39 +84,54 @@ const salonSchema: Schema = new Schema({
         ref: "Service",
         required: true,
       },
-      name:{
-        type:String,
-        required:true
+      name: {
+        type: String,
+        required: true,
       },
-      description:{
-        type:String,
-        required:true
+      description: {
+        type: String,
+        required: true,
       },
       price: {
         type: Number,
         required: true,
       },
-      duration:{
-        type:Number,
-        requred:true,
-        default:30
+      duration: {
+        type: Number,
+        required: true,
+        default: 30,
       },
-      stylists:[{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:'Stylist'
-      }],
+      stylists: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Stylist",
+        },
+      ],
     },
   ],
-  timeZone:{
-    type:String,
-    required:true,
-    default:'UTC'
+  timeZone: {
+    type: String,
+    required: true,
+    default: "UTC",
   },
-  rating:{
-    type:String,
-    required:true,
-    default:3
-  }
+  rating: {
+    type: Number,
+    default: 0,
+  },
+  reviewCount:{
+    type:Number,
+    default:0
+  },
+  refreshToken: {
+    type: String,
+    default: null,
+  },
+  role: {
+    type: String,
+    default: "Salon",
+  },
 });
+
+salonSchema.index({'address.location':'2dsphere'})
 
 export default mongoose.model<ISalonDocument>("Salon", salonSchema);

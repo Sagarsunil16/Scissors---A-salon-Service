@@ -12,6 +12,9 @@ import SlotService from "../services/SlotService";
 import TimeSlotRepository from "../repositories/TimeSlotRepository";
 import AppointmentRepositry from "../repositories/AppointmentRepository";
 import AppointmentService from "../services/AppointmentService";
+import MessageRepository from "../repositories/MessageRepository";
+import MessageService from "../services/MessageService";
+
 
 // Repositories
 const userRepository = new UserRepository();
@@ -21,6 +24,7 @@ const serviceRepository = new ServiceRepository()
 const stylistRepository = new StylistRepositry()
 const timeSlotRepository = new TimeSlotRepository()
 const appointmentRepository =  new AppointmentRepositry()
+const messageRepository =  new MessageRepository()
 
 // Services
 const userService = new UserService(userRepository);
@@ -29,6 +33,7 @@ const salonService = new SalonService(salonRepository, categoryRepository);
 const serService = new SerService(serviceRepository)
 const stylistService = new StylistService(stylistRepository,serviceRepository,salonRepository)
 const timeSlotService = new SlotService(salonRepository,timeSlotRepository)
-const appointmentService = new AppointmentService(appointmentRepository)
+const appointmentService = new AppointmentService(appointmentRepository,timeSlotRepository)
+const messageService = new MessageService(messageRepository)
 
-export { userService, salonService, categoryService,serService,stylistService,timeSlotService,appointmentService };
+export { userService, salonService, categoryService,serService,stylistService,timeSlotService,appointmentService,messageService };

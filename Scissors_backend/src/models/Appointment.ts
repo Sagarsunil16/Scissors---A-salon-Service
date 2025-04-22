@@ -49,6 +49,10 @@ const appointmentSchema: Schema<IAppointmentDocument> = new Schema(
       enum: ["cash", "online"],
       required: true,
     },
+    stripeSessionId:{
+      type:String,
+      default:null
+    },
     serviceOption: {
       type: String,
       enum: ["home", "store"],
