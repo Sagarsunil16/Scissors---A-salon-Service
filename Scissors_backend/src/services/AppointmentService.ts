@@ -173,6 +173,10 @@ class AppointmentService{
         return this.repository.updateAppointment(appointmentId, { status: AppointmentStatus.Cancelled });
     }
 
+    async updatedAppointmentReview(appointmentId:string){
+        return await this.repository.updateAppointment(appointmentId,{isReviewed:true})
+    }
+
     
 }
 

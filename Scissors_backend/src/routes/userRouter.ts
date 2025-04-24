@@ -10,6 +10,7 @@ import AppointmentController from "../controllers/AppointmentController";
 import ChatController from "../controllers/ChatController.ts";
 import MessageController from "../controllers/MessageController";
 import upload from "../config/multer";
+import ReviewController from "../controllers/ReviewController";
 const userRouter = Router();
 
 // Public routes
@@ -28,6 +29,7 @@ userRouter.get("/salons", verifyToken, authMiddleware, checkRole([ROLES.USER]), 
 userRouter.post('/salons/nearby',verifyToken,authMiddleware,checkRole([ROLES.USER]),SalonController.getNearbySalons)
 userRouter.get("/salon-details", verifyToken, authMiddleware, checkRole([ROLES.USER]), BookingController.getSalonDataWithSlots);
 userRouter.get("/salons/:salonId/stylist", verifyToken, authMiddleware, checkRole([ROLES.USER]), BookingController.getServiceStylist);
+userRouter.get("/salons/:salonId/reviews", verifyToken, authMiddleware, checkRole([ROLES.USER]), ReviewController.getSalonReviews);
 
 userRouter.put("/profile", verifyToken, authMiddleware, checkRole([ROLES.USER]), UserController.updateUser);
 userRouter.put("/change-password", verifyToken, authMiddleware, checkRole([ROLES.USER]), UserController.changePassword);
@@ -41,5 +43,9 @@ userRouter.put('/appointment/cancel/:id',verifyToken,authMiddleware,checkRole([R
 userRouter.get("/chats", verifyToken, authMiddleware, checkRole([ROLES.USER]),ChatController.getUserChats);
 userRouter.get("/messages/:salonId", verifyToken, authMiddleware, checkRole([ROLES.USER]),MessageController.getMessages);
 userRouter.post("/messages/upload", verifyToken, authMiddleware, checkRole([ROLES.USER]), upload.single("file"), MessageController.uploadAttachment);
+
+
+//reviews
+userRouter.post("/reviews", verifyToken, authMiddleware, checkRole([ROLES.USER]), upload.single("file"), ReviewController.createReview);
 
 export default userRouter;

@@ -34,6 +34,7 @@ export interface IAppointment extends Document {
     address?:string,
     createdAt?: Date;
     updatedAt?: Date;
+    isReviewed:boolean
 
 }
 

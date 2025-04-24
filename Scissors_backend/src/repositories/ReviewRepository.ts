@@ -22,8 +22,8 @@ class ReviewRepository extends BaseRepository<IReviewDocument> implements IRevie
     }
     async findSalonReviews(salonId:string):Promise<IReviewDocument[]>{
         return await Review.find({salonId})
-        .populate('userId', 'firstName lastName')
-        .populate('stylistId',name)
+        .populate('userId', 'firstname lastname')
+        .populate('stylistId','name')
         .lean()
     }
 

@@ -1,5 +1,5 @@
 import { NextFunction, Request,Response } from "express";
-import { appointmentService, timeSlotService } from "../config/di";
+import { appointmentService, reviewService, timeSlotService } from "../config/di";
 import { ITimeSlot } from "../Interfaces/TimeSlot/ITimeSlot";
 import CustomError from "../Utils/cutsomError";
 import { salonService } from "../config/di";
@@ -47,10 +47,11 @@ class bookingController{
                     stylistId as string
                 );
             }
-
+            const reviews = await reviewService.getSalonReviews(id as string)
             return res.status(200).json({
                 message: "Salon data and slots fetched successfully",
                 salonData,
+                reviews,
                 availableSlots,
             });
 
@@ -89,13 +90,14 @@ class bookingController{
             }
     
             // Fetch stylists for all selected services and deduplicate
-            const stylistsMap = new Map<string, { _id: string; name: string }>();
+            const stylistsMap = new Map<string, { _id: string; name: string, rating:number }>();
             services.forEach(service => {
                 service.stylists.forEach(stylist => {
                     if (!stylistsMap.has(stylist._id.toString())) {
                         stylistsMap.set(stylist._id.toString(), {
                             _id: stylist._id.toString(),
                             name: stylist.name,
+                            rating:stylist.rating
                         });
                     }
                 });

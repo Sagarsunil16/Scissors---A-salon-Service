@@ -138,6 +138,10 @@ export const fetchServiceStylist = async(data:{salonId:string,serviceIds:string[
   })
 }
 
+export const getSalonReviews = async(salonId:string)=>{
+  return await API.get(`/salons/${salonId}/reviews`)
+}
+
 export const paymentIntentResponse = async(data:{amount:number,currency:string,metadata:Record<string,any>})=>{
     return await API.post('/create-checkout-session',data)
 }
@@ -173,4 +177,8 @@ export const getSalons = async(longitude:number,latitude:number)=>{
     latitude,
     radius:5000
   })
+}
+
+export const submitReview = async(data:{salonId:string,stylistId:string,appointmentId:string,salonRating:number,salonComment:string,stylistRating:number,stylistComment:string})=>{
+  return await API.post('/reviews',data)
 }

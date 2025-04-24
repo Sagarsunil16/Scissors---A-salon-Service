@@ -54,7 +54,9 @@ export interface ISalon {
           endTime:string
         }[],
         services:mongoose.Schema.Types.ObjectId[],
-        isAvailable:boolean
+        isAvailable:boolean,
+        rating:number,
+        reviewCount:number
       }]
   }
   ],
@@ -85,6 +87,8 @@ export interface ISalonService {
     workingHours: { day: string; startTime: string; endTime: string }[];
     services: mongoose.Schema.Types.ObjectId[]; // If needed, otherwise remove
     isAvailable: boolean;
+    rating:number;
+    reviewCount:number
   }[];
 }
 

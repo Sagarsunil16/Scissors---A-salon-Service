@@ -10,6 +10,7 @@ import AppointmentController from "../controllers/AppointmentController";
 import authMiddleware from "../middleware/auth";
 import checkRole from "../middleware/checkRole";
 import { ROLES } from "../constants";
+import ReviewController from "../controllers/ReviewController";
 
 const salonRouter = Router();
 
@@ -45,6 +46,8 @@ salonRouter.post("/messages/upload", verifyToken, upload.single("file"), Message
 salonRouter.get('/appointments', verifyToken, AppointmentController.getSalonAppointments);
 salonRouter.put('/appointments/:id/cancel', verifyToken, AppointmentController.cancelAppointment);
 salonRouter.put('/appointments/:id/complete', verifyToken, AppointmentController.completeAppointment);
+
+// salonRouter.get('/reviews',verifyToken,ReviewController.getSalonReviews)
 
 
 export default salonRouter;

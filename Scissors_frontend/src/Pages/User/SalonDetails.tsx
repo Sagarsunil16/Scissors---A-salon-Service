@@ -7,9 +7,13 @@ import {
   getAvailableSlot,
   fetchServiceStylist,
   getSalonDetailsWithSlots,
+  getSalonReviews,
 } from "../../Services/UserAPI";
 import { FiCheck, FiPlus } from "react-icons/fi";
 import { useSelector } from "react-redux";
+import { Card, CardContent } from "../../Components/ui/card";
+import { start } from "../../Redux/Salon/salonSlice";
+import { Star } from "lucide-react";
 
 interface Service {
   service: { $oid: string };
@@ -32,6 +36,17 @@ interface Address {
   pincode: string;
 }
 
+interface Review{
+  _id:string,
+  userId:{firstname:string,lastname:string},
+  stylistId:{name:string},
+  salonRating: number;
+  salonComment: string;
+  stylistRating: number;
+  stylistComment: string;
+  createdAt: string;
+}
+
 interface SalonData {
   _id:string
   salonName: string;
@@ -42,7 +57,8 @@ interface SalonData {
   closingTime: string;
   images: Image[];
   services: Service[];
-  rating: string;
+  rating: number;
+  reviewCount:number;
   is_Active: boolean;
   verified: boolean;
   timeZone:string
@@ -62,11 +78,11 @@ const formatTimeInSalon = (utcTime:string,timezone:string)=>{
 
 const SalonDetails = () => {
   const { id } = useParams<{ id: string }>();
-  const {currentUser} =  useSelector((state)=>state.user)
+  const {currentUser} =  useSelector((state:any)=>state.user)
   const [salon, setSalon] = useState<SalonData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
-  const [reviews, setReviews] = useState<string[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [visibleServices, setVisibleServices] = useState(3);
   const [error, setError] = useState<string | null>(null);
   const [slotLoading, setSlotLoading] = useState(false);
@@ -120,10 +136,11 @@ const SalonDetails = () => {
           stylistId: selectedStylist as string,
           selectedDate,
         };
-        const response = await getSalonDetailsWithSlots(data);
-        console.log(response);
-        setSalon(response.data.salonData);
-        setAvailableSlots(response.data.availableSlots || []);
+        const [salonResponse] = await Promise.all([getSalonDetailsWithSlots(data)])
+        console.log(salonResponse,"Both");
+        setSalon(salonResponse.data.salonData);
+        setAvailableSlots(salonResponse.data.availableSlots || []);
+        setReviews(salonResponse.data.reviews)
       } catch (error: any) {
         setError(error.message || "Failed to fetch salon details");
       } finally {
@@ -173,6 +190,20 @@ const SalonDetails = () => {
     return areaStreet && city && state && pincode; // Check if all fields are non-null
   };
 
+  const renderStars = (rating:number)=>{
+    const stars = []
+    for(let i=1;i<=5;i++){
+      stars.push(
+        <Star
+        key={i}
+        className={`w-4 h-4 inline-block mr-1 ${
+          i <= rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
+        }`}
+        />
+      )
+    }
+    return stars
+  }
   return (
     <div className=" bg-gray-50">
       <Navbar />
@@ -182,7 +213,7 @@ const SalonDetails = () => {
             {salon.salonName}
           </h1>
           <div className="flex items-center space-x-4 text-gray-600">
-            <span className="flex items-center">⭐ {salon.rating} stars</span>
+          <span className="flex items-center">⭐ {salon.rating.toFixed(1)} ({salon.reviewCount} reviews)</span>
             <span>•</span>
             <span>
               {salon.address.areaStreet}, {salon.address.city}
@@ -400,8 +431,7 @@ const SalonDetails = () => {
                   >
                     <p className="font-medium">{stylist.name}</p>
                     <p className="text-sm text-gray-500">
-                      {stylist.workingHours?.[0]?.startTime} -{" "}
-                      {stylist.workingHours?.[0]?.endTime}
+                    {stylist.rating === 0 ? 'No ratings yet' : `${stylist.rating}/5 stars`}
                     </p>
                   </button>
                 ))}
@@ -443,36 +473,42 @@ const SalonDetails = () => {
 
         {/* Feedback & Reviews Section */}
         <div className="bg-white p-6 rounded-lg shadow-md mt-8">
-          <h2 className="text-2xl font-semibold mb-4">Customer Reviews</h2>
-          <div className="space-y-4">
-            {reviews.length > 0 ? (
-              reviews.map((review, index) => (
-                <div key={index} className="border-b pb-2">
-                  <p className="text-gray-600">{review}</p>
-                </div>
-              ))
-            ) : (
-              <p className="text-gray-500">
-                No reviews yet. Be the first to leave a review!
+  <h2 className="text-2xl font-semibold mb-4">Customer Reviews</h2>
+  
+  {reviews.length > 0 ? (
+    <div className="max-h-96 overflow-y-auto space-y-4 pr-2">
+      {reviews.map((review) => (
+        <Card key={review._id} className="border border-gray-200 rounded-lg shadow-sm">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <p className="font-medium text-gray-900">
+                {review.userId?.firstname} {review.userId?.lastname}
               </p>
-            )}
-          </div>
-          <div className="mt-4">
-            <textarea
-              className="w-full border p-2 rounded-lg"
-              rows={3}
-              placeholder="Write your review here..."
-              // value={}
-              // onChange={(e) => setNewReview(e.target.value)}
-            />
-            <button
-              // onClick={handleReviewSubmit}
-              className="mt-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Submit Review
-            </button>
-          </div>
-        </div>
+              <span className="text-xs text-gray-500">
+                {new Date(review.createdAt).toLocaleDateString()}
+              </span>
+            </div>
+            <div className="mt-2">
+              {/* <p className="text-sm font-semibold text-gray-800">Salon Rating</p> */}
+              <div>{renderStars(review.salonRating)}</div>
+              <p className="text-sm text-gray-700 mt-1">{review.salonComment}</p>
+            </div>
+            {/* <div className="mt-4">
+              <p className="text-sm font-semibold text-gray-800">
+                Stylist: {review.stylistId?.name || "Unknown"}
+              </p>
+              <div>{renderStars(review.stylistRating)}</div>
+              <p className="text-sm text-gray-700 mt-1">{review.stylistComment}</p>
+            </div> */}
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  ) : (
+    <p className="text-gray-500">No reviews yet. Book an appointment to share your experience!</p>
+  )}
+</div>
+
       </main>
       <Footer />
     </div>

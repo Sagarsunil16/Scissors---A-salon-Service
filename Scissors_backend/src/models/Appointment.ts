@@ -58,6 +58,10 @@ const appointmentSchema: Schema<IAppointmentDocument> = new Schema(
       enum: ["home", "store"],
       required: true,
     },
+    isReviewed:{
+      type:Boolean,
+      default:false
+    },
     address: {
       type: String,
       required: function () {

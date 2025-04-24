@@ -12,7 +12,9 @@ export interface IStylist{
         endTime:String
     }[];
     services:string[];
-    isAvailable:boolean
+    isAvailable:boolean,
+    rating:number,
+    reviewCount:number
 
 }
 
@@ -29,6 +31,8 @@ export interface IStylistDocument extends Document{
     }[];
     services:string[];
     isAvailable:boolean,
+    rating:number,
+    reviewCount:number
    
 }
 
