@@ -1,7 +1,7 @@
 import axios from "axios";
 import { ISalon } from "../interfaces/interface";
 const API =  axios.create({
-    baseURL:`${import.meta.env.VITE_API_URL}/salon`,
+    baseURL:`${import.meta.env.VITE_API_URL}/api/v1/salon`,
     withCredentials: true,
 })
 import { API_ENDPOINTS } from "../Constants"; 
@@ -141,6 +141,10 @@ export const getChats  = async()=>{
     return await API.get<Chat[]>('/chats')
 }
 
+export const getMessages = async(userId:string)=>{
+    return await API.get(`/messages/${userId}`,{})
+}
+
 export const cancelAppointment = async(appointmentId:string)=>{
     return await API.put(`/appointments/${appointmentId}/cancel`)
 }
@@ -154,4 +158,24 @@ export const getOffers = async(data:{id:string})=>{
 }
 export const createOffer = async(data:{salonId:any,title:string,description:string,discount:number,serviceIds:string[],expiryDate:string})=>{
     return await API.post('/offers/create',data)
+}
+
+export const deactivateOffer = async(offerId:string)=>{
+    return await API.put('/offer/update',offerId)
+}
+
+export const deleteOffer = async(offerId:string)=>{
+    return await API.delete('/offer/delete')
+}
+
+export const getAppointments = async(page:number,limit:number,status?:string,search?:string)=>{
+    const params: any = {
+        page,
+        limit,
+      };
+    
+      if (status && status !== 'all') params.status = status;
+      if (search) params.search = search;
+    
+    return await API.get('/appointments',{params})
 }

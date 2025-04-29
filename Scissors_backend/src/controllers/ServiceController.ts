@@ -14,6 +14,7 @@ class ServiceController {
     async getAllServices(req:Request,res:Response,next:NextFunction):Promise<void>{
         try {
             const {page,search=''} = req.query
+            
             const result = await serService.getAllServices(Number(page),search as string)
             if (!result || result.services.length === 0) {
                 throw new CustomError("No services found for the given criteria.", 404);

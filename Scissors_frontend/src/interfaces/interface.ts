@@ -79,6 +79,7 @@ export interface Address {
       className:string,
       onClick:(row:any)=>void,
       isDynamic:boolean
+      disabled?: (row: any) => boolean;
     }[],
   }
 

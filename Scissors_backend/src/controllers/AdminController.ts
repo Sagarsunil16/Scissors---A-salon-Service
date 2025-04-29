@@ -25,11 +25,11 @@ class AdminController {
       if (user.role !== "Admin") {
         return next(new CustomError("Unauthorized access. Admin privileges required.", 401));
       }
-
+     
       const token = jwt.sign(
         { id: user._id, role: user.role },
         process.env.JWT_SECRET as string,
-        { expiresIn: "1h" }
+        { expiresIn: "15m" }
       );
 
       const refreshToken = jwt.sign(
@@ -49,7 +49,7 @@ class AdminController {
       
       res
         .cookie("authToken", token, {...cookieOptions,maxAge:15*60*1000 })
-        .cookie("refreshToken",refreshToken,{...cookieOptions,maxAge:7 * 24  * 60 * 60 * 1000})
+        .cookie("refreshToken",refreshToken,{...cookieOptions,maxAge:7*24*60*60*1000})
         .status(200)
         .json({
           message: "Login Successfull",

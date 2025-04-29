@@ -13,7 +13,7 @@ router.use('/', userRouter);
 router.use('/api/v1/admin', adminRouter);
 
 // Use the salonRouter with prefix '/salon'
-router.use('/salon', salonRouter);
+router.use('/api/v1/salon', salonRouter);
 
 // Use the authRouter with prefix '/auth'
 router.use('/auth', authRouter);

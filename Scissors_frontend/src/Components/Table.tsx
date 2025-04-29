@@ -1,36 +1,45 @@
 import { TableProps } from "../interfaces/interface";
 
 const Table = ({ columns, data, actions }: TableProps) => {
-  console.log(columns,data,actions,"cols","data","action")
+  console.log(columns, data, actions, "cols", "data", "action");
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full table-auto border-collapse border border-gray-300">
-        <thead>
+    <div className="overflow-x-auto w-full">
+      <table className="min-w-full table-auto border-collapse border border-gray-200">
+        <thead className="bg-gray-50">
           <tr>
             {columns.map((col) => (
-              <th key={col.accessor} className="border p-2 bg-gray-100 text-left">
+              <th
+                key={col.accessor}
+                className="px-2 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[100px]"
+              >
                 {col.header}
               </th>
             ))}
-            {actions && <th className="border p-2 bg-gray-100 text-left">Actions</th>}
+            {actions && (
+              <th className="px-2 py-2 sm:px-4 sm:py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-b border-gray-200 min-w-[150px]">
+                Actions
+              </th>
+            )}
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-gray-200">
           {data.map((row, index) => (
             <tr key={row._id || index} className="hover:bg-gray-50">
               {columns.map((col) => (
-                <td key={col.accessor} className="border p-2 align-middle">
+                <td
+                  key={col.accessor}
+                  className="px-2 py-2 sm:px-4 sm:py-3 text-xs text-gray-900 align-middle whitespace-nowrap"
+                >
                   {typeof row[col.accessor] === "boolean" ? (
                     row[col.accessor] ? (
-                      "Active"
+                      <span className="text-green-600">Active</span>
                     ) : (
-                      "Blocked"
+                      <span className="text-red-600">Blocked</span>
                     )
                   ) : typeof row[col.accessor] === "object" && row[col.accessor] !== null ? (
-                    // Render nested object
-                    <div>
+                    <div className="space-y-1">
                       {Object.entries(row[col.accessor]).map(([key, value]) => (
-                        <div key={key}>
+                        <div key={key} className="text-xs">
                           <strong>{key}:</strong> {String(value)}
                         </div>
                       ))}
@@ -41,16 +50,18 @@ const Table = ({ columns, data, actions }: TableProps) => {
                 </td>
               ))}
               {actions && (
-                <td className="border p-2 align-middle">
-                  <div className="flex justify-center items-center space-x-2">
-                    
+                <td className="px-2 py-2 sm:px-4 sm:py-3 align-middle">
+                  <div className="flex flex-col sm:flex-row justify-center items-center space-y-2 sm:space-y-0 sm:space-x-2">
                     {actions.map((action, idx) => (
                       <button
                         key={idx}
                         onClick={() => action.onClick(row)}
-                        className={`px-3 py-1 text-sm rounded ${action.isDynamic?(row.is_Active? "bg-red-500": "bg-green-500"):"bg-gray-400"}`}
+                        disabled={action.disabled ? action.disabled(row) : false}
+                        className={`w-full sm:w-auto px-2 py-1 text-xs rounded font-medium text-white ${
+                          action.className
+                        } ${action.disabled && action.disabled(row) ? "opacity-50 cursor-not-allowed" : ""} transition-colors`}
                       >
-                        {action.isDynamic? (row.is_Active?"Block":"Unblock"):action.label}
+                        {action.label}
                       </button>
                     ))}
                   </div>

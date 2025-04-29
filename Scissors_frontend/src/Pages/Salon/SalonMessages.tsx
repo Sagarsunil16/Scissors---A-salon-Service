@@ -11,7 +11,7 @@ import { useSelector } from "react-redux";
 import { formatMessageTime } from "../../lib/utils";
 import { ZegoUIKitPrebuilt } from "@zegocloud/zego-uikit-prebuilt";
 import { useNavigate } from "react-router-dom";
-import { getChats } from "../../Services/salonAPI";
+import { getChats, getMessages } from "../../Services/salonAPI";
 
 const SalonMessages: React.FC = () => {
   const [chats, setChats] = useState<Chat[]>([]);
@@ -103,12 +103,13 @@ const SalonMessages: React.FC = () => {
   const handleChatSelect = async (chat: Chat) => {
     setSelectedChat(chat);
     try {
-      const response = await axios.get<IMessage[]>(
-        `http://localhost:3000/salon/messages/${chat.userId}`,
-        {
-          withCredentials: true,
-        }
-      );
+      const response =  await getMessages(chat.userId as string)
+      // await axios.get<IMessage[]>(
+      //   `http://localhost:3000/salon/messages/${chat.userId}`,
+      //   {
+      //     withCredentials: true,
+      //   }
+      // );
       setMessages(response.data);
       const roomName = [salon._id, chat.userId].sort().join("-");
       socketRef.current?.emit("joinChat", { salonId: chat.userId });
@@ -320,7 +321,7 @@ const SalonMessages: React.FC = () => {
                     {chat.lastMessage}
                   </p>
                   <span className="text-xs text-gray-400">
-                    {chat.lastActive}
+                    {formatMessageTime(chat.lastActive)}
                   </span>
                 </div>
               ))}
