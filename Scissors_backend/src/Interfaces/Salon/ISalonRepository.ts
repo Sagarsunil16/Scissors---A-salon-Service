@@ -7,7 +7,7 @@ export interface ISalonRepository{
     getSalonByEmail(email:string):Promise<ISalonDocument | null>;
     getSalonById(id:string):Promise<ISalonDocument | null>
     getSalonService(SalonId:string,serviceId:string):Promise<ISalonService | null>
-    getAllSalon(page:number):Promise<{data:ISalonDocument[],totalCount:number}>
+    getAllSalon(page:number,query:any):Promise<{data:ISalonDocument[],totalCount:number}>
     updateSalonOtp(email:string,otp:string,otpExpiry:Date):Promise<ISalonDocument | null>
     verifyOtpAndUpdate(email:string,):Promise<ISalonDocument | null>
     updateSalonProfile(updatedData:Partial<ISalon>):Promise<ISalonDocument | null>

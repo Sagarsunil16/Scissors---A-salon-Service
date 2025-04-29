@@ -2,11 +2,13 @@
     import bcrypt from "bcryptjs";
     import { IUser } from "../Interfaces/IUser";
     import { IUserDocument } from "../models/User";
-    import jwt from "jsonwebtoken";
+    import jwt, { JwtPayload } from "jsonwebtoken";
     import { sendOtpEmail,generateOtp } from "../Utils/otp";
     import admin from "../config/firebase";
     import crypto from 'crypto'
     import CustomError from "../Utils/cutsomError";
+import { TokenPayload } from "../controllers/AuthController";
+import { userService } from "../config/di";
 
     class UserService {
         private repository:IUserRepostirory
@@ -63,26 +65,31 @@
                 expiresIn:'7d'
             })
 
-            await this.repository.updateUserData(user._id as string,{refreshToken})
-            console.log("Done")
+            await this.repository.updateUserData(user._id as string,{refreshToken,refreshTokenExpiresAt:new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)})
             return { user,accessToken,refreshToken };
+
         }
 
-        async googleLogin(idToken:string,refreshToken:string):Promise<{user:IUserDocument,token:string}>{
+        async googleLogin(idToken:string):Promise<{user:IUserDocument,token:string,refreshToken:string}>{
             
-            const decodedToken = await admin.auth().verifyIdToken(idToken)
-            console.log(decodedToken,"gooolge")
-            const {email,name} = decodedToken
-            const tempPassword = crypto.randomBytes(16).toString('hex')
-            if(!email){
-                throw new Error ("Invalid Google Token: Email is missing");
+            const decodedToken = await admin.auth().verifyIdToken(idToken);
+            const { email, name } = decodedToken;
+            if (!email) {
+                throw new CustomError('Invalid Google Token: Email is missing', 401);
             }
-            const username = name.split(" ")
-            let user =  await this.repository.getUserByEmail(email)
-            if(!user?.is_Active){
-                throw new CustomError("Your account has been blocked. Please contact support for further assistance.", 403);
+
+            const username = name.split(' ');
+            let user = await this.repository.getUserByEmail(email);
+            if (user && !user.is_Active) {
+                throw new CustomError(
+                'Your account has been blocked. Please contact support for further assistance.',
+                403
+                );
             }
-            if(user==null){
+
+            const tempPassword = crypto.randomBytes(16).toString('hex');
+
+            if(!user){
             user = await this.repository.createUser({
             firstname: username[0],
             lastname:username[1]?username[1]: " ",
@@ -90,16 +97,43 @@
             phone:" ",
             password:tempPassword,
             verified:true,
-            refreshToken,
-            googleLogin:true
+            googleLogin:true,
+            role: 'User',
             })
             console.log(user);
             
             }
+            const token = jwt.sign(
+                { id: user._id, role: user.role },
+                process.env.JWT_SECRET as string,
+                { expiresIn: '15m' } // Align with loginUser
+              );
+            const refreshToken = jwt.sign(
+                { id: user._id, role: user.role },
+                process.env.REFRESH_TOKEN_SECRET as string,
+                { expiresIn: '7d' }
+              );
+            await this.repository.updateUserData(user._id as string, {
+    refreshToken,
+    refreshTokenExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Store as Date
+  });
+            return {user,token,refreshToken}
+        }
 
-            const token = jwt.sign({id:user._id},process.env.JWT_SECRET as string,{expiresIn: "1h"})
-            
-            return {user,token}
+        async signOut(refreshToken:string){
+            if(refreshToken){
+                try {
+                    const decoded = jwt.verify(refreshToken,process.env.REFRESH_TOKEN_SECRET as string) as TokenPayload
+                    if(decoded.role == 'User'  || decoded.role == 'Admin'){
+                        const user = await this.repository.getUserById(decoded.id)
+                        if (user) {
+                            return await this.repository.updateUserData(user._id as string,{refreshToken: null, refreshTokenExpiresAt: null})
+                        }
+                    }
+                } catch (error) {
+                    console.warn('Invalid refresh token during sign-out:', error);
+                }
+            }
         }
 
 
@@ -115,8 +149,16 @@
             return "An OTP has been sent to your email. Please check your inbox."
         }
 
-        async getAllUsers(page:number,limit:number):Promise<{data:IUserDocument[],totalCount:number}>{
-            return await this.repository.getAllUsers(page,limit)
+        async getAllUsers(page:number,limit:number,search:string):Promise<{data:IUserDocument[],totalCount:number}>{
+            let query:any={}
+            if(search){
+                query.$or = [
+                    {firstname:{$regex:search,$options:"i"}},
+                    {lastname:{$regex:search,$options:"i"}},
+                    {email:{$regex:search,$options:"i"}}
+                ]
+            }
+            return await this.repository.getAllUsers(page,limit,query)
         }
 
         async verifyOTP(email:string,otp:string):Promise<string>{

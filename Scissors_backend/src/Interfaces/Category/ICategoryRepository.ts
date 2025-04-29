@@ -8,5 +8,7 @@ export interface ICategoryRepository {
     createCategory(categoryData: ICategory): Promise<ICategoryDocument>;
     deleteCategory(id:string):Promise<any>
     updateCategory(id:string,updatedData:{name:string,description:string}):Promise<ICategoryDocument | null>
+    getCategoriesPaginated(query:any,skip:number,limit:number):Promise<ICategoryDocument[]>
+    countCategories(query:any):Promise<number>
   }
   

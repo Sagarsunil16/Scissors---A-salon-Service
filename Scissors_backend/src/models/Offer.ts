@@ -29,13 +29,14 @@ const OfferSchema = new Schema({
         type:mongoose.Schema.Types.ObjectId,
         ref:'Service'
     }],
-    expirtyDate:{
+    expiryDate:{
         type:Date,
         required:true
     },
     isActive:{
         type:Boolean,
-        required:true
+        required:true,
+        default:true
     }
 },{timestamps:true})
 

@@ -127,9 +127,10 @@ class AdminController {
 
   async getUsers(req: Request, res: Response,next:NextFunction): Promise<any> {
     try {
-      const { page, limit } = req.body;
+      const { page, limit,search } = req.query;
+      console.log(search)
       const { data: userData, totalCount: totalUsers } =
-        await userService.getAllUsers(page, limit);
+        await userService.getAllUsers(Number(page), Number(limit),search as string);
       const totalUserPages = Math.ceil(totalUsers / 10);
       if (!userData) {
         return next(new CustomError("No User Data Found", 400));
@@ -147,8 +148,8 @@ class AdminController {
 
   async getSalons(req: Request, res: Response,next:NextFunction): Promise<any> {
     try {
-      const { page } = req.body;
-      const salonData = await salonService.getAllSalons(page);
+      const {page,search} = req.query
+      const salonData = await salonService.getAllSalons(Number(page),search as string);
       const totalSalonPages = Math.ceil(salonData.totalCount/10)
       res
         .status(200)

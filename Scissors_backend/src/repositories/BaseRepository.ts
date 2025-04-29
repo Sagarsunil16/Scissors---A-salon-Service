@@ -2,6 +2,7 @@ import mongoose, { Document, Model } from "mongoose";
 
 export abstract class BaseRepository<T extends Document> {
   protected model: Model<T>;
+
   constructor(model: Model<T>) {
     this.model = model;
   }
@@ -9,6 +10,7 @@ export abstract class BaseRepository<T extends Document> {
   async create(data: Partial<T>): Promise<T> {
     return await this.model.create(data);
   }
+
   async findById(id: string): Promise<T | null> {
     return await this.model.findById(id);
   }
@@ -17,23 +19,19 @@ export abstract class BaseRepository<T extends Document> {
     return await this.model.findOne(filter);
   }
 
+  async findOneAndUpdate(filter: object, update: Partial<T>, options: mongoose.QueryOptions = { new: true }): Promise<T | null> {
+    return await this.model.findOneAndUpdate(filter, update, options);
+  }
+
   async deleteById(id: string): Promise<T | null> {
     return await this.model.findByIdAndDelete(id);
   }
 
-  async updateById(id: string, data: Partial<T>,options?:mongoose.QueryOptions): Promise<T | null> {
-    return await this.model.findByIdAndUpdate(id, data, { new: true });
+  async updateById(id: string, data: Partial<T>, options: mongoose.QueryOptions = { new: true }): Promise<T | null> {
+    return await this.model.findByIdAndUpdate(id, data, options);
   }
 
-  async findByIdAndUpdate(id:string,update:Partial<T>,options?:mongoose.QueryOptions):Promise<T | null>{
-    return await this.model.findByIdAndUpdate(id,update,options)
-  }
-
-  async findAll(
-    filter: object = {},
-    page: number = 1,
-    limit: number = 10
-  ): Promise<{ data: T[]; totalCount: number }> {
+  async findAll(filter: object = {}, page: number = 1, limit: number = 10): Promise<{ data: T[]; totalCount: number }> {
     const skip = (page - 1) * limit;
     const data = await this.model.find(filter).skip(skip).limit(limit);
     const totalCount = await this.model.countDocuments(filter);

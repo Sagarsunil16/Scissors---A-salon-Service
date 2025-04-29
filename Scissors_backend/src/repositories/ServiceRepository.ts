@@ -10,10 +10,10 @@ class ServiceRepository implements IServiceRepository{
     async createService(serviceData: IService): Promise<IServiceDocument> {
         return await Service.create(serviceData)
     }
-    async getAllServices(page:number): Promise<{services:IServiceDocument[],totalCount:number}> {
+    async getAllServices(page:number,query?:any): Promise<{services:IServiceDocument[],totalCount:number}> {
         const skip =  (page-1)  * 10
-        const services = await Service.find({}).skip(skip).limit(10)
-        const totalCount = await Service.countDocuments()
+        const services = await Service.find(query).skip(skip).limit(10)
+        const totalCount = await Service.countDocuments(query)
         return {services,totalCount}
     }
     async deleteService(id:string):Promise<IServiceDocument | null>{

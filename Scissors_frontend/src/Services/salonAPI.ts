@@ -148,3 +148,10 @@ export const cancelAppointment = async(appointmentId:string)=>{
 export const completeAppointment = async(appointmentId:string)=>{
     return await API.put(`/appointments/${appointmentId}/complete`)
 }
+
+export const getOffers = async(data:{id:string})=>{
+    return await API.get('/offers',{params:{id:data.id}})
+}
+export const createOffer = async(data:{salonId:any,title:string,description:string,discount:number,serviceIds:string[],expiryDate:string})=>{
+    return await API.post('/offers/create',data)
+}

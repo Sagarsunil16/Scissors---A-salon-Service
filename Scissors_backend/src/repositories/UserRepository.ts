@@ -65,12 +65,14 @@ class UserRepository extends BaseRepository<IUserDocument> implements IUserRepos
 
   async getAllUsers(
     page: number,
-    limit: number
+    limit: number,
+    query:any
   ): Promise<{data:IUserDocument[],totalCount:number}> {
     try {
       const skip = (page - 1) * limit;
-      const users = await User.find({ role: "User" }).skip(skip).limit(limit);
-      const totalCount =  await User.countDocuments({role:"User"})
+      const finalyQuery = {...query,role:'User'}
+      const users = await User.find(finalyQuery).skip(skip).limit(limit);
+      const totalCount =  await User.countDocuments(finalyQuery)
       return {data:users,totalCount};
     } catch (error) {
       console.error("Error fetching users:", error);

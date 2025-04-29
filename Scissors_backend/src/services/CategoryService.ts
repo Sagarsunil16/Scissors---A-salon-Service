@@ -14,6 +14,23 @@ class CategoryService {
     }
     return result;
   }
+
+  async getFilteredCategory(page:number,limit:number,search:string):Promise<{categories:ICategoryDocument[];totalItems:number}>{
+   const skip = (page-1) * limit
+   const query:any = {}
+   if(search){
+    query.$or = [
+      {name:{$regex:search,$options:'i'}},
+      {description:{$regex:search,$options:'i'}}
+    ]
+   }
+   const [categories,totalItems] = await Promise.all([
+    await this.repository.getCategoriesPaginated(query,skip,limit),
+    await this.repository.countCategories(query)
+   ])
+
+   return {categories,totalItems}
+  }
   async createCategory(categoryData: ICategory): Promise<ICategoryDocument> {
     const { name, description } = categoryData;
     if (!name || !description) {

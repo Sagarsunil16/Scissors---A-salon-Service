@@ -29,8 +29,13 @@ class SerService{
         return result
     }
 
-    async getAllServices(page:number):Promise<{services:IServiceDocument[],totalCount:number}>{
-            const result = this.repository.getAllServices(page)
+    async getAllServices(page:number,search:string):Promise<{services:IServiceDocument[],totalCount:number}>{
+            const query:any = {}
+            query.$or =[
+                {name:{$regex:search,$options:'i'}},
+                {description:{$regex:search,$options:'i'}}
+            ]
+            const result = this.repository.getAllServices(page,query)
             if(!result){
                 throw new CustomError("No services found. Please try again later.", 404);
             }

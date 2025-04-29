@@ -11,10 +11,16 @@ import {
 import { Category } from "../../interfaces/interface";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
+import Pagination from "../../Components/Pagination";
 const AdminCategory = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [editingCategory, setEditingCategory] = useState(null);
   const [editForm, setEditForm] = useState({ name: "", description: "" });
+  const [currentPage,setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(5)
+  const [search , setSearch] = useState("")
+  const [isLoading,setIsLoading] = useState(false)
+  const [totalItems, setTotalItems] = useState(0);
   const navigate = useNavigate();
 
   const handleDeleteCategory = async (id: string) => {
@@ -33,6 +39,7 @@ const AdminCategory = () => {
         const response = await deleteCategory(data);
         console.log(response.data);
         setCategories(categories.filter((cat: any) => cat._id !== id));
+        fetchCategories(currentPage);
         toast.success(response.data.message)
       } catch (error: any) {
         toast.error(error.response.data.message);
@@ -40,30 +47,29 @@ const AdminCategory = () => {
     }
   };
 
-  const handleEditClick = (category) => {
+  const handleEditClick = (category:any) => {
     setEditingCategory(category._id);
     setEditForm({ name: category.name, description: category.description });
   };
 
-  const handleEditChange = (e) => {
+  const handleEditChange = (e:any) => {
     const { name, value } = e.target;
     setEditForm({ ...editForm, [name]: value });
   };
 
   const handleEditSave = async (id: string) => {
     try {
+      setIsLoading(true)
       const data = { id, ...editForm };
       const response = await editCategory(data);
       if (response.status == 200) {
-        setCategories((prevCategories) =>
-          prevCategories.map((cat) =>
-            cat.id === id ? { ...cat, ...editForm } : cat
-          )
-        );
+        fetchCategories(currentPage);
         setEditingCategory(null);
       }
     } catch (error: any) {
       toast.error(error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -72,27 +78,53 @@ const AdminCategory = () => {
     setEditForm({ name: "", description: "" });
   };
 
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const data = await getAllCategory();
-        setCategories(data.data.categories);
-      } catch (error: any) {
-        toast.error(error.message);
-      }
-    };
-    fetchCategories();
-  }, [categories]);
+  const fetchCategories = async (page:number) => {
+    try {
+      setIsLoading(true)
+      const data = await getAllCategory(page,itemsPerPage,search);
+      console.log(data,"dataa")
+      setCategories(data.data.categories);
+      setTotalItems(data.data.Pagination.totalItems)
+    } catch (error: any) {
+      toast.error(error.message);
+    }finally{
+      setIsLoading(false)
+    }
+  };
 
+  useEffect(() => {
+    fetchCategories(currentPage);
+  }, [currentPage,search]);
+
+  const handlePage = (page:number)=>{
+    setCurrentPage(page)
+  }
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-white">
       <Sidebar />
       <div className="flex-1 p-4 md:p-6">
         <AdminHeader />
+        
         <h1 className="text-lg md:text-xl font-bold mb-4">Manage Categories</h1>
-
-        {/* Category List */}
-        <div>
+        <div className="flex justify-end mb-4">
+  <input
+    type="text"
+    placeholder="Search categories..."
+    value={search}
+    onChange={(e) => {
+      setSearch(e.target.value);
+      setCurrentPage(1); // Reset to first page on search
+    }}
+    className="border px-3 py-2 rounded-md w-full md:w-1/3"
+  />
+       
+</div>
+        {isLoading ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          </div>
+        ):(
+          <div>
           <h2 className="text-md md:text-lg font-semibold mb-4">
             Category List
           </h2>
@@ -176,7 +208,9 @@ const AdminCategory = () => {
             <p className="text-gray-500">No categories added yet.</p>
           )}
         </div>
-
+        )
+      }
+        
         {/* Add New Category Button */}
         <div className="mt-6">
           <button
@@ -185,8 +219,11 @@ const AdminCategory = () => {
           >
             Add New Category
           </button>
+         
         </div>
+        <Pagination currentPage={currentPage} totalItems={totalItems} itemsPerPage={10} onPageChange={handlePage}/>
       </div>
+
     </div>
   );
 };

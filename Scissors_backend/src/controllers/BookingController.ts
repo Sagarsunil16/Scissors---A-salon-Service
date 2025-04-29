@@ -1,5 +1,5 @@
 import { NextFunction, Request,Response } from "express";
-import { appointmentService, reviewService, timeSlotService } from "../config/di";
+import { appointmentService, offerService, reviewService, timeSlotService } from "../config/di";
 import { ITimeSlot } from "../Interfaces/TimeSlot/ITimeSlot";
 import CustomError from "../Utils/cutsomError";
 import { salonService } from "../config/di";
@@ -48,11 +48,13 @@ class bookingController{
                 );
             }
             const reviews = await reviewService.getSalonReviews(id as string)
+            const offers = await offerService.getSalonOffer(id as string)
             return res.status(200).json({
                 message: "Salon data and slots fetched successfully",
                 salonData,
                 reviews,
                 availableSlots,
+                offers
             });
 
         } catch (error: any) {

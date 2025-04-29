@@ -12,6 +12,7 @@ import { salonService } from "../config/di";
 import CustomError from "../Utils/cutsomError";
 import axios from "axios";
 import { GEOLOCATION_API } from "../constants";
+import { TokenPayload } from "../controllers/AuthController";
 
 class SalonService {
     private salonRepository: ISalonRepository;
@@ -114,11 +115,28 @@ class SalonService {
             expiresIn: '7d'
         })
         const updateData = {
-            refreshToken:refreshToken
+            refreshToken:refreshToken,
+            refreshTokenExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
         }
-        this.salonRepository.updateSalon(salon.id,updateData,{new:true})
+        this.salonRepository.updateSalon(salon._id.toString(),updateData,{new:true})
 
         return {salon,accessToken,refreshToken}
+    }
+
+    async signOut(refreshToken:string){
+        if(refreshToken){
+            try {
+                const decoded = jwt.verify(refreshToken,process.env.REFRESH_TOKEN_SECRET as string) as TokenPayload
+                if(decoded.role == 'Salon'){
+                    const salon = await this.salonRepository.getSalonById(decoded.id)
+                    if (salon) {
+                        return await this.salonRepository.updateSalon(salon._id.toString(),{refreshToken: null, refreshTokenExpiresAt: null})
+                    }
+                }
+            } catch (error) {
+                console.warn('Invalid refresh token during sign-out:', error);
+            }
+        }
     }
 
     async getSalonData(id:string):Promise<ISalonDocument | null>{
@@ -166,8 +184,15 @@ class SalonService {
       return await this.salonRepository.updateSalonStatus(id,isActive)
     }
 
-    async getAllSalons(page:number):Promise<{data:ISalonDocument[],totalCount:number}>{
-        return await this.salonRepository.getAllSalon(page)
+    async getAllSalons(page:number,search:string):Promise<{data:ISalonDocument[],totalCount:number}>{
+        const query:any = {}
+        if(search){
+            query.$or = [
+                {salonName:{$regex:search, $options:'i'}},
+                {email:{$regex:search,$options:'i'}}
+            ] 
+        }
+        return await this.salonRepository.getAllSalon(page,query)
     }
 
     async allSalonListForChat():Promise <Partial<ISalonDocument>[]>{

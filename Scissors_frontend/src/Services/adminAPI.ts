@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const API = axios.create({
-    baseURL: `${import.meta.env.VITE_API_URL}/admin`,
+    baseURL: `${import.meta.env.VITE_API_URL}/api/v1/admin`,
     withCredentials: true, // Ensure cookies are sent with the request
 });
 
@@ -69,12 +69,23 @@ export const blockAndUnblockUser = async(data:{userId:string,isActive:Boolean})=
     return await API.put('/block-unblock',data)
 }
 
-export const fetchUsers = async(data:{page:number,limit:number})=>{
-    return await API.post('/users',data)
+export const fetchUsers = async(data:{page:number,limit:number,search:string})=>{
+    return await API.get('/users',{
+        params:{
+            page:data.page,
+            limit:data.limit,
+            search:data.search
+        }
+    })
 }
 
-export const fetchSalons = async(data:{page:number})=>{
-    return await API.post('/salons',data)
+export const fetchSalons = async(data:{page:number,search:string})=>{
+    return await API.get('/salons',{
+        params:{
+            page:data.page,
+            search:data.search
+        }
+    })
 }
 
 export const blockAndUnblockSalon = async(data:{salonId:string,isActive:boolean})=>{
@@ -89,10 +100,17 @@ export const deleteUserAPI =  async(data:{id:string})=>{
     return await API.post('/delete-user',data)
 }
 
-export const getAllCategory = async()=>{
-    return await API.get('/category')
+export const getAllCategory = async(page:number,limit:number,search:string="")=>{
+    return await API.get(`/categories`,{
+        params:{page,limit,search}
+    })
 }
 
+export const getPaginatedCategories = async(page:number,limit:number)=>{
+    return await API.get('/categories',{
+        params:{page,limit}
+    })  
+}
 export const deleteCategory = async(data:{id:string})=>{
     return await API.put('/delete-category',data)
 }
@@ -104,10 +122,11 @@ export const editCategory  = async(data:{id:string,name:string,description:strin
     return await API.put('/edit-category',data)
 }
 
-export const getAllServices = async(data:{page:number})=>{
+export const getAllServices = async(data:{page:number,search:string})=>{
     return await API.get('/service',{
         params:{
-            page:data.page
+            page:data.page,
+            search:data.search
         }
     })
 }

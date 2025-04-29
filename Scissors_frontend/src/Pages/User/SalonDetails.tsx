@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import moment from 'moment-timezone'
+import moment from "moment-timezone";
 import Navbar from "../../Components/Navbar";
 import Footer from "../../Components/Footer";
 import { useParams, useNavigate, Link } from "react-router-dom";
@@ -14,9 +14,10 @@ import { useSelector } from "react-redux";
 import { Card, CardContent } from "../../Components/ui/card";
 import { start } from "../../Redux/Salon/salonSlice";
 import { Star } from "lucide-react";
+import { Button } from "../../Components/ui/button";
 
 interface Service {
-  service: { $oid: string };
+  service: { $oid: string; _id: string; name: string };
   name: string;
   description: string;
   price: number;
@@ -29,6 +30,16 @@ interface Image {
   _id: string;
 }
 
+interface Offer {
+  _id: string;
+  title: string;
+  description: string;
+  discount: number;
+  serviceIds: { _id: string; name: string }[];
+  expiryDate: string;
+  isActive: boolean;
+}
+
 interface Address {
   areaStreet: string;
   city: string;
@@ -36,10 +47,10 @@ interface Address {
   pincode: string;
 }
 
-interface Review{
-  _id:string,
-  userId:{firstname:string,lastname:string},
-  stylistId:{name:string},
+interface Review {
+  _id: string;
+  userId: { firstname: string; lastname: string };
+  stylistId: { name: string };
   salonRating: number;
   salonComment: string;
   stylistRating: number;
@@ -48,7 +59,7 @@ interface Review{
 }
 
 interface SalonData {
-  _id:string
+  _id: string;
   salonName: string;
   email: string;
   phone: number;
@@ -58,10 +69,10 @@ interface SalonData {
   images: Image[];
   services: Service[];
   rating: number;
-  reviewCount:number;
+  reviewCount: number;
   is_Active: boolean;
   verified: boolean;
-  timeZone:string
+  timeZone: string;
 }
 
 const formatTime = (time: string) => {
@@ -72,13 +83,13 @@ const formatTime = (time: string) => {
     : `${hours}:${minutes} AM`;
 };
 
-const formatTimeInSalon = (utcTime:string,timezone:string)=>{
-  return moment.utc(utcTime).tz(timezone).format('h:mm A')
-}
+const formatTimeInSalon = (utcTime: string, timezone: string) => {
+  return moment.utc(utcTime).tz(timezone).format("h:mm A");
+};
 
 const SalonDetails = () => {
   const { id } = useParams<{ id: string }>();
-  const {currentUser} =  useSelector((state:any)=>state.user)
+  const { currentUser } = useSelector((state: any) => state.user);
   const [salon, setSalon] = useState<SalonData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
@@ -86,24 +97,24 @@ const SalonDetails = () => {
   const [visibleServices, setVisibleServices] = useState(3);
   const [error, setError] = useState<string | null>(null);
   const [slotLoading, setSlotLoading] = useState(false);
-  const [serviceOption, setServiceOption] = useState<'home' | 'store'>('store');
-  const [selectedAddress, setSelectedAddress] = useState<string>(''); // State for address
-  console.log(selectedServices, "selectedServices");
+  const [serviceOption, setServiceOption] = useState<"home" | "store">("store");
+  const [selectedAddress, setSelectedAddress] = useState<string>(""); // State for address
+  const [offers, setOffers] = useState<Offer[]>([]);
 
   const [stylists, setStylists] = useState<any[]>([]);
   const [selectedStylist, setSelectedStylist] = useState<string | null>(null);
   const [availableSlots, setAvailableSlots] = useState<
-    { _id:string, startTime: string; endTime: string }[]
+    { _id: string; startTime: string; endTime: string }[]
   >([]);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
-  const [selectedSlotId,setSelectedSlotId] = useState<string>('')
+  const [selectedSlotId, setSelectedSlotId] = useState<string>("");
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split("T")[0]
   );
 
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
-  console.log(availableSlots,"AvailableSlots")
+  console.log(availableSlots, "AvailableSlots");
   useEffect(() => {
     const fetchStylists = async () => {
       if (selectedServices.length > 0 && id) {
@@ -113,7 +124,7 @@ const SalonDetails = () => {
             salonId: id,
             serviceIds: selectedServices,
           });
-          console.log(response,"stylists")
+          console.log(response, "stylists");
           setStylists(response.data.stylists);
           setSelectedStylist(null);
         } catch (error) {
@@ -136,11 +147,14 @@ const SalonDetails = () => {
           stylistId: selectedStylist as string,
           selectedDate,
         };
-        const [salonResponse] = await Promise.all([getSalonDetailsWithSlots(data)])
-        console.log(salonResponse,"Both");
+        const [salonResponse] = await Promise.all([
+          getSalonDetailsWithSlots(data),
+        ]);
+        console.log(salonResponse, "Both");
         setSalon(salonResponse.data.salonData);
         setAvailableSlots(salonResponse.data.availableSlots || []);
-        setReviews(salonResponse.data.reviews)
+        setReviews(salonResponse.data.reviews);
+        setOffers(salonResponse.data.offers);
       } catch (error: any) {
         setError(error.message || "Failed to fetch salon details");
       } finally {
@@ -170,8 +184,15 @@ const SalonDetails = () => {
   const calculateTotal = () => {
     return selectedServices.reduce((total, serviceId) => {
       const service = salon?.services.find((s) => s._id === serviceId);
-
-      return total + (service?.price || 0);
+      if (!service) return total;
+      const offers = getServiceOffers(service.service._id);
+      const maxDiscount =
+        offers.length > 0 ? Math.max(...offers.map((o) => o.discount), 0) : 0;
+      const discountedPrice = service.price * (1 - maxDiscount / 100);
+      console.log(
+        `Service: ${service.name}, Original: ₹${service.price}, Discount: ${maxDiscount}%, Final: ₹${discountedPrice}`
+      );
+      return total + discountedPrice;
     }, 0);
   };
 
@@ -187,33 +208,45 @@ const SalonDetails = () => {
   };
   const isAddressValid = () => {
     const { areaStreet, city, state, pincode } = currentUser.address;
-    return areaStreet && city && state && pincode; // Check if all fields are non-null
+    return areaStreet && city && state && pincode;
   };
 
-  const renderStars = (rating:number)=>{
-    const stars = []
-    for(let i=1;i<=5;i++){
+  const renderStars = (rating: number) => {
+    const stars = [];
+    for (let i = 1; i <= 5; i++) {
       stars.push(
         <Star
-        key={i}
-        className={`w-4 h-4 inline-block mr-1 ${
-          i <= rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
-        }`}
+          key={i}
+          className={`w-4 h-4 inline-block mr-1 ${
+            i <= rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
+          }`}
         />
-      )
+      );
     }
-    return stars
-  }
+    return stars;
+  };
+
+  const getServiceOffers = (baseServiceId: string) => {
+    return offers.filter(
+      (offer) =>
+        offer.isActive &&
+        new Date(offer.expiryDate) >= new Date() &&
+        (offer.serviceIds.length === 0 ||
+          offer.serviceIds.some((s) => s._id === baseServiceId))
+    );
+  };
   return (
-    <div className=" bg-gray-50">
+    <div className="bg-gray-50">
       <Navbar />
-      <main className=" min-h-screen max-w-7xl mx-auto px-4 sm:px-6 lg-px-8 py-8">
+      <main className="min-h-screen max-w-7xl mx-auto px-4 sm:px-6 lg-px-8 py-8">
         <div className="bg-white rounded-lg shadow-md p-6 mb-8 py-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2 pt-12">
             {salon.salonName}
           </h1>
           <div className="flex items-center space-x-4 text-gray-600">
-          <span className="flex items-center">⭐ {salon.rating.toFixed(1)} ({salon.reviewCount} reviews)</span>
+            <span className="flex items-center">
+              ⭐ {salon.rating.toFixed(1)} ({salon.reviewCount} reviews)
+            </span>
             <span>•</span>
             <span>
               {salon.address.areaStreet}, {salon.address.city}
@@ -269,6 +302,15 @@ const SalonDetails = () => {
                       <p className="text-gray-500 text-sm mt-1">
                         {service.description}
                       </p>
+                      {getServiceOffers(service.service._id).map((offer) => (
+                        <div key={offer._id} className="mt-2 text-sm text-green-600">
+                          <p>
+                            <strong>{offer.title}:</strong> {offer.discount}% off{" "}
+                            (Expires: {new Date(offer.expiryDate).toLocaleDateString()})
+                          </p>
+                          <p className="text-gray-600">{offer.description}</p>
+                        </div>
+                      ))}
                     </div>
                     <div className="flex items-center gap-4 ml-1">
                       <span className="text-blue-600">₹{service.price}</span>
@@ -290,7 +332,6 @@ const SalonDetails = () => {
                   </div>
                 </div>
               ))}
-
               {salon.services.length > 3 && (
                 <button
                   onClick={toggleVisibleServices}
@@ -301,104 +342,117 @@ const SalonDetails = () => {
               )}
             </div>
           </div>
-          {/* Sticky Continue Section */}
 
-          {/* Update the Continue to Booking section */}
           {selectedServices.length > 0 && (
-  <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg">
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-      <div className="flex items-center justify-between">
-        {/* Booking Summary (Left Side) */}
-        <div>
-          <h3 className="font-medium text-lg">Booking Summary</h3>
-          <div className="text-sm text-gray-500">
-            <p>Services: {selectedServices.length}</p>
-            {selectedStylist && (
-              <p>
-                Stylist:{" "}
-                {stylists.find((s) => s._id === selectedStylist)?.name}
-              </p>
-            )}
-            {selectedSlot && (
-              <p>
-                {new Date(selectedSlot).toLocaleDateString()} -{" "}
-                {new Date(selectedSlot).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  hour12: true,
-                })}
-              </p>
-            )}
-            <p className="mt-1 font-semibold">Total: ₹{calculateTotal()}</p>
-          </div>
+            <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-medium text-lg">Booking Summary</h3>
+                    <div className="text-sm text-gray-500">
+                      {selectedServices.map((serviceId) => {
+                        const service = salon?.services.find((s) => s._id === serviceId);
+                        if (!service) return null;
+                        const offers = getServiceOffers(service.service._id);
+                        const maxDiscount = offers.length > 0 ? Math.max(...offers.map((o) => o.discount), 0) : 0;
+                        const discountedPrice = service.price * (1 - maxDiscount / 100);
+                        const appliedOffer = offers.find((o) => o.discount === maxDiscount);
+                        return (
+                          <div key={service._id} className="mt-1">
+                            <p>{service.name}</p>
+                            {maxDiscount > 0 ? (
+                              <p>
+                                Original: ₹{service.price}, {maxDiscount}% off (
+                                {appliedOffer?.title}) → ₹{discountedPrice.toFixed(2)}
+                              </p>
+                            ) : (
+                              <p>Price: ₹{service.price}</p>
+                            )}
+                          </div>
+                        );
+                      })}
+                      {selectedStylist && (
+                        <p>
+                          Stylist: {stylists.find((s) => s._id === selectedStylist)?.name}
+                        </p>
+                      )}
+                      {selectedSlot && (
+                        <p>
+                          {new Date(selectedSlot).toLocaleDateString()} -{" "}
+                          {new Date(selectedSlot).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            hour12: true,
+                          })}
+                        </p>
+                      )}
+                      <p className="mt-1 font-semibold">Total: ₹{calculateTotal().toFixed(2)}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Service Option
+                      </label>
+                      <select
+                        value={serviceOption}
+                        onChange={(e) => setServiceOption(e.target.value as 'home' | 'store')}
+                        className="mt-1 p-2 border rounded-lg w-full"
+                      >
+                        <option value="store">Store</option>
+                        <option value="home">Home</option>
+                      </select>
+                    </div>
+                    <button
+                      onClick={() => {
+                        if (!selectedStylist) {
+                          alert("Please select a stylist");
+                          return;
+                        }
+                        if (!selectedSlot) {
+                          alert("Please select a time slot");
+                          return;
+                        }
+                        if (serviceOption === 'home' && !isAddressValid()) {
+                          alert("Please add your address to proceed with home service");
+                          navigate("/profile");
+                          return;
+                        }
+                        const stylistName = stylists.find((stylist) => stylist._id === selectedStylist)?.name || "";
+                        const serviceNames = selectedServices
+                          .map((serviceId) => {
+                            const service = salon?.services.find((s) => s._id === serviceId);
+                            return service?.name;
+                          })
+                          .filter(Boolean);
+                        navigate(`/salons/${salon.salonName}/book`, {
+                          state: {
+                            user: currentUser._id,
+                            salon: salon._id,
+                            selectedServices,
+                            selectedSlot,
+                            slotId: selectedSlotId,
+                            selectedDate,
+                            selectedStylist,
+                            stylistName,
+                            serviceNames,
+                            serviceOption,
+                            totalPrice: calculateTotal(),
+                            selectedAddress: serviceOption === 'home' ? currentUser.address : null,
+                          },
+                        });
+                      }}
+                      className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors mt-4"
+                    >
+                      Book Now
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Payment Method and Service Option (Right Side) */}
-        <div className="flex items-center  gap-4">
-          
-
-          {/* Service Option */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Service Option
-            </label>
-            <select
-              value={serviceOption}
-              onChange={(e) => setServiceOption(e.target.value as 'home' | 'store')}
-              className="mt-1 p-2 border rounded-lg w-full"
-            >
-              <option value="store">Store</option>
-              <option value="home">Home</option>
-            </select>
-          </div>
-
-          {/* Book Now Button */}
-          <button
-            onClick={() => {
-              if (!selectedStylist) {
-                alert("Please select a stylist");
-              }if (!selectedSlot) {
-                alert("Please select a time slot");
-              }
-              if (serviceOption === 'home' && !isAddressValid()) {
-                alert("Please add your address to proceed with home service");
-                navigate("/profile"); // Navigate to profile page to add/update address
-                return 
-              }
-              const stylistName = stylists.find((stylist)=>stylist._id === selectedStylist)?.name || ""
-              console.log(stylistName,"stylist namesdas")
-              const serviceNames = selectedServices.map((ServiceId)=>{
-              const service =  salon?.services.find((s)=>s._id === ServiceId)
-              return service?.name
-              }).filter(Boolean)
-              navigate(`/salons/${salon.salonName}/book`, {
-                state: {
-                  user:currentUser._id,
-                  salon:salon._id,
-                  selectedServices,
-                  selectedSlot,
-                  slotId:selectedSlotId,
-                  selectedDate,
-                  selectedStylist,
-                  stylistName,
-                  serviceNames,
-                  serviceOption,
-                  totalPrice:calculateTotal(),
-                  selectedAddress: serviceOption === 'home' ? currentUser.address : null, // Pass address only for home service
-                },
-              });
-            }}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors mt-4"
-          >
-           Book Now
-          </button>
-  
-        </div>
-      </div>
-    </div>
-  </div>
-)}
-        </div>
         <div className="bg-white p-4 rounded-lg shadow-md mt-8">
           <h2 className="text-2xl font-semibold mb-4">Select Date</h2>
           <input
@@ -421,7 +475,7 @@ const SalonDetails = () => {
                     key={stylist._id}
                     onClick={() => {
                       setSelectedStylist(stylist._id);
-                      setSelectedSlot(null); // Reset slot selection
+                      setSelectedSlot(null);
                     }}
                     className={`p-3 rounded-lg transition-colors ${
                       selectedStylist === stylist._id
@@ -430,85 +484,77 @@ const SalonDetails = () => {
                     }`}
                   >
                     <p className="font-medium">{stylist.name}</p>
-                    <p className="text-sm text-gray-500">
-                    {stylist.rating === 0 ? 'No ratings yet' : `${stylist.rating}/5 stars`}
+                    <p className="text-sm text-yellow-500">
+                      {stylist.rating === 0 ? 'No ratings yet' : `${stylist.rating}/5 stars`}
                     </p>
                   </button>
                 ))}
             </div>
           </div>
         )}
-        {/* Available Slots Section */}
-        <div className="bg-white p-6 rounded-lg shadow-md mt-8">
-  <h2 className="text-2xl font-semibold mb-4">Available Slots</h2>
-  {slotLoading ? (
-    <div className="text-center py-4">Loading slots...</div>
-  ) : (
-    <div className="flex flex-wrap gap-2">
-      {availableSlots.length > 0 ? (
-        availableSlots.map((slot) => (
-          <button
-            key={`${slot.startTime}-${slot.endTime}`}
-            onClick={() => {setSelectedSlot(slot.startTime); setSelectedSlotId(slot._id)}}
-            className={`px-4 py-2 rounded-lg text-sm ${
-              selectedSlot === slot.startTime
-                ? "bg-blue-600 text-white"
-                : "bg-gray-200 hover:bg-gray-300"
-            }`}
-          >
-            {formatTimeInSalon(slot.startTime, salon.timeZone)} -{" "}
-            {formatTimeInSalon(slot.endTime, salon.timeZone)}
-          </button>
-        ))
-      ) : (
-        <p className="text-gray-500">
-          {selectedServices.length === 0
-            ? "Select a service to view slots"
-            : "No slots available for selected date"}
-        </p>
-      )}
-    </div>
-  )}
-</div>
 
-        {/* Feedback & Reviews Section */}
         <div className="bg-white p-6 rounded-lg shadow-md mt-8">
-  <h2 className="text-2xl font-semibold mb-4">Customer Reviews</h2>
-  
-  {reviews.length > 0 ? (
-    <div className="max-h-96 overflow-y-auto space-y-4 pr-2">
-      {reviews.map((review) => (
-        <Card key={review._id} className="border border-gray-200 rounded-lg shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <p className="font-medium text-gray-900">
-                {review.userId?.firstname} {review.userId?.lastname}
-              </p>
-              <span className="text-xs text-gray-500">
-                {new Date(review.createdAt).toLocaleDateString()}
-              </span>
+          <h2 className="text-2xl font-semibold mb-4">Available Slots</h2>
+          {slotLoading ? (
+            <div className="text-center py-4">Loading slots...</div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {availableSlots.length > 0 ? (
+                availableSlots.map((slot) => (
+                  <button
+                    key={`${slot.startTime}-${slot.endTime}`}
+                    onClick={() => {
+                      setSelectedSlot(slot.startTime);
+                      setSelectedSlotId(slot._id);
+                    }}
+                    className={`px-4 py-2 rounded-lg text-sm ${
+                      selectedSlot === slot.startTime
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-200 hover:bg-gray-300"
+                    }`}
+                  >
+                    {formatTimeInSalon(slot.startTime, salon.timeZone)} -{" "}
+                    {formatTimeInSalon(slot.endTime, salon.timeZone)}
+                  </button>
+                ))
+              ) : (
+                <p className="text-gray-500">
+                  {selectedServices.length === 0
+                    ? "Select a service to view slots"
+                    : "No slots available for selected date"}
+                </p>
+              )}
             </div>
-            <div className="mt-2">
-              {/* <p className="text-sm font-semibold text-gray-800">Salon Rating</p> */}
-              <div>{renderStars(review.salonRating)}</div>
-              <p className="text-sm text-gray-700 mt-1">{review.salonComment}</p>
-            </div>
-            {/* <div className="mt-4">
-              <p className="text-sm font-semibold text-gray-800">
-                Stylist: {review.stylistId?.name || "Unknown"}
-              </p>
-              <div>{renderStars(review.stylistRating)}</div>
-              <p className="text-sm text-gray-700 mt-1">{review.stylistComment}</p>
-            </div> */}
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  ) : (
-    <p className="text-gray-500">No reviews yet. Book an appointment to share your experience!</p>
-  )}
-</div>
+          )}
+        </div>
 
+        <div className="bg-white p-6 rounded-lg shadow-md mt-8">
+          <h2 className="text-2xl font-semibold mb-4">Customer Reviews</h2>
+          {reviews.length > 0 ? (
+            <div className="max-h-96 overflow-y-auto space-y-4 pr-2">
+              {reviews.map((review) => (
+                <Card key={review._id} className="border border-gray-200 rounded-lg shadow-sm">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <p className="font-medium text-gray-900">
+                        {review.userId?.firstname} {review.userId?.lastname}
+                      </p>
+                      <span className="text-xs text-gray-500">
+                        {new Date(review.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div className="mt-2">
+                      <div>{renderStars(review.salonRating)}</div>
+                      <p className="text-sm text-gray-700 mt-1">{review.salonComment}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500">No reviews yet. Book an appointment to share your experience!</p>
+          )}
+        </div>
       </main>
       <Footer />
     </div>

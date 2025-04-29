@@ -7,7 +7,7 @@ export interface IUserRepostirory {
     getUserById(id:string):Promise<IUserDocument | null>;
     getUserByEmail(email:string):Promise<IUserDocument | null>;   
     deleteUser(id:string):Promise<IUserDocument | null>;
-    getAllUsers(page:number,limit:number):Promise<{data:IUserDocument[],totalCount:number}>
+    getAllUsers(page:number,limit:number,query:any):Promise<{data:IUserDocument[],totalCount:number}>
     updateUserOtp(email:string,otp:string,otpExpiry:Date):Promise<IUserDocument | null>;
     resetPassword(email:string,newPassword:string):Promise<IUserDocument | null>
     updateUser(id:string,updatedData:Partial<IUser>):Promise<IUserDocument | null>;

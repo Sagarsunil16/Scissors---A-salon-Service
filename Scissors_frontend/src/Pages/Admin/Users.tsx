@@ -13,25 +13,25 @@ const Users = () => {
   const dispatch = useDispatch();
   const [currentPage, setCurrentPage] = useState(1);
   const [userData,setUserData] = useState<User[]>([])
+  const [search,setSearch] = useState("")
   const limit = 10;
   // const users = useSelector((state: any) => state.admin.userData.userData);
 
  let totalPages =1
-  // console.log(totalPages,"totalPages")
+ const fetchUsersData = async () => {
+  try {
+    const data = { page: currentPage, limit: limit,search:search };
+    const response = await fetchUsers(data);
+    // dispatch(updateUserData(response.data.userData.userData));
+    setUserData(response.data.userData.userData)
+    totalPages = response.data.userData.totalUserPages
+  } catch (error: any) {
+    toast.error(error.message);
+  }
+};
   useEffect(() => {
-    const fetchUsersData = async () => {
-      try {
-        const data = { page: currentPage, limit: limit };
-        const response = await fetchUsers(data);
-        // dispatch(updateUserData(response.data.userData.userData));
-        setUserData(response.data.userData.userData)
-        totalPages = response.data.userData.totalUserPages
-      } catch (error: any) {
-        toast.error(error.message);
-      }
-    };
     fetchUsersData();
-  }, [currentPage,userData]);
+  }, [currentPage,search]);
 
   // Handle page change
   const handlePageChange = (page: number) => {
@@ -106,6 +106,19 @@ const Users = () => {
           <h2 className="text-lg sm:text-2xl font-semibold mb-4 text-center sm:text-left">
             User Management
           </h2>
+          <div className="flex justify-end mb-4">
+  <input
+    type="text"
+    placeholder="Search salons..."
+    value={search}
+    onChange={(e) => {
+      setSearch(e.target.value);
+      setCurrentPage(1); // Reset to first page on search
+    }}
+    className="border px-3 py-2 rounded-md w-full md:w-1/3"
+  />
+       
+</div>
           {/* Table Component */}
           <div className="overflow-x-auto">
             <Table columns={columns} data={userData} actions={actions} />

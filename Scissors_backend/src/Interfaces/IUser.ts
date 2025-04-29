@@ -17,6 +17,7 @@ export interface IUser{
     is_Active:boolean,
     otp?:string | null,
     otpExpiry?:Date |null,
-    refreshToken:string,
+    refreshToken:string | null,
+    refreshTokenExpiresAt:Date | null
     googleLogin:boolean
 }

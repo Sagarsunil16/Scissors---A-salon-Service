@@ -1,3 +1,4 @@
+import { query } from "express";
 import { ICategory, ICategoryDocument } from "../Interfaces/Category/ICategory";
 import { ICategoryRepository } from "../Interfaces/Category/ICategoryRepository";
 import Category from "../models/Category";
@@ -26,6 +27,13 @@ class CategoryRepository implements ICategoryRepository{
 
     async deleteCategory(id: string): Promise<any> {
         return await Category.findByIdAndDelete(id)
+    }
+
+    async getCategoriesPaginated(query:any,skip:number,limit:number):Promise<ICategoryDocument[]>{
+        return await Category.find(query).skip(skip).limit(limit)
+    }
+    async countCategories(query:any):Promise<number>{
+        return await Category.countDocuments(query)
     }
 }
 

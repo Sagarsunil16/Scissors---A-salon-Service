@@ -126,6 +126,10 @@ const salonSchema: Schema = new Schema({
     type: String,
     default: null,
   },
+  refreshTokenExpiresAt:{
+    type:Date || null,
+    default: null
+  },
   role: {
     type: String,
     default: "Salon",

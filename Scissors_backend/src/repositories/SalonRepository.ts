@@ -19,10 +19,10 @@ class SalonRepository extends BaseRepository<ISalonDocument> implements ISalonRe
         return await Salon.create(salonData)
     }
     async getSalonByEmail(email: string): Promise<ISalonDocument | null> {
-        return await Salon.findOne({ email });
+        return await Salon.findOne({ email }).populate('services.service');
     }
     async updateSalon(id: string, update: Partial<ISalonDocument>, options?: mongoose.QueryOptions): Promise<ISalonDocument | null> {
-        return await this.findByIdAndUpdate(id,update,options)
+        return await this.updateById(id,update,options)
     }
 
     async getSalonById(id:string):Promise<ISalonDocument | null>{
@@ -45,11 +45,11 @@ class SalonRepository extends BaseRepository<ISalonDocument> implements ISalonRe
         }).select(`salonName address services rating`).lean()
     }
     
-    async getAllSalon(page:number):Promise<{data:ISalonDocument[],totalCount:number}>{
+    async getAllSalon(page:number,query:any):Promise<{data:ISalonDocument[],totalCount:number}>{
         try {
             const skip = (page - 1) * 10
-            const salons =  await Salon.find({}).skip(skip).limit(10)
-            const totalCount = await Salon.countDocuments()
+            const salons =  await Salon.find(query).skip(skip).limit(10)
+            const totalCount = await Salon.countDocuments(query)
             return {data:salons,totalCount}
         } catch (error:any) {
             console.log("Error fetching salon data",error);

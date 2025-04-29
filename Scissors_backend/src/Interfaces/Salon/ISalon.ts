@@ -63,7 +63,8 @@ export interface ISalon {
   timeZone:string
   rating:Number,
   reviewCount:Number,
-  refreshToken:String
+  refreshToken:string | null,
+  refreshTokenExpiresAt:Date | null,
   role:string
 }
 

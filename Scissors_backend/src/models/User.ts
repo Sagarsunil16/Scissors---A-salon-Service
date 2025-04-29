@@ -1,5 +1,6 @@
 import mongoose, { Schema, Document } from "mongoose";
 import { IUser} from "../Interfaces/IUser";
+import { refreshToken } from "firebase-admin/app";
 
 export interface IUserDocument extends IUser, Document {
   _doc?: IUser; // Add the _doc property as optional
@@ -60,6 +61,10 @@ const UserSchema: Schema = new Schema({
   },
   refreshToken:{
     type:String,
+    default:null
+  },
+  refreshTokenExpiresAt:{
+    type:Date || null,
     default:null
   },
   googleLogin:{

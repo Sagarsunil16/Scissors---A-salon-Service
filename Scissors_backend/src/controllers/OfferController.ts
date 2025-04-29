@@ -12,6 +12,7 @@ class OfferController{
         try {
             const userId = req.user?.id
             const {salonId,title,description,discount,serviceIds,expiryDate} = req.body
+            console.log(req.body,"Bodyy")
             if(!userId){
                 throw new CustomError("Unauthorized",401)
             }
@@ -24,8 +25,8 @@ class OfferController{
 
     async getSalonOffers(req:AuthenticatedRequest,res:Response,next:NextFunction):Promise<void>{
         try {
-            const {id} = req.params
-            const offers = await offerService.getSalonOffer(id)
+            const salonId  = req.query.id as string
+            const offers = await offerService.getSalonOffer(salonId)
             res.status(200).json({message:"Offers retriewed successfully",offers})
         } catch (error:any) {
             next(new CustomError(error.message || "Failed to fetch salon offer", error.status || 500));

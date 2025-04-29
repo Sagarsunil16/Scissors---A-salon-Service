@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { userService } from "../config/di";
 import CustomError from "../Utils/cutsomError";
 import { SUCCESS_MESSAGES,ERROR_MESSAGES } from "../constants";
+import { refreshToken } from "firebase-admin/app";
 class UserController {
   async createUser(req: Request, res: Response,next:NextFunction): Promise<any> {
     try {
@@ -21,7 +22,7 @@ class UserController {
       const cookieOptions = {
         path:'/',
         httpOnly:true,
-        secure:false,
+        secure:process.env.NODE_ENV === 'production',
         maxAge:0
       }
       res
@@ -43,18 +44,20 @@ class UserController {
 
   async googleLogin(req: Request, res: Response,next:NextFunction): Promise<any> {
     try {
-      const { token,refreshToken } = req.body;
+      const { token } = req.body;
       const cookieOptions = {
         path:'/',
         httpOnly:true,
-        secure:false,
+        secure:process.env.NODE_ENV === 'production',
         maxAge:0
       }
-      const result = await userService.googleLogin(token,refreshToken);
+      
+      const result = await userService.googleLogin(token);
+      
       res
         .cookie("authToken", result?.token,{
           ...cookieOptions,maxAge:15*60*1000
-        } ).cookie("refreshToken",refreshToken,{
+        } ).cookie("refreshToken",result?.refreshToken,{
           ...cookieOptions,maxAge:7*24*60*60*1000
         } )
         .status(200)
@@ -65,7 +68,10 @@ class UserController {
   }
 
   async userSignOut(req: Request, res: Response,next:NextFunction): Promise<any> {
-   
+    const refreshToken = req.cookies.refreshToken
+    if (refreshToken) {
+      await userService.signOut(refreshToken);
+    }
     res
       .clearCookie("authToken", { path: "/", httpOnly: true, secure: false })
       .clearCookie("refreshToken",{ path: "/", httpOnly: true, secure: false })

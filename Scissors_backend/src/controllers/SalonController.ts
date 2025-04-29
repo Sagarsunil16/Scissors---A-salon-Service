@@ -53,10 +53,13 @@ class SalonController {
     }
 
     async signOutSalon(req: Request, res: Response,next:NextFunction): Promise<any> {
+        const refreshToken = req.cookies.refreshToken
+        await salonService.signOut(refreshToken)
         res
-          .clearCookie("authToken", { path: "/salon/login" })
-          .status(200)
-          .json({ message: "Logged Out Successfully!" });
+        .clearCookie("authToken", { path: "/", httpOnly: true, secure: false })
+        .clearCookie("refreshToken",{ path: "/", httpOnly: true, secure: false })
+        .status(200)
+        .json({ message: "Logged Out Successfully!" });
       }
 
 

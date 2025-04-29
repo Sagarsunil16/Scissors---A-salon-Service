@@ -13,6 +13,7 @@ const AdminServices = () => {
   const [editForm, setEditForm] = useState({ name: "", description: ""});
   const [totalPages,setTotalPages] = useState(1)
   const [currentPage, setCurrentPage] = useState(1);
+  const [search,setSearch] = useState("")
   const navigate = useNavigate();
 
   const handleDeleteService = async (id: string) => {
@@ -44,7 +45,7 @@ const AdminServices = () => {
     });
   };
 
-  const handleEditChange = (e) => {
+  const handleEditChange = (e:any) => {
     const { name, value } = e.target;
     setEditForm({ ...editForm, [name]: value });
   };
@@ -78,20 +79,20 @@ const AdminServices = () => {
     }
   };
 
+  const fetchServices = async (page:number) => {
+    try {
+      const data = {page:page,search:search}
+      const response = await getAllServices(data);
+      console.log(response)
+      setServices(response.data.services);
+      setTotalPages(response.data.totalPages)
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
   useEffect(() => {
-    const fetchServices = async () => {
-      try {
-        const data = {page:currentPage}
-        const response = await getAllServices(data);
-        console.log(response)
-        setServices(response.data.services);
-        setTotalPages(response.data.totalPages)
-      } catch (error: any) {
-        toast.error(error.message);
-      }
-    };
-    fetchServices();
-  }, [currentPage]);
+    fetchServices(currentPage);
+  }, [currentPage,search]);
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-white">
@@ -99,7 +100,19 @@ const AdminServices = () => {
       <div className="flex-1 p-4 md:p-6">
         <AdminHeader />
         <h1 className="text-lg md:text-xl font-bold mb-4">Manage Services</h1>
-
+        <div className="flex justify-end mb-4">
+  <input
+    type="text"
+    placeholder="Search services..."
+    value={search}
+    onChange={(e) => {
+      setSearch(e.target.value);
+      setCurrentPage(1); // Reset to first page on search
+    }}
+    className="border px-3 py-2 rounded-md w-full md:w-1/3"
+  />
+       
+</div>
         {/* Service List */}
         <div>
           <h2 className="text-md md:text-lg font-semibold mb-4">Service List</h2>

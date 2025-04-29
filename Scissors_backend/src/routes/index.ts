@@ -10,7 +10,7 @@ const router = Router();
 router.use('/', userRouter);
 
 // Use the adminRouter with prefix '/admin'
-router.use('/admin', adminRouter);
+router.use('/api/v1/admin', adminRouter);
 
 // Use the salonRouter with prefix '/salon'
 router.use('/salon', salonRouter);
