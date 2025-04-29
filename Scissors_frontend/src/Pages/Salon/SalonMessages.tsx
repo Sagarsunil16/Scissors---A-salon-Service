@@ -104,12 +104,6 @@ const SalonMessages: React.FC = () => {
     setSelectedChat(chat);
     try {
       const response =  await getMessages(chat.userId as string)
-      // await axios.get<IMessage[]>(
-      //   `http://localhost:3000/salon/messages/${chat.userId}`,
-      //   {
-      //     withCredentials: true,
-      //   }
-      // );
       setMessages(response.data);
       const roomName = [salon._id, chat.userId].sort().join("-");
       socketRef.current?.emit("joinChat", { salonId: chat.userId });
