@@ -3,9 +3,7 @@ import { IAppointment, IAppointmentDocument } from "../Interfaces/Appointment/IA
 import { IAppointmentRepository } from "../Interfaces/Appointment/IAppointmentRepository";
 import Appointment from "../models/Appointment";
 import { BaseRepository } from "./BaseRepository";
-import mongoose from "mongoose";
 import CustomError from "../Utils/cutsomError";
-import Service from "../models/Service";
 
 class AppointmentRepositry extends BaseRepository<IAppointmentDocument> implements IAppointmentRepository{
     constructor(){
@@ -17,11 +15,11 @@ class AppointmentRepositry extends BaseRepository<IAppointmentDocument> implemen
     }
 
     async findBySessionId(sessionId: string): Promise<IAppointmentDocument | null> {
-        return Appointment.findOne({stripeSessionId:sessionId})
+        return this.model.findOne({stripeSessionId:sessionId})
     }
     async getAppointmentDetails(appointmentId: string, userId: string): Promise<any> {
         console.log("Fetching appointment for:", { appointmentId, userId }); 
-        const appointment =  await Appointment.findOne({
+        const appointment =  await this.model.findOne({
             _id:appointmentId,
             user:userId
         }).populate('user','name email phone')
@@ -65,7 +63,7 @@ class AppointmentRepositry extends BaseRepository<IAppointmentDocument> implemen
 
     async getSalonAppointmentDetails(appointmentId: string, salonId: string): Promise<any> {
         console.log("Fetching salon appointment for:", { appointmentId, salonId });
-        const appointment = await Appointment.findOne({
+        const appointment = await this.model.findOne({
             _id: appointmentId,
             salon: salonId
         })
@@ -142,7 +140,7 @@ class AppointmentRepositry extends BaseRepository<IAppointmentDocument> implemen
         }
 
         const [appointments, total] = await Promise.all([
-            Appointment.find(query)
+            this.model.find(query)
                 .sort({ 'createdAt': -1 })
                 .skip(skip)
                 .limit(limit)
@@ -191,7 +189,7 @@ class AppointmentRepositry extends BaseRepository<IAppointmentDocument> implemen
         }
 
         const [appointments, total] = await Promise.all([
-            Appointment.find(query)
+            this.model.find(query)
                 .sort({ 'slot.startTime': -1 }) // Sort by start time, descending
                 .skip(skip)
                 .limit(limit)
@@ -236,7 +234,7 @@ class AppointmentRepositry extends BaseRepository<IAppointmentDocument> implemen
     }
 
     async updateAppointment(appointmentId: string, updates: Partial<IAppointment>): Promise<IAppointmentDocument> {
-        const appointment = await Appointment.findByIdAndUpdate(
+        const appointment = await this.model.findByIdAndUpdate(
             appointmentId,
             updates,
             { new: true }

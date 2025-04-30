@@ -1,40 +1,53 @@
-import { query } from "express";
+import mongoose from "mongoose";
+import { BaseRepository } from "./BaseRepository";
 import { ICategory, ICategoryDocument } from "../Interfaces/Category/ICategory";
 import { ICategoryRepository } from "../Interfaces/Category/ICategoryRepository";
 import Category from "../models/Category";
 
-class CategoryRepository implements ICategoryRepository{
-    
-    async findByIdCategory(id:String):Promise<ICategoryDocument | null>{
-        return await Category.findById(id)
-    }
+class CategoryRepository extends BaseRepository<ICategoryDocument> implements ICategoryRepository {
+  constructor() {
+    super(Category);
+  }
 
-    async findByName(name:string):Promise<ICategoryDocument | null>{
-        return await Category.findOne({name:name})
-    }
+  async findByIdCategory(id: string): Promise<ICategoryDocument | null> {
+    return await this.findById(id);
+  }
 
-    async getAllCategory():Promise<ICategoryDocument[]>{
-        return await Category.find({})
-    }
+  async findByName(name: string): Promise<ICategoryDocument | null> {
+    return await this.findOne({ name });
+  }
 
-    async createCategory(categoryData: ICategory): Promise<ICategoryDocument> {
-        return await Category.create(categoryData)
-    }
+  async getAllCategory(): Promise<ICategoryDocument[]> {
+    return await this.model.find({}).exec();
+  }
 
-   async updateCategory(id: string, updatedData: { name: string; description: string; }): Promise<ICategoryDocument | null > {
-       return await Category.findOneAndUpdate({_id:id},{...updatedData},{new:true})
-   }
+  async createCategory(categoryData: ICategory): Promise<ICategoryDocument> {
+    return await this.create(categoryData);
+  }
 
-    async deleteCategory(id: string): Promise<any> {
-        return await Category.findByIdAndDelete(id)
-    }
+  async updateCategory(
+    id: string,
+    updatedData: { name: string; description: string }
+  ): Promise<ICategoryDocument | null> {
+    return await this.findOneAndUpdate({ _id: id }, { ...updatedData }, { new: true });
+  }
 
-    async getCategoriesPaginated(query:any,skip:number,limit:number):Promise<ICategoryDocument[]>{
-        return await Category.find(query).skip(skip).limit(limit)
-    }
-    async countCategories(query:any):Promise<number>{
-        return await Category.countDocuments(query)
-    }
+  async deleteCategory(id: string): Promise<ICategoryDocument | null> {
+    return await this.deleteById(id);
+  }
+
+  async getCategoriesPaginated(
+    query: mongoose.FilterQuery<ICategoryDocument>,
+    skip: number,
+    limit: number
+  ): Promise<ICategoryDocument[]> {
+    const result = await this.findAll(query, Math.floor(skip / limit) + 1, limit);
+    return result.data;
+  }
+
+  async countCategories(query: mongoose.FilterQuery<ICategoryDocument>): Promise<number> {
+    return await this.countDocuments(query);
+  }
 }
 
-export default CategoryRepository
+export default CategoryRepository;

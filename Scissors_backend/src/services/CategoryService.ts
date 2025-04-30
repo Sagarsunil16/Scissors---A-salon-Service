@@ -1,8 +1,9 @@
 import { ICategory, ICategoryDocument } from "../Interfaces/Category/ICategory";
 import { ICategoryRepository } from "../Interfaces/Category/ICategoryRepository";
+import { ICategoryService } from "../Interfaces/Category/ICategoryService";
 import CustomError from "../Utils/cutsomError";
 
-class CategoryService {
+class CategoryService implements ICategoryService {
   private repository: ICategoryRepository;
   constructor(repository: ICategoryRepository) {
     this.repository = repository;

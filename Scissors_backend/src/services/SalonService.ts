@@ -7,14 +7,14 @@ import bcrypt from 'bcryptjs'
 import cloudinary from "../config/cloudinary";
 import { SalonQueryParams } from "../Interfaces/Salon/ISalon";
 import { ICategoryRepository } from "../Interfaces/Category/ICategoryRepository";
-import mongoose, { Mongoose } from "mongoose";
-import { salonService } from "../config/di";
+import mongoose from "mongoose";
 import CustomError from "../Utils/cutsomError";
 import axios from "axios";
 import { GEOLOCATION_API } from "../constants";
 import { TokenPayload } from "../controllers/AuthController";
+import { ISalonService } from "../Interfaces/Salon/ISalonService";
 
-class SalonService {
+class SalonService implements ISalonService {
     private salonRepository: ISalonRepository;
     private categoryRepository: ICategoryRepository;
     constructor(salonRepository:ISalonRepository,categoryRepository:ICategoryRepository){
@@ -130,7 +130,7 @@ class SalonService {
                 if(decoded.role == 'Salon'){
                     const salon = await this.salonRepository.getSalonById(decoded.id)
                     if (salon) {
-                        return await this.salonRepository.updateSalon(salon._id.toString(),{refreshToken: null, refreshTokenExpiresAt: null})
+                        await this.salonRepository.updateSalon(salon._id.toString(),{refreshToken: null, refreshTokenExpiresAt: null})
                     }
                 }
             } catch (error) {

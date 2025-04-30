@@ -1,5 +1,5 @@
 // src/Interfaces/Messages/IMessage.ts
-import { ObjectId } from "mongoose";
+import { Document, ObjectId } from "mongoose";
 
 export interface IMessage {
   content: string; // Required in schema unless attachments are present

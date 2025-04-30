@@ -1,20 +1,30 @@
 import { NextFunction, Request,Response } from "express";
-import { appointmentService, offerService, reviewService, timeSlotService } from "../config/di";
 import { ITimeSlot } from "../Interfaces/TimeSlot/ITimeSlot";
 import CustomError from "../Utils/cutsomError";
-import { salonService } from "../config/di";
 import Stripe from "stripe";
 import mongoose from "mongoose";
 import { AppointmentStatus, IAppointment, PaymentMethod, PaymentStatus } from "../Interfaces/Appointment/IAppointment";
 import Appointment from "../models/Appointment";
+import { IOfferService } from "../Interfaces/Offers/IOfferService";
+import { IReviewService } from "../Interfaces/Reviews/IReviewService";
+import { ISalonService } from "../Interfaces/Salon/ISalonService";
+import { ITimeSlotService } from "../Interfaces/TimeSlot/ITimeSlotService";
 const stripe =  new Stripe(process.env.STRIPE_SECRET_KEY as string)
-class bookingController{
-    constructor(){
+class BookingController{
+    private offerService: IOfferService
+    private reviewService: IReviewService
+    private timeSlotService : ITimeSlotService
+    private salonService: ISalonService
+    constructor(offerService:IOfferService,reviewService:IReviewService,timeSlotService:ITimeSlotService,salonService:ISalonService){
+        this.offerService = offerService,
+        this.reviewService = reviewService
+        this.timeSlotService = timeSlotService
+        this.salonService = salonService
         this.webHooks = this.webHooks.bind(this)
     }
     async getAvailableSlots(req:Request,res:Response,next:NextFunction):Promise<any>{
         try {
-            const slots = await timeSlotService.generateSlots(req.params.salonId,[req.params.service],new Date(req.query.date as string),req.params.stylistId)
+            const slots = await this.timeSlotService.generateSlots(req.params.salonId,[req.params.service],new Date(req.query.date as string),req.params.stylistId)
             res.json(slots)
         } catch (error:any) {
             return next(new CustomError(error.message || "There was an issue fetching the available slots. Please try again later.",500));
@@ -32,7 +42,7 @@ class bookingController{
             // console.log(`Fetching details for salonId: ${id}, serviceId: ${serviceId}, date: ${date}`);
 
             // Fetch Salon Data
-            const salonData = await salonService.getSalonData(id as string);
+            const salonData = await this.salonService.getSalonData(id as string);
             if (!salonData) {
                 return next(new CustomError("Salon not found. Please check the salon ID and try again.",404));
             }
@@ -40,15 +50,15 @@ class bookingController{
             let availableSlots:ITimeSlot[] = [];
             if (stylistId && date) {
                 // Fetch Available Slots only if stylistId is provided
-                availableSlots = await timeSlotService.generateSlots(
+                availableSlots = await this.timeSlotService.generateSlots(
                     id as string, 
                     [serviceId as string], 
                     new Date(date as string),
                     stylistId as string
                 );
             }
-            const reviews = await reviewService.getSalonReviews(id as string)
-            const offers = await offerService.getSalonOffer(id as string)
+            const reviews = await this.reviewService.getSalonReviews(id as string)
+            const offers = await this.offerService.getSalonOffer(id as string)
             return res.status(200).json({
                 message: "Salon data and slots fetched successfully",
                 salonData,
@@ -75,7 +85,7 @@ class bookingController{
             console.log("Received serviceIds:", serviceIds);
             console.log("Parsed serviceIdsArray:", serviceIdsArray);
     
-            const salon = await salonService.getSalonData(salonId);
+            const salon = await this.salonService.getSalonData(salonId);
             if (!salon) {
                 return next(new CustomError("Salon not found", 404));
             }
@@ -185,7 +195,7 @@ class bookingController{
                     const { metadata } = session;
                     
 
-                    await timeSlotService.updateSlotStatus(
+                    await this.timeSlotService.updateSlotStatus(
                         metadata.slot.toString(),
                         'booked'
                     );
@@ -239,4 +249,4 @@ class bookingController{
 }
 
 
-export default new bookingController()
+export default BookingController

@@ -1,6 +1,6 @@
 import { Server, Socket } from "socket.io";
 import http from "http";
-import { messageService } from "./config/di";
+import { messageService } from "./container/di";
 import cloudinary from "./config/cloudinary";
 import { send } from "vite";
 

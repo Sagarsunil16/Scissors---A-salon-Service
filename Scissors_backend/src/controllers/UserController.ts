@@ -1,12 +1,15 @@
 import { NextFunction, Request, Response } from "express";
-import { userService } from "../config/di";
 import CustomError from "../Utils/cutsomError";
 import { SUCCESS_MESSAGES,ERROR_MESSAGES } from "../constants";
-import { refreshToken } from "firebase-admin/app";
+import { IUserService } from "../Interfaces/User/IUserService";
 class UserController {
+  private userService: IUserService
+  constructor(userService:IUserService){
+    this.userService = userService
+  }
   async createUser(req: Request, res: Response,next:NextFunction): Promise<any> {
     try {
-      const newUser = await userService.createUser(req.body);
+      const newUser = await this.userService.createUser(req.body);
       res
         .status(201)
         .json({ message: SUCCESS_MESSAGES.USER_CREATED, user: newUser });
@@ -18,7 +21,7 @@ class UserController {
   async userLogin(req: Request, res: Response,next:NextFunction): Promise<any> {
     try {
       const { email, password } = req.body;
-      const result = await userService.loginUser(email, password);
+      const result = await this.userService.loginUser(email, password);
       const cookieOptions = {
         path:'/',
         httpOnly:true,
@@ -52,7 +55,7 @@ class UserController {
         maxAge:0
       }
       
-      const result = await userService.googleLogin(token);
+      const result = await this.userService.googleLogin(token);
       
       res
         .cookie("authToken", result?.token,{
@@ -70,7 +73,7 @@ class UserController {
   async userSignOut(req: Request, res: Response,next:NextFunction): Promise<any> {
     const refreshToken = req.cookies.refreshToken
     if (refreshToken) {
-      await userService.signOut(refreshToken);
+      await this.userService.signOut(refreshToken);
     }
     res
       .clearCookie("authToken", { path: "/", httpOnly: true, secure: false })
@@ -83,7 +86,7 @@ class UserController {
   async sentOtp(req: Request, res: Response,next:NextFunction): Promise<any> {
     try {
       const { email } = req.body;
-      const message = await userService.sendOtp(email);
+      const message = await this.userService.sendOtp(email);
       res.status(200).json({ message: message });
     } catch (error: any) {
       next(new CustomError("We couldn't send the OTP. Please try again later.", 400));
@@ -93,7 +96,7 @@ class UserController {
   async verifyOtp(req: Request, res: Response ,next:NextFunction): Promise<any> {
     try {
       const { email, otp } = req.body;
-      const isValid = await userService.verifyOTP(email, otp);
+      const isValid = await this.userService.verifyOTP(email, otp);
       res.status(200).json({ message: "Your OTP has been verified successfully!", isValid });
     } catch (error: any) {
       next(new CustomError("The OTP you entered is invalid or expired. Please try again.", 400));
@@ -103,7 +106,7 @@ class UserController {
   async resetPassword(req: Request, res: Response,next:NextFunction): Promise<any> {
     try {
       const { email, password } = req.body;
-      const message = await userService.resetPasssword(email, password);
+      const message = await this.userService.resetPassword(email, password);
       res.status(200).json({ message: SUCCESS_MESSAGES.PASSWORD_RESET });
     } catch (error: any) {
       next(new CustomError("Something went wrong while resetting your password. Please try again.", 400));
@@ -114,7 +117,7 @@ class UserController {
     try {
       const { id, firstname, lastname, phone, address } = req.body;
       const updatedData = { firstname, lastname, phone, address };
-      const updatedUser = await userService.updateUser(id, updatedData, false);
+      const updatedUser = await this.userService.updateUser(id, updatedData, false);
       if (!updatedUser) {
         throw new CustomError("We couldn't find your profile. Please make sure you're logged in.", 404);
       }
@@ -133,7 +136,7 @@ class UserController {
       if (!currentPassword || !newPassword) {
         throw new CustomError("Please provide both your current and new password to proceed.", 400);
       }
-      await userService.changePassword(id, currentPassword, newPassword);
+      await this.userService.changePassword(id, currentPassword, newPassword);
       return res.status(200).json({ message: "Your password has been updated successfully!" });
     } catch (error: any) {
       next( new CustomError("Oops! Something went wrong while changing your password. Please try again later.", 500));
@@ -150,4 +153,4 @@ class UserController {
   }
 }
 
-export default new UserController();
+export default UserController

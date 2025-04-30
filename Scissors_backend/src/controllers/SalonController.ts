@@ -1,12 +1,19 @@
-import { salonService } from "../config/di";
+
 import { NextFunction, Request,Response } from "express";
 import CustomError from "../Utils/cutsomError";
+import SalonService from "../services/SalonService";
+import { ISalonService } from "../Interfaces/Salon/ISalonService";
+
 
 
 class SalonController {
+    private salonService: ISalonService
+    constructor(salonService:ISalonService){
+        this.salonService = salonService
+    }
     async createSalon(req:Request,res:Response,next:NextFunction):Promise<any>{
         try {
-           const newSalon =  await salonService.createSalon(req.body)
+           const newSalon =  await this.salonService.createSalon(req.body)
            res.status(201).json({message:"Salon Registered Successfully",salon:{ _id: newSalon._id,
             salonName: newSalon.salonName,
             email: newSalon.email,
@@ -23,7 +30,7 @@ class SalonController {
     async sentOtp(req:Request,res:Response,next:NextFunction):Promise<any>{
         try {
             const {email} = req.body
-            const message =  await salonService.sendOtp(email)
+            const message =  await this.salonService.sendOtp(email)
             res.status(200).json({message})
         } catch (error:any) {
             next(new CustomError(error.message || "Failed to send OTP. Please try again later.", 500))
@@ -33,7 +40,7 @@ class SalonController {
     async verifyOtAndUpdate(req:Request,res:Response,next:NextFunction):Promise<any>{
         try {
             const {email,otp} = req.body
-            const message = await salonService.verifyOtp(email,otp)
+            const message = await this.salonService.verifyOtp(email,otp)
             return res.status(200).json({message})
         } catch (error:any) {
             next(new CustomError(error.message || "Failed to verify OTP. Please try again.", 500));
@@ -43,7 +50,7 @@ class SalonController {
     async loginSalon(req:Request,res:Response,next:NextFunction):Promise<any>{
         try {
             const {email,password} = req.body
-            const  result = await salonService.loginSalon(email,password)
+            const  result = await this.salonService.loginSalon(email,password)
             res.cookie("authToken",result?.accessToken,{httpOnly:true,maxAge:15 * 60 * 1000}).cookie("refreshToken",result.refreshToken,{
                 httpOnly:true,maxAge:7*24*60*60*1000
             }).status(200).json({message:"Login Successfull",details:result?.salon})
@@ -54,7 +61,7 @@ class SalonController {
 
     async signOutSalon(req: Request, res: Response,next:NextFunction): Promise<any> {
         const refreshToken = req.cookies.refreshToken
-        await salonService.signOut(refreshToken)
+        await this.salonService.signOut(refreshToken)
         res
         .clearCookie("authToken", { path: "/", httpOnly: true, secure: false })
         .clearCookie("refreshToken",{ path: "/", httpOnly: true, secure: false })
@@ -69,7 +76,7 @@ class SalonController {
             const pageNumber = parseInt(page as string,10) || 1;
             const itemsPerPageNumber =  parseInt(itemsPerPage as string,10) || 6;
 
-            const {salons,total,totalPages} =  await salonService.getFilteredSalons({
+            const {salons,total,totalPages} =  await this.salonService.getFilteredSalons({
                 search:search?.toString(),
                 location:location?.toString(),
                 maxPrice:maxPrice?Number(maxPrice):undefined,
@@ -101,7 +108,7 @@ class SalonController {
                 next(new CustomError("Longitude and latitude are required.", 400))
             }
 
-            const salons = await salonService.getNearbySalons(
+            const salons = await this.salonService.getNearbySalons(
                 parseFloat(latitude),
                 parseFloat(longitude),
                 parseInt(radius)
@@ -116,7 +123,7 @@ class SalonController {
         try {
             const id = req.query.id
             console.log(id)
-            const result = await salonService.getSalonData(id as string)
+            const result = await this.salonService.getSalonData(id as string)
             req.body.result = result
             res.status(200).json({message:"Salon data fetched Successfully",salonData:result})
         } catch (error:any) {
@@ -126,7 +133,7 @@ class SalonController {
 
     async updateSalon(req:Request,res:Response,next:NextFunction):Promise<any>{
         try {
-           const updatedData = await salonService.salonProfileUpdate(req.body)
+           const updatedData = await this.salonService.salonProfileUpdate(req.body)
            return res.status(200).json({message:"Profile Updated Successfully",updatedData:updatedData})
         } catch (error:any) {
             next(new CustomError(error.message || "Failed to update salon profile. Please try again later.", 500)); // Forward the error
@@ -140,7 +147,7 @@ class SalonController {
             if(!file){
                 return next(new CustomError("No file uploaded. Please upload an image.", 400)); // Forward the error for missing file
             }
-            const result = await salonService.uploadSalonImage(salonId,file,)
+            const result = await this.salonService.uploadSalonImage(salonId,file,)
 
             res.status(200).json({message:"Image Uploaded Successfully",updatedSalonData:result})
         } catch (error:any) {
@@ -153,7 +160,7 @@ class SalonController {
             if(!salonId || !imageId){
                 return next(new CustomError("Salon ID and Image ID are required.", 400));
             }
-            const result = await salonService.deleteSalonImage(salonId,imageId,cloudinaryImageId)
+            const result = await this.salonService.deleteSalonImage(salonId,imageId,cloudinaryImageId)
             return res.status(200).json({message:"Image deleted Successfully",updatedSalonData:result})
         } catch (error:any) {
             next(new CustomError(error.message || "Failed to delete image. Please try again later.", 500));
@@ -175,7 +182,7 @@ class SalonController {
     async addService(req:Request,res:Response,next:NextFunction):Promise<any>{
         try {
             const {id,...serviceData} = req.body
-            const result  =  await salonService.addService(id,serviceData)
+            const result  =  await this.salonService.addService(id,serviceData)
             return res.status(200).json({message:"Service Added Successfully",updatedSalonData:result})
         } catch (error:any) {
             next(new CustomError(error.message || "Failed to add service. Please try again later.", 500));
@@ -202,7 +209,7 @@ class SalonController {
 
             console.log(data,"dataservice")
     
-            const result = await salonService.updateService(data);
+            const result = await this.salonService.updateService(data);
             res.status(200).json({ message: "Service Updated Successfully", result });
         } catch (error:any) {
             next(new CustomError(error.message || "Failed to update service. Please try again later.", 500));
@@ -212,7 +219,7 @@ class SalonController {
     async deleteService(req:Request,res:Response,next:NextFunction):Promise<any>{
         try {
             const {salonId,serviceId} = req.body
-          const result = salonService.removeService(salonId,serviceId)
+          const result = this.salonService.removeService(salonId,serviceId)
         } catch (error:any) {
             next(new CustomError(error.message || "Failed to delete service. Please try again later.", 500)); 
         }
@@ -220,4 +227,4 @@ class SalonController {
 
 }
 
-export default new SalonController()
+export default SalonController

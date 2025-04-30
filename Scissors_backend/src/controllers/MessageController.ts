@@ -1,13 +1,18 @@
 import { Request, Response, NextFunction } from "express";
 import CustomError from "../Utils/cutsomError";
-import { messageService } from "../config/di";
+
+import { IMessageService } from "../Interfaces/Messages/IMessageService";
 
 
 interface AuthenticatedRequest extends Request {
-  user?: { id: string }; // Populated by verifyToken/authMiddleware
+  user?: { id: string };
 }
 
 class MessageController {
+  private messageService: IMessageService;
+  constructor(messageService:IMessageService){
+    this.messageService = messageService
+  }
   async getMessages(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const userId = req.user?.id; 
@@ -23,7 +28,7 @@ class MessageController {
         return next(new CustomError("Chat partner ID is required", 400));
       }
 
-      const messages = await messageService.getChatHistory(userId, chatId);
+      const messages = await this.messageService.getChatHistory(userId, chatId);
       res.status(200).json(messages);
     } catch (error: any) {
       console.log("Error in getMessagesController:", error);
@@ -50,4 +55,4 @@ class MessageController {
   }
 }
 
-export default new MessageController();
+export default MessageController

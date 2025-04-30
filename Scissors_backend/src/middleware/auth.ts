@@ -1,6 +1,6 @@
 import { Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { salonService, userService } from '../config/di';
+import { salonService, userService } from '../container/di';
 import { ROLES } from '../constants';
 import { CustomRequest } from './verifyToken';
 

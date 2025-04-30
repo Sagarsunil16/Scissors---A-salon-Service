@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from "mongoose";
-import { IUser} from "../Interfaces/IUser";
+import { IUser} from "../Interfaces/User/IUser";
 import { refreshToken } from "firebase-admin/app";
 
 export interface IUserDocument extends IUser, Document {

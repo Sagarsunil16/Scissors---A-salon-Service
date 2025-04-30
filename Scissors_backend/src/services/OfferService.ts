@@ -1,8 +1,9 @@
 import { IOffer, IOfferDocument } from "../Interfaces/Offers/IOffer"
 import IOfferRepository from "../Interfaces/Offers/IOfferRepository"
+import { IOfferService } from "../Interfaces/Offers/IOfferService"
 import CustomError from "../Utils/cutsomError"
 
-class OfferService{
+class OfferService implements IOfferService{
     private repository:IOfferRepository
     constructor(repository:IOfferRepository){
         this.repository = repository

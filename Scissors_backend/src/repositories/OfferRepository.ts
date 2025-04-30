@@ -1,25 +1,35 @@
-import { IOffer, IOfferDocument } from "../Interfaces/Offers/IOffer";
+import { BaseRepository } from "./BaseRepository";
+import { IOfferDocument } from "../Interfaces/Offers/IOffer";
 import IOfferRepository from "../Interfaces/Offers/IOfferRepository";
 import Offer from "../models/Offer";
-import Salon, { ISalonDocument } from "../models/Salon";
-import { BaseRepository } from "./BaseRepository";
+import { ISalonDocument } from "../models/Salon";
+import SalonRepository from "./SalonRepository";
 
-class OfferRepository extends BaseRepository<IOfferDocument> implements IOfferRepository{
-    constructor(){
-        super(Offer)
-    }
-    async findActiveOffersBySalonId(salonId: string): Promise<IOffer[]> {
-        return await Offer.find({salonId,isActive:true,expiryDate:{$gte:new Date()}}).populate("serviceIds","name").lean()
-    }
+const salonRepo = new SalonRepository();
 
-    async findBySalonId(salonId: string): Promise<ISalonDocument | null> {
-        return await Salon.findById(salonId)
+class OfferRepository extends BaseRepository<IOfferDocument> implements IOfferRepository {
+  constructor() {
+    super(Offer);
+  }
 
-    }
+  async findActiveOffersBySalonId(salonId: string): Promise<IOfferDocument[]> {
+    return await this.model
+      .find({ salonId, isActive: true, expiryDate: { $gte: new Date() } })
+      .populate("serviceIds", "name")
+      .exec();
+  }
 
-    async countActiveOffersBySalonId(salonId: string): Promise<number> {
-        return await Offer.countDocuments({salonId,isActive:true,expiryDate:{$gte: new Date()}})
-    }
+  async findBySalonId(salonId: string): Promise<ISalonDocument | null> {
+    return await salonRepo.findById(salonId);
+  }
+
+  async countActiveOffersBySalonId(salonId: string): Promise<number> {
+    return await this.countDocuments({
+      salonId,
+      isActive: true,
+      expiryDate: { $gte: new Date() },
+    });
+  }
 }
 
-export default OfferRepository
+export default OfferRepository;

@@ -1,8 +1,9 @@
 import { IReview, IReviewDocument } from "../Interfaces/Reviews/IReview";
 import { IReviewRepository } from "../Interfaces/Reviews/IReviewRepository";
+import { IReviewService } from "../Interfaces/Reviews/IReviewService";
 import CustomError from "../Utils/cutsomError";
 
-class ReviewService{
+class ReviewService implements IReviewService{
     private repository:IReviewRepository
     constructor(repository:IReviewRepository){
         this.repository = repository

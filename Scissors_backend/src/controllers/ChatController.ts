@@ -1,12 +1,21 @@
 import { Request, Response, NextFunction } from "express";
 import CustomError from "../Utils/cutsomError";
-import { messageService, salonService } from "../config/di";
+import SalonService from "../services/SalonService";
+import { IMessageService } from "../Interfaces/Messages/IMessageService";
+import { ISalonService } from "../Interfaces/Salon/ISalonService";
+
 
 interface AuthenticatedRequest extends Request {
   user?: { id: string };
 }
 
 class ChatController {
+  private messageService: IMessageService
+  private salonService: ISalonService
+  constructor(messageService:IMessageService,salonService:ISalonService){
+    this.messageService = messageService;
+    this.salonService = salonService;
+  }
   async getUserChats(req: AuthenticatedRequest, res: Response, next: NextFunction) {
     try {
       const userId = req.user?.id;
@@ -14,8 +23,8 @@ class ChatController {
         console.log("error 1")
         return next(new CustomError("User ID is required", 400));
       }
-      const chats = await messageService.getUserChats(userId);
-      const salons =  await salonService.allSalonListForChat()
+      const chats = await this.messageService.getUserChats(userId);
+      const salons =  await this.salonService.allSalonListForChat()
       res.status(200).json({chats,salons});
     } catch (error: any) {
       console.log("Error in getUserChats:", error);
@@ -29,7 +38,7 @@ class ChatController {
       if (!salonId) {
         return next(new CustomError("Salon ID is required", 400));
       }
-      const chats = await messageService.getSalonChats(salonId);
+      const chats = await this.messageService.getSalonChats(salonId);
       res.status(200).json(chats);
     } catch (error: any) {
       console.log("Error in getSalonChats:", error);
@@ -38,4 +47,4 @@ class ChatController {
   }
 }
 
-export default new ChatController();
+export default ChatController

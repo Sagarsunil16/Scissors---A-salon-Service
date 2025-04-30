@@ -1,30 +1,28 @@
 import { Router } from 'express';
-import AdminController from '../controllers/AdminController';
-import CategoryController from '../controllers/CategoryController';
 import auth from '../middleware/auth';
-import ServiceController from '../controllers/ServiceController';
+import { adminController, categoryController, serviceController } from '../container/di';
 
 const adminRouter = Router();
 
 // Public routes
-adminRouter.post('/login', AdminController.adminLogin);
-adminRouter.post('/signout', AdminController.signOut);
+adminRouter.post('/login', adminController.adminLogin.bind(adminController));
+adminRouter.post('/signout', adminController.signOut.bind(adminController));
 
 // Protected routes
-adminRouter.put('/block-unblock', auth(['Admin']), AdminController.blockUnblockUser);
-adminRouter.post('/delete-user', auth(['Admin']), AdminController.deleteUser);
-adminRouter.get('/users', auth(['Admin']), AdminController.getUsers);
-adminRouter.get('/salons', auth(['Admin']), AdminController.getSalons);
-adminRouter.put('/salon/block-unblock', auth(['Admin']), AdminController.blockAndUnblockSalon);
-adminRouter.put('/profile', auth(['Admin'], true), AdminController.updateProfile);
-adminRouter.put('/change-password', auth(['Admin'], true), AdminController.changePassword);
-adminRouter.post('/addCategory', auth(['Admin']), CategoryController.addNewCategory);
-adminRouter.get('/categories', auth(['Admin']), CategoryController.getFilteredCategory);
-adminRouter.put('/edit-category', auth(['Admin']), CategoryController.editCategory);
-adminRouter.put('/delete-category', auth(['Admin']), CategoryController.deleteCategory);
-adminRouter.get('/service', auth(['Admin']), ServiceController.getAllServices);
-adminRouter.post('/add-service', auth(['Admin']), ServiceController.createService);
-adminRouter.delete('/delete-service', auth(['Admin']), ServiceController.deleteService);
-adminRouter.put('/edit-service', auth(['Admin']), ServiceController.updateService);
+adminRouter.put('/block-unblock', auth(['Admin']), adminController.blockUnblockUser.bind(adminController));
+adminRouter.post('/delete-user', auth(['Admin']), adminController.deleteUser.bind(adminController));
+adminRouter.get('/users', auth(['Admin']), adminController.getUsers.bind(adminController));
+adminRouter.get('/salons', auth(['Admin']), adminController.getSalons.bind(adminController));
+adminRouter.put('/salon/block-unblock', auth(['Admin']), adminController.blockAndUnblockSalon.bind(adminController));
+adminRouter.put('/profile', auth(['Admin'], true), adminController.updateProfile.bind(adminController));
+adminRouter.put('/change-password', auth(['Admin'], true), adminController.changePassword.bind(adminController));
+adminRouter.post('/addCategory', auth(['Admin']), categoryController.addNewCategory.bind(categoryController));
+adminRouter.get('/categories', auth(['Admin']), categoryController.getFilteredCategory.bind(categoryController));
+adminRouter.put('/edit-category', auth(['Admin']), categoryController.editCategory.bind(categoryController));
+adminRouter.put('/delete-category', auth(['Admin']), categoryController.deleteCategory.bind(categoryController));
+adminRouter.get('/service', auth(['Admin']), serviceController.getAllServices.bind(serviceController));
+adminRouter.post('/add-service', auth(['Admin']), serviceController.createService.bind(serviceController));
+adminRouter.delete('/delete-service', auth(['Admin']), serviceController.deleteService.bind(serviceController));
+adminRouter.put('/edit-service', auth(['Admin']), serviceController.updateService.bind(serviceController));
 
 export default adminRouter;

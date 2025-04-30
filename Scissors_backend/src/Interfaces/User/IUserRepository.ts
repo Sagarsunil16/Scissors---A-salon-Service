@@ -1,8 +1,8 @@
 import { IUser } from "./IUser";
-import { IUserDocument } from "../models/User";
+import { IUserDocument } from "../../models/User";
 
 
-export interface IUserRepostirory {
+export interface IUserRepository {
     createUser(userData:Partial<IUser>):Promise<IUserDocument>;
     getUserById(id:string):Promise<IUserDocument | null>;
     getUserByEmail(email:string):Promise<IUserDocument | null>;   
@@ -14,7 +14,5 @@ export interface IUserRepostirory {
     changePassword(id:string,newPassword:string):Promise<IUserDocument | null>
     updateUserStatus(id:string,isActive:boolean):Promise<IUserDocument | null>
     verifyOtpAndUpdate(email:string):Promise<IUserDocument | null>
-    totalPages():Promise<number>
-    updateUserData(id:string,userData:Partial<IUser>):Promise<IUserDocument | null>
     updateRefreshToken(id:string,refreshToken:string):Promise<IUserDocument | null>
 }

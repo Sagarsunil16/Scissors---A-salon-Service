@@ -1,12 +1,16 @@
 import { NextFunction, Request, Response } from "express";
-import { stylistService } from "../config/di";
 import CustomError from "../Utils/cutsomError";
+import { IStylistService } from "../Interfaces/Stylist/IStylistService";
 
 class StylistController {
+  private stylistService: IStylistService
+  constructor(stylistService:IStylistService){
+    this.stylistService = stylistService
+  }
   async createStylist(req: Request, res: Response, next:NextFunction): Promise<void> {
     try {
       console.log(req.body)
-      const result = await stylistService.createStylist(req.body);
+      const result = await this.stylistService.createStylist(req.body);
       res.status(200).json({ message: "Stylist created successfully.", result });
     } catch (error: any) {
       next(new CustomError("There was an issue creating the stylist. Please try again.", 500));
@@ -20,7 +24,7 @@ class StylistController {
         page: page ? Number(page) : 1,
         limit: limit ? Number(limit) : 10,
       };
-      const result = await stylistService.findStylist(
+      const result = await this.stylistService.findStylist(
         id as string,
         options,
         search as string
@@ -36,7 +40,7 @@ class StylistController {
 
   async updateStylist(req: Request, res: Response, next:NextFunction): Promise<void> {
     try {
-      const updatedStylist = await stylistService.updateStylist(
+      const updatedStylist = await this.stylistService.updateStylist(
         req.params.id,
         req.body
       );
@@ -58,7 +62,7 @@ class StylistController {
     try {
         const id = req.params.id
         console.log(id)
-        const result = await stylistService.findStylistById(id)
+        const result = await this.stylistService.findStylistById(id)
         if(!result){
           return next(new CustomError("Stylist not found. Please check the provided details.", 400));
         }
@@ -72,7 +76,7 @@ class StylistController {
   async deleteStylist(req:Request,res:Response, next:NextFunction):Promise<any>{
     try {
       const id = req.params.id 
-      const result = stylistService.deleteStylist(id)
+      const result = this.stylistService.deleteStylist(id)
       if (!result) {
         return next(new CustomError("Stylist not found. Unable to delete.", 404));
       }
@@ -85,4 +89,4 @@ class StylistController {
   
 }
 
-export default new StylistController();
+export default StylistController

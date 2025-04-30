@@ -1,10 +1,11 @@
 import { AppointmentStatus, IAppointment, IAppointmentDocument } from "../Interfaces/Appointment/IAppointment";
 import { IAppointmentRepository } from "../Interfaces/Appointment/IAppointmentRepository";
+import { IAppointmentService } from "../Interfaces/Appointment/IAppointmentService";
 import { ITimeSlotRepository } from "../Interfaces/TimeSlot/ITimeSlotRepository";
 import CustomError from "../Utils/cutsomError";
 import mongoose from "mongoose";
 
-class AppointmentService{
+class AppointmentService implements IAppointmentService{
     private repository: IAppointmentRepository
     private slotRepository: ITimeSlotRepository
     constructor(repository:IAppointmentRepository,slotRepository:ITimeSlotRepository){

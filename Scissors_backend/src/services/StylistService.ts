@@ -2,10 +2,11 @@ import { ISalonRepository } from "../Interfaces/Salon/ISalonRepository";
 import { IServiceRepository } from "../Interfaces/Service/IServiceRepository";
 import { IStylist, IStylistDocument, PaginationOptions } from "../Interfaces/Stylist/IStylist";
 import { IStylistRepository } from "../Interfaces/Stylist/IStylistRepository";
+import { IStylistService } from "../Interfaces/Stylist/IStylistService";
 import CustomError
  from "../Utils/cutsomError";
 
-class StylistService{
+class StylistService implements IStylistService{
     private stylistRepository:IStylistRepository
     private serviceRepository:IServiceRepository
     private salonRepository:ISalonRepository

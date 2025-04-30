@@ -1,7 +1,10 @@
 import { NextFunction, Request,Response } from "express";
 import jwt from 'jsonwebtoken'
-import { salonService, userService } from "../config/di";
 import CustomError from "../Utils/cutsomError";
+import SalonService from "../services/SalonService";
+import UserService from "../services/UserService";
+import { ISalonService } from "../Interfaces/Salon/ISalonService";
+import { IUserService } from "../Interfaces/User/IUserService";
 
 export interface TokenPayload {
     id: string;
@@ -10,6 +13,12 @@ export interface TokenPayload {
   }
   
 class AuthController{
+    private salonService:ISalonService
+    private userService:IUserService
+    constructor(salonService:ISalonService,userService:IUserService){
+        this.salonService = salonService
+        this.userService = userService
+    }
     async refreshToken(req:Request,res:Response,next:NextFunction):Promise<any>{
         try {
             const refreshToken  = req.cookies.refreshToken
@@ -22,9 +31,9 @@ class AuthController{
             
             let entity
             if (decoded.role === 'User' || decoded.role === 'Admin') {
-                entity = await userService.getUserById(decoded.id);
+                entity = await this.userService.getUserById(decoded.id);
             }else if (decoded.role === 'Salon') {
-                entity = await salonService.findSalon(decoded.id);
+                entity = await this.salonService.findSalon(decoded.id);
             } else {
                 return next(new CustomError('Invalid role in token.', 401));
             }
@@ -57,4 +66,4 @@ class AuthController{
     }
 }
 
-export default new AuthController()
+export default AuthController

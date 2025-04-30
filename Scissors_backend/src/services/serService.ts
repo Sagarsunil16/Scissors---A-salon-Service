@@ -1,8 +1,9 @@
+import { ISerService } from "../Interfaces/Service/ISerService";
 import { IService, IServiceDocument } from "../Interfaces/Service/IService";
 import { IServiceRepository } from "../Interfaces/Service/IServiceRepository";
 import CustomError from "../Utils/cutsomError";
 
-class SerService{
+class SerService implements ISerService{
     private repository :IServiceRepository
     constructor(repository:IServiceRepository){
         this.repository = repository

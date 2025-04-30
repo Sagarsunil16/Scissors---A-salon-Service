@@ -1,10 +1,14 @@
 import { Request,Response,NextFunction } from "express";
 import CustomError from "../Utils/cutsomError";
-import { serService } from "../config/di";
+import { ISerService } from "../Interfaces/Service/ISerService";
 class ServiceController {
+    private serService: ISerService
+    constructor(serService:ISerService){
+        this.serService = serService
+    }
     async createService(req:Request,res:Response,next:NextFunction):Promise<void>{
         try {
-            const result = await serService.createService(req.body)
+            const result = await this.serService.createService(req.body)
             res.status(200).json({message:"Service Created Successfully",result})
         } catch (error:any) {
             next(new CustomError(error.message || "Failed to create the service.", 500));
@@ -15,7 +19,7 @@ class ServiceController {
         try {
             const {page,search=''} = req.query
             
-            const result = await serService.getAllServices(Number(page),search as string)
+            const result = await this.serService.getAllServices(Number(page),search as string)
             if (!result || result.services.length === 0) {
                 throw new CustomError("No services found for the given criteria.", 404);
             }
@@ -32,7 +36,7 @@ class ServiceController {
             if (!id) {
                 throw new CustomError("Service ID is required to update.", 400);
             }
-            const result = serService.updateService(req.body)
+            const result = this.serService.updateService(req.body)
             if (!result) {
                 throw new CustomError("Service not found.", 404);
             }
@@ -48,7 +52,7 @@ class ServiceController {
             if (!id) {
                 throw new CustomError("Service ID is required to delete.", 400);
             }
-            const result = await serService.deleteService(id)
+            const result = await this.serService.deleteService(id)
             if (!result) {
                 throw new CustomError("Service not found.", 404);
             }
@@ -59,4 +63,4 @@ class ServiceController {
     }
 }
 
-export default new ServiceController()
+export default ServiceController

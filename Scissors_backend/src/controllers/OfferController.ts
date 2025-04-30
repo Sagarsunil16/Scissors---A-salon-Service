@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import CustomError from "../Utils/cutsomError";
-import { offerService } from "../config/di";
+import { IOfferService } from "../Interfaces/Offers/IOfferService";
 
 
 interface AuthenticatedRequest extends Request {
@@ -8,6 +8,10 @@ interface AuthenticatedRequest extends Request {
 }
 
 class OfferController{
+    private offerService: IOfferService
+    constructor(offerService:IOfferService){
+        this.offerService = offerService
+    }
     async createOffer(req:AuthenticatedRequest,res:Response,next:NextFunction):Promise<void>{
         try {
             const userId = req.user?.id
@@ -16,7 +20,7 @@ class OfferController{
             if(!userId){
                 throw new CustomError("Unauthorized",401)
             }
-            const offer =  await  offerService.createOffer({salonId,title,description,discount,serviceIds,expiryDate})
+            const offer =  await  this.offerService.createOffer({salonId,title,description,discount,serviceIds,expiryDate})
             res.status(200).json({message:"Offer created Successfully",offer})
         } catch (error:any) {
             next(new CustomError(error.message || "Failed to create offer", error.status || 500));
@@ -26,7 +30,7 @@ class OfferController{
     async getSalonOffers(req:AuthenticatedRequest,res:Response,next:NextFunction):Promise<void>{
         try {
             const salonId  = req.query.id as string
-            const offers = await offerService.getSalonOffer(salonId)
+            const offers = await this.offerService.getSalonOffer(salonId)
             res.status(200).json({message:"Offers retriewed successfully",offers})
         } catch (error:any) {
             next(new CustomError(error.message || "Failed to fetch salon offer", error.status || 500));
@@ -35,4 +39,4 @@ class OfferController{
 }
 
 
-export default new OfferController()
+export default OfferController

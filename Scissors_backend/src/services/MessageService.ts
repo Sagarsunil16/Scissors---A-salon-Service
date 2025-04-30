@@ -1,7 +1,8 @@
 import { IMessage, IMessageDocument } from "../Interfaces/Messages/IMessage";
 import { IMessageRepository } from "../Interfaces/Messages/IMessageRepository";
+import { IMessageService } from "../Interfaces/Messages/IMessageService";
 
-class MessageService {
+class MessageService implements IMessageService {
   private repository: IMessageRepository;
 
   constructor(repository: IMessageRepository) {

@@ -6,8 +6,9 @@ import { ITimeSlot, ITimeSlotDocument } from "../Interfaces/TimeSlot/ITimeSlot";
 import CustomError from "../Utils/cutsomError";
 import { ISalonDocument } from "../models/Salon";
 import { ISalonService } from "../Interfaces/Salon/ISalon";
+import { ITimeSlotService } from "../Interfaces/TimeSlot/ITimeSlotService";
 
-class SlotService {
+class SlotService implements ITimeSlotService {
     private salonRepository: ISalonRepository;
     private timeSlotRepository: ITimeSlotRepository;
 
