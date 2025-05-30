@@ -29,6 +29,18 @@ const Users = () => {
     toast.error(error.message);
   }
 };
+const handleToggleStatus = async (userId: string, isActive: boolean) => {
+  try {
+    console.log(userId,isActive)
+    const response = await blockAndUnblockUser({ userId, isActive });
+    // dispatch(updateUserStatus(response.data.updatedUser));
+    setUserData((prevUserData)=>
+    prevUserData.map((user)=>user._id===userId?{...user,is_Active:!user.is_Active}:user))
+    toast.success(response.data.message);
+  } catch (error: any) {
+    toast.error(error.response.data.error);
+  }
+};
   useEffect(() => {
     fetchUsersData();
   }, [currentPage,search]);
@@ -41,17 +53,7 @@ const Users = () => {
   };
 
   // Handle block/unblock user
-  const handleToggleStatus = async (userId: string, isActive: boolean) => {
-    try {
-      const response = await blockAndUnblockUser({ userId, isActive });
-      dispatch(updateUserStatus(response.data.updatedUser));
-      setUserData((prevUserData)=>
-      prevUserData.map((user)=>user._id===userId?{...user,isActive:!user.is_Active}:user))
-      toast.success(response.data.message);
-    } catch (error: any) {
-      toast.error(error.response.data.error);
-    }
-  };
+ 
 
   // Handle delete user
   const handleDeleteUser = async (id: string) => {

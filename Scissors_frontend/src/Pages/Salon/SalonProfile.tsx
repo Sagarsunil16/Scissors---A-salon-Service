@@ -30,6 +30,7 @@ const SalonProfile = () => {
 
   // Formik Initial Values
   const initialValues = {
+    id:salon._id,
     salonName: salon.salonName,
     email: salon.email,
     phone: salon.phone,

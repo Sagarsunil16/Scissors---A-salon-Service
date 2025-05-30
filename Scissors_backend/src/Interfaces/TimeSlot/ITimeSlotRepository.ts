@@ -1,10 +1,14 @@
-import mongoose from "mongoose";
+import mongoose, { Document, Query, QueryOptions } from "mongoose";
 import { ITimeSlot, ITimeSlotDocument } from "./ITimeSlot";
 
 export interface ITimeSlotRepository {
-    bulkCreate(slots:ITimeSlot[]):Promise<ITimeSlotDocument[]>
-    exists(filter:Record<string,any>):Promise<boolean>
-    findavailableSlots(salonId:string,serviceIds:string[],date:Date,stylistId:string):Promise<ITimeSlotDocument[]>
-    updateSlotStatus(slotId:string,status:ITimeSlot["status"],options?:mongoose.QueryOptions):Promise<ITimeSlotDocument | null>
-    findAllSlots(salonId: string, serviceIds: string[], date: Date, stylistId?: string): Promise<ITimeSlotDocument[]>
+  findAllSlots(salonId: string, date: Date, stylistId?: string): Promise<ITimeSlotDocument[]>;
+  findAvailableSlots(salonId: string, date:Date, stylistId?: string): Promise<ITimeSlotDocument[]>;
+  bulkCreate(slots: ITimeSlot[]): Promise<ITimeSlotDocument[]>;
+  updateSlotStatus(slotId: string, status: ITimeSlot["status"], version: number, options?: mongoose.QueryOptions): Promise<ITimeSlotDocument | null>;
+  findById(slotId: string): Promise<ITimeSlotDocument | null>;
+  findByIds(slotIds: string[]): Promise<ITimeSlotDocument[]>;
+  updateMany(filter: Record<string, any>, update: Record<string, any>,options: QueryOptions): Promise<mongoose.UpdateWriteOpResult>;
+  clearExpiredReservations(): Promise<void>;
+  find(query: any): Query<ITimeSlotDocument[], ITimeSlotDocument>;
 }

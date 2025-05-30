@@ -4,271 +4,485 @@ import { IAppointmentRepository } from "../Interfaces/Appointment/IAppointmentRe
 import Appointment from "../models/Appointment";
 import { BaseRepository } from "./BaseRepository";
 import CustomError from "../Utils/cutsomError";
+import { Messages } from "../constants/Messages";
+import { HttpStatus } from "../constants/HttpStatus";
+import mongoose from "mongoose";
 
-class AppointmentRepositry extends BaseRepository<IAppointmentDocument> implements IAppointmentRepository{
-    constructor(){
-        super(Appointment)
-    }
+class AppointmentRepository extends BaseRepository<IAppointmentDocument> implements IAppointmentRepository {
+  constructor() {
+    super(Appointment);
+  }
 
-    async createAppointment(data: Partial<IAppointment>): Promise<IAppointmentDocument> {
-        return await this.create(data)
-    }
+  async createAppointment(data: Partial<IAppointment>): Promise<IAppointmentDocument> {
+    return await this.create(data);
+  }
 
-    async findBySessionId(sessionId: string): Promise<IAppointmentDocument | null> {
-        return this.model.findOne({stripeSessionId:sessionId})
-    }
-    async getAppointmentDetails(appointmentId: string, userId: string): Promise<any> {
-        console.log("Fetching appointment for:", { appointmentId, userId }); 
-        const appointment =  await this.model.findOne({
-            _id:appointmentId,
-            user:userId
-        }).populate('user','name email phone')
-        .populate('salon','salonName address phone')
-        .populate('stylist','name')
-        .populate('services.service','name')
-        .populate({
-            path: 'slot',
-            select: 'startTime endTime',
-            transform:(doc)=>{
-                if(doc){
-                    const tz = 'UTC';
-                        const start = moment(doc.startTime).tz(tz);
-                        const end = moment(doc.endTime).tz(tz);
-                        return {
-                            _id:doc._id,
-                            startTime: doc.startTime,
-                            endTime: doc.endTime,
-                            formattedDate: start.format('MMMM Do YYYY'),
-                            formattedTime: `${start.format('h:mm a')} - ${end.format('h:mm a')}`
-                        };
-                    }
-                return doc;
-            }
-        }).lean();
+  async findBySessionId(sessionId: string): Promise<IAppointmentDocument | null> {
+    return this.model.findOne({ stripeSessionId: sessionId });
+  }
 
-        console.log("Fetched appointment:", appointment); 
+  async getAppointmentDetails(appointmentId: string, userId: string): Promise<any> {
+    console.log("Fetching appointment for:", { appointmentId, userId });
+    const appointment = await this.model
+      .findOne({
+        _id: appointmentId,
+        user: userId,
+      })
+      .populate("user", "name email phone")
+      .populate("salon", "salonName address phone timeZone")
+      .populate("stylist", "name")
+      .populate("services.service", "name")
+      .populate({
+        path: "slots",
+        select: "startTime endTime",
+        transform: (doc, id) => {
+          if (doc) {
+            return {
+              _id: id,
+              startTime: doc.startTime,
+              endTime: doc.endTime,
+            };
+          }
+          return null;
+        },
+      })
+      .lean();
 
-        if (!appointment) return null;
+    console.log("Fetched appointment:", JSON.stringify(appointment, null, 2));
 
-        const totalDuration = appointment.services.reduce(
-            (sum: number, service: any) => sum + service.duration, 0
-        );
+    if (!appointment) return null;
 
+    const timeZone = "Asia/Kolkata";
+    const totalDuration = appointment.services.reduce(
+      (sum: number, service: any) => sum + (service.duration || 0),
+      0
+    );
+
+    const formattedSlots = appointment.slots
+      .filter((slot: any) => slot)
+      .map((slot: any) => {
+        const start = moment.utc(slot.startTime).tz(timeZone);
+        const end = moment.utc(slot.endTime).tz(timeZone);
         return {
-            ...appointment,
-            totalDuration,
-            formattedCreatedAt: moment(appointment.createdAt).tz("UTC").format('MMMM Do YYYY, h:mm a')
+          _id: slot._id,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          formattedDate: start.format("MMMM Do YYYY"),
+          formattedTime: `${start.format("h:mm a")} - ${end.format("h:mm a")}`,
         };
-    }
+      });
 
-    async getSalonAppointmentDetails(appointmentId: string, salonId: string): Promise<any> {
-        console.log("Fetching salon appointment for:", { appointmentId, salonId });
-        const appointment = await this.model.findOne({
-            _id: appointmentId,
-            salon: salonId
-        })
-            .populate('user', 'name email phone')
-            .populate('salon', 'salonName address phone')
-            .populate('stylist', 'name')
-            .populate('services.service', 'name')
-            .populate({
-                path: 'slot',
-                select: '_id startTime endTime',
-                transform: (doc) => {
-                    if (doc) {
-                        const tz = 'UTC'; 
-                        const start = moment(doc.startTime).tz(tz);
-                        const end = moment(doc.endTime).tz(tz);
-                        return {
-                            _id: doc._id,
-                            startTime: doc.startTime,
-                            endTime: doc.endTime,
-                            formattedDate: start.format('MMMM Do YYYY'),
-                            formattedTime: `${start.format('h:mm a')} - ${end.format('h:mm a')}`
-                        };
-                    }
-                    return doc;
-                }
-            })
-            .lean();
+    return {
+      ...appointment,
+      slots: formattedSlots,
+      totalDuration,
+      formattedCreatedAt: moment(appointment.createdAt).tz(timeZone).format("MMMM Do YYYY, h:mm a"),
+    };
+  }
 
-        console.log("Fetched salon appointment:", appointment);
+  async getSalonAppointmentDetails(appointmentId: string, salonId: string): Promise<any> {
+    console.log("Fetching salon appointment for:", { appointmentId, salonId });
+    const appointment = await this.model
+      .findOne({
+        _id: appointmentId,
+        salon: salonId,
+      })
+      .populate("user", "name email phone")
+      .populate("salon", "salonName address phone timeZone")
+      .populate("stylist", "name")
+      .populate("services.service","name")
+      .populate({
+        path: "slots",
+        select: "startTime endTime",
+        transform: (doc, id) => {
+          if (doc) {
+            return {
+              _id: id,
+              startTime: doc.startTime,
+              endTime: doc.endTime,
+            };
+          }
+          return null;
+        },
+      })
+      .lean();
 
-        if (!appointment) return null;
+    console.log("Fetched salon appointment:", JSON.stringify(appointment, null, 2));
 
-        const totalDuration = appointment.services.reduce(
-            (sum: number, service: any) => sum + service.duration, 0
-        );
+    if (!appointment) return null;
 
+    const timeZone = "Asia/Kolkata";
+    const totalDuration = appointment.services.reduce(
+      (sum: number, service: any) => sum + (service.duration || 0),
+      0
+    );
+
+    const formattedSlots = appointment.slots
+      .filter((slot: any) => slot)
+      .map((slot: any) => {
+        const start = moment.utc(slot.startTime).tz(timeZone);
+        const end = moment.utc(slot.endTime).tz(timeZone);
         return {
-            ...appointment,
-            totalDuration,
-            formattedCreatedAt: moment(appointment.createdAt).tz('UTC').format('MMMM Do YYYY, h:mm a')
+          _id: slot._id,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          formattedDate: start.format("MMMM Do YYYY"),
+          formattedTime: `${start.format("h:mm a")} - ${end.format("h:mm a")}`,
         };
+      });
+
+    return {
+      ...appointment,
+      slots: formattedSlots,
+      totalDuration,
+      formattedCreatedAt: moment(appointment.createdAt).tz(timeZone).format("MMMM Do YYYY, h:mm a"),
+    };
+  }
+
+  async validateAppointmentOwnershipBySalon(appointmentId: string, salonId: string): Promise<boolean> {
+    const exists = await this.model.exists({
+      _id: appointmentId,
+      salon: salonId,
+    });
+    return !!exists;
+  }
+
+  async getUserAppointments(
+    userId: string,
+    status?: string,
+    page: number = 1,
+    limit: number = 10
+  ) {
+    const skip = (page - 1) * limit;
+    const now = new Date();
+
+    const match: any = { user: new mongoose.Types.ObjectId(userId) };
+
+    if (status === "upcoming") {
+      match.status = { $ne: "cancelled" };
+    } else if (status === "past") {
+      match.status = { $ne: "cancelled" };
+    } else if (status) {
+      match.status = status;
     }
 
-    async validateAppointmentOwnershipBySalon(appointmentId: string, salonId: string): Promise<boolean> {
-        const exists = await this.model.exists({
-            _id: appointmentId,
-            salon: salonId,
-        });
-        return !!exists;
+    const pipeline: any[] = [
+      { $match: match },
+      {
+        $lookup: {
+          from: "timeslots",
+          localField: "slots",
+          foreignField: "_id",
+          as: "slotDetails",
+        },
+      },
+      {
+        $addFields: {
+          earliestSlot: {
+            $min: "$slotDetails.startTime",
+          },
+        },
+      },
+    ];
+
+    if (status === "upcoming") {
+      pipeline.push({
+        $match: {
+          earliestSlot: { $gt: now },
+        },
+      });
+    } else if (status === "past") {
+      pipeline.push({
+        $match: {
+          earliestSlot: { $lte: now },
+        },
+      });
     }
 
+    pipeline.push(
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limit },
+      {
+        $lookup: {
+          from: "salons",
+          localField: "salon",
+          foreignField: "_id",
+          as: "salon",
+        },
+      },
+      { $unwind: "$salon" },
+      {
+        $lookup: {
+          from: "stylists",
+          localField: "stylist",
+          foreignField: "_id",
+          as: "stylist",
+        },
+      },
+      { $unwind: "$stylist" },
+      {
+        $lookup: {
+          from: "timeslots",
+          localField: "slots",
+          foreignField: "_id",
+          as: "slots",
+        },
+      },
+      {
+        $project: {
+           "salon._id": 1, // Added
+          "salon.salonName": 1,
+          "salon.address": 1,
+          "salon.phone": 1,
+          "salon.timeZone": 1,
+          "salon.services": 1,
+          "stylist.name": 1,
+           "stylist._id": 1, // Added
+          "stylist.specialization": 1,
+          services: 1,
+          slots: {
+            $map: {
+              input: "$slots",
+              as: "slot",
+              in: {
+                _id: "$$slot._id",
+                startTime: "$$slot.startTime",
+                endTime: "$$slot.endTime",
+              },
+            },
+          },
+          status: 1,
+          totalPrice: 1,
+          paymentMethod: 1,
+          paymentStatus: 1,
+          serviceOption: 1,
+          address: 1,
+          isReviewed: 1,
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      }
+    );
 
+    const [appointments, total] = await Promise.all([
+      this.model.aggregate(pipeline).exec(),
+      this.model.countDocuments(match),
+    ]);
 
-    async getUserAppointments(
-        userId: string,
-        status?: string,
-        page: number = 1,
-        limit: number = 10
-    ) {
-        const skip = (page - 1) * limit;
-        const now = new Date();
+    const formattedAppointments = appointments.map((appt) => {
+      const timeZone = appt.salon.timeZone || "Asia/Kolkata";
+      return {
+        ...appt,
+        slots: appt.slots.map((slot: any) => {
+          const start = moment.utc(slot.startTime).tz(timeZone);
+          const end = moment.utc(slot.endTime).tz(timeZone);
+          return {
+            ...slot,
+            formattedDate: start.format("MMMM Do YYYY"),
+            formattedTime: `${start.format("h:mm a")} - ${end.format("h:mm a")}`,
+          };
+        }),
+      };
+    });
 
-        const query: any = { user: userId };
+    return {
+      appointments: formattedAppointments,
+      total,
+      page,
+      pages: Math.ceil(total / limit),
+    };
+  }
 
-        // Status filtering
-        if (status === 'upcoming') {
-            query['slot.startTime'] = { $gt: now };
-            query.status = { $ne: 'cancelled' };
-        } else if (status === 'past') {
-            query['slot.startTime'] = { $lte: now };
-            query.status = { $ne: 'cancelled' };
-        } else if (status) {
-            query.status = status;
-        }
+  async getSalonAppointments(
+    salonId: string,
+    status?: string,
+    page: number = 1,
+    limit: number = 10
+  ) {
+    const skip = (page - 1) * limit;
+    const now = new Date();
 
-        const [appointments, total] = await Promise.all([
-            this.model.find(query)
-                .sort({ 'createdAt': -1 })
-                .skip(skip)
-                .limit(limit)
-                .populate('salon', 'salonName address phone services')
-                .populate('stylist', 'name specialization')
-                .populate('services.service', 'name price duration')
-                .populate({
-                    path: 'slot',
-                    select: 'startTime endTime'
-                })
-                .lean(),
+    const match: any = { salon: new mongoose.Types.ObjectId(salonId) };
 
-            this.model.countDocuments(query)
-        ]);
-
-        return {
-            appointments,
-            total,
-            page,
-            pages: Math.ceil(total / limit)
-        };
+    if (status === "upcoming") {
+      match.status = { $ne: "cancelled" };
+    } else if (status === "past") {
+      match.status = { $ne: "cancelled" };
+    } else if (status) {
+      match.status = status;
     }
 
+    const pipeline: any[] = [
+      { $match: match },
+      {
+        $lookup: {
+          from: "timeslots",
+          localField: "slots",
+          foreignField: "_id",
+          as: "slotDetails",
+        },
+      },
+      {
+        $addFields: {
+          earliestSlot: {
+            $min: "$slotDetails.startTime",
+          },
+        },
+      },
+    ];
 
-
-    async getSalonAppointments(
-        salonId: string,
-        status?: string,
-        page: number = 1,
-        limit: number = 10
-    ) {
-        const skip = (page - 1) * limit;
-        const now = new Date();
-
-        const query: any = { salon: salonId };
-
-        // Status filtering
-        if (status === 'upcoming') {
-            query['slot.startTime'] = { $gt: now };
-            query.status = { $ne: 'cancelled' };
-        } else if (status === 'past') {
-            query['slot.startTime'] = { $lte: now };
-            query.status = { $ne: 'cancelled' };
-        } else if (status) {
-            query.status = status;
-        }
-
-        const [appointments, total] = await Promise.all([
-            this.model.find(query)
-                .sort({ 'slot.startTime': -1 }) // Sort by start time, descending
-                .skip(skip)
-                .limit(limit)
-                .populate('user', 'firstname lastname email phone')
-                .populate('stylist', 'name specialization')
-                .populate({
-                    path: 'salon', 
-                    select: 'services'
-                })
-                .populate({
-                    path: 'services.service',
-                    select: 'name price duration'
-                })
-                .populate({
-                    path: 'slot',
-                    select: 'startTime endTime',
-                    transform: (doc) => {
-                        if (doc) {
-                            const tz = 'UTC'; // Replace with your salon’s timezone
-                            const start = moment(doc.startTime).tz(tz);
-                            const end = moment(doc.endTime).tz(tz);
-                            return {
-                                startTime: doc.startTime,
-                                endTime: doc.endTime,
-                                formattedDate: start.format('MMMM Do YYYY'),
-                                formattedTime: `${start.format('h:mm a')} - ${end.format('h:mm a')}`
-                            };
-                        }
-                        return doc;
-                    }
-                })
-                .lean(),
-            this.model.countDocuments(query)
-        ]);
-
-        return {
-            appointments,
-            total,
-            page,
-            pages: Math.ceil(total / limit)
-        };
+    if (status === "upcoming") {
+      pipeline.push({
+        $match: {
+          earliestSlot: { $gt: now },
+        },
+      });
+    } else if (status === "past") {
+      pipeline.push({
+        $match: {
+          earliestSlot: { $lte: now },
+        },
+      });
     }
 
-    async updateAppointment(appointmentId: string, updates: Partial<IAppointment>): Promise<IAppointmentDocument> {
-        const appointment = await this.model.findByIdAndUpdate(
-            appointmentId,
-            updates,
-            { new: true }
-        )
-            .populate('user', 'name email phone')
-            .populate('salon', 'salonName address phone')
-            .populate('stylist', 'name')
-            .populate('services', 'name')
-            .populate({
-                path: 'slot',
-                select: 'startTime endTime',
-                transform: (doc) => {
-                    if (doc) {
-                        const tz = 'UTC'; 
-                        const start = moment(doc.startTime).tz(tz);
-                        const end = moment(doc.endTime).tz(tz);
-                        return {
-                            startTime: doc.startTime,
-                            endTime: doc.endTime,
-                            formattedDate: start.format('MMMM Do YYYY'),
-                            formattedTime: `${start.format('h:mm a')} - ${end.format('h:mm a')}`
-                        };
-                    }
-                    return doc;
-                }
-            });
+    pipeline.push(
+      {
+        $sort: {
+          "slotDetails.startTime": -1,
+        },
+      },
+      { $skip: skip },
+      { $limit: limit },
+      {
+        $lookup: {
+          from: "users",
+          localField: "user",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      { $unwind: "$user" },
+      {
+        $lookup: {
+          from: "stylists",
+          localField: "stylist",
+          foreignField: "_id",
+          as: "stylist",
+        },
+      },
+      { $unwind: "$stylist" },
+      {
+        $lookup: {
+          from: "salons",
+          localField: "salon",
+          foreignField: "_id",
+          as: "salon",
+        },
+      },
+      { $unwind: "$salon" },
+      {
+        $lookup: {
+          from: "timeslots",
+          localField: "slots",
+          foreignField: "_id",
+          as: "slots",
+        },
+      },
+      {
+        $project: {
+          "user.firstname": 1,
+          "user.lastname": 1,
+          "user.email": 1,
+          "user.phone": 1,
+          "stylist.name": 1,
+          "stylist.specialization": 1,
+          "salon.services": 1,
+          services: 1,
+          slots: {
+            $map: {
+              input: "$slots",
+              as: "slot",
+              in: {
+                _id: "$$slot._id",
+                startTime: "$$slot.startTime",
+                endTime: "$$slot.endTime",
+              },
+            },
+          },
+          status: 1,
+          totalPrice: 1,
+          paymentMethod: 1,
+          paymentStatus: 1,
+          serviceOption: 1,
+          address: 1,
+          isReviewed: 1,
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      }
+    );
 
-        if (!appointment) {
-            throw new CustomError('Appointment not found', 404);
-        }
-        return appointment;
+    const [appointments, total] = await Promise.all([
+      this.model.aggregate(pipeline).exec(),
+      this.model.countDocuments(match),
+    ]);
+
+    const formattedAppointments = appointments.map((appt) => {
+      const timeZone = appt.salon.timeZone || "Asia/Kolkata";
+      return {
+        ...appt,
+        slots: appt.slots.map((slot: any) => {
+          const start = moment.utc(slot.startTime).tz(timeZone);
+          const end = moment.utc(slot.endTime).tz(timeZone);
+          return {
+            ...slot,
+            formattedDate: start.format("MMMM Do YYYY"),
+            formattedTime: `${start.format("h:mm a")} - ${end.format("h:mm a")}`,
+          };
+        }),
+      };
+    });
+
+    return {
+      appointments: formattedAppointments,
+      total,
+      page,
+      pages: Math.ceil(total / limit),
+    };
+  }
+
+  async updateAppointment(
+    appointmentId: string,
+    updates: Partial<IAppointment>,
+    options?: mongoose.QueryOptions
+  ): Promise<IAppointmentDocument> {
+    const appointment = await this.model
+      .findByIdAndUpdate(appointmentId, updates, { new: true, ...options })
+      .populate("user", "name email phone")
+      .populate("salon", "salonName address phone timeZone")
+      .populate("stylist", "name")
+      .populate("services.service","name")
+      .populate({
+        path: "slots",
+        select: "startTime endTime",
+        transform: (doc, id) => {
+          if (doc) {
+            return {
+              _id: id,
+              startTime: doc.startTime,
+              endTime: doc.endTime,
+            };
+          }
+          return null;
+        },
+      });
+
+    if (!appointment) {
+      throw new CustomError(Messages.APPOINTMENT_NOT_FOUND, HttpStatus.NOT_FOUND);
     }
-
-
+    return appointment;
+  }
 }
 
-export default AppointmentRepositry
+export default AppointmentRepository;

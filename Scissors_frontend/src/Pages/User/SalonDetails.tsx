@@ -6,22 +6,22 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   getAvailableSlot,
   fetchServiceStylist,
-  getSalonDetailsWithSlots,
+  getSalonDetails,
   getSalonReviews,
+  createBooking,
 } from "../../Services/UserAPI";
 import { FiCheck, FiPlus } from "react-icons/fi";
 import { useSelector } from "react-redux";
 import { Card, CardContent } from "../../Components/ui/card";
-import { start } from "../../Redux/Salon/salonSlice";
 import { Star } from "lucide-react";
 import { Button } from "../../Components/ui/button";
 
 interface Service {
-  service: { $oid: string; _id: string; name: string };
+  _id: string;
   name: string;
   description: string;
   price: number;
-  _id: string;
+  duration: number;
 }
 
 interface Image {
@@ -75,6 +75,14 @@ interface SalonData {
   timeZone: string;
 }
 
+interface SlotGroup {
+  _id: string;
+  slotIds: string[];
+  startTime: string;
+  endTime: string;
+  duration: number;
+}
+
 const formatTime = (time: string) => {
   const [hours, minutes] = time.split(":");
   const hour = parseInt(hours);
@@ -98,72 +106,87 @@ const SalonDetails = () => {
   const [error, setError] = useState<string | null>(null);
   const [slotLoading, setSlotLoading] = useState(false);
   const [serviceOption, setServiceOption] = useState<"home" | "store">("store");
-  const [selectedAddress, setSelectedAddress] = useState<string>(""); // State for address
   const [offers, setOffers] = useState<Offer[]>([]);
 
   const [stylists, setStylists] = useState<any[]>([]);
   const [selectedStylist, setSelectedStylist] = useState<string | null>(null);
-  const [availableSlots, setAvailableSlots] = useState<
-    { _id: string; startTime: string; endTime: string }[]
-  >([]);
-  const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
-  const [selectedSlotId, setSelectedSlotId] = useState<string>("");
+  const [slotGroups, setSlotGroups] = useState<SlotGroup[]>([]);
+  const [selectedSlotGroup, setSelectedSlotGroup] = useState<SlotGroup | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split("T")[0]
   );
+  const [totalDuration, setTotalDuration] = useState<number>(0);
 
   const navigate = useNavigate();
 
-  console.log(availableSlots, "AvailableSlots");
+  useEffect(() => {
+    const fetchSalonData = async () => {
+      setLoading(true);
+      try {
+        if (!id) throw new Error("Salon ID missing");
+        const response = await getSalonDetails(id);
+        setSalon(response.data.salonData);
+        setReviews(response.data.reviews || []);
+        setOffers(response.data.offers || []);
+      } catch (error: any) {
+        setError(error.message || "Failed to fetch salon details");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSalonData();
+  }, [id]);
+
   useEffect(() => {
     const fetchStylists = async () => {
       if (selectedServices.length > 0 && id) {
-        console.log("entering in the try of fetch stylist");
         try {
           const response = await fetchServiceStylist({
             salonId: id,
             serviceIds: selectedServices,
           });
-          console.log(response, "stylists");
           setStylists(response.data.stylists);
           setSelectedStylist(null);
+          setSlotGroups([]);
+          setSelectedSlotGroup(null);
         } catch (error) {
           console.error("Error fetching stylists:", error);
         }
+      } else {
+        setStylists([]);
+        setSelectedStylist(null);
+        setSlotGroups([]);
+        setSelectedSlotGroup(null);
       }
     };
     fetchStylists();
   }, [selectedServices, id]);
 
   useEffect(() => {
-    const fetchSalonData = async () => {
-      setSlotLoading(true);
-      try {
-        if (!id) return;
-        const serviceId = selectedServices[0];
-        const data = {
-          id,
-          serviceId,
-          stylistId: selectedStylist as string,
-          selectedDate,
-        };
-        const [salonResponse] = await Promise.all([
-          getSalonDetailsWithSlots(data),
-        ]);
-        console.log(salonResponse, "Both");
-        setSalon(salonResponse.data.salonData);
-        setAvailableSlots(salonResponse.data.availableSlots || []);
-        setReviews(salonResponse.data.reviews);
-        setOffers(salonResponse.data.offers);
-      } catch (error: any) {
-        setError(error.message || "Failed to fetch salon details");
-      } finally {
-        setLoading(false);
-        setSlotLoading(false);
+    const fetchAvailableSlots = async () => {
+      if (selectedServices.length > 0 && selectedStylist && id) {
+        setSlotLoading(true);
+        try {
+          const response = await getAvailableSlot({
+            salonId: id,
+            stylistId: selectedStylist,
+            serviceIds: selectedServices,
+            selectedDate,
+          });
+          setSlotGroups(response.data.slotGroups || []);
+          setTotalDuration(response.data.totalDuration || 0);
+        } catch (error: any) {
+          setError(error.message || "Failed to fetch available slots");
+        } finally {
+          setSlotLoading(false);
+        }
+      } else {
+        setSlotGroups([]);
+        setTotalDuration(0);
       }
     };
-    fetchSalonData();
-  }, [id, selectedDate, selectedServices, selectedStylist]);
+    fetchAvailableSlots();
+  }, [id, selectedStylist, selectedServices, selectedDate]);
 
   if (loading) return <div className="text-center py-8">Loading...</div>;
   if (error)
@@ -176,7 +199,10 @@ const SalonDetails = () => {
         ? prev.filter((id) => id !== serviceId)
         : [...prev, serviceId]
     );
+    setSelectedStylist(null);
+    setSelectedSlotGroup(null);
   };
+
   const toggleVisibleServices = () => {
     setVisibleServices((prev) => (prev === 3 ? salon.services.length : 3));
   };
@@ -185,7 +211,7 @@ const SalonDetails = () => {
     return selectedServices.reduce((total, serviceId) => {
       const service = salon?.services.find((s) => s._id === serviceId);
       if (!service) return total;
-      const offers = getServiceOffers(service.service._id);
+      const offers = getServiceOffers(serviceId);
       const maxDiscount =
         offers.length > 0 ? Math.max(...offers.map((o) => o.discount), 0) : 0;
       const discountedPrice = service.price * (1 - maxDiscount / 100);
@@ -206,8 +232,9 @@ const SalonDetails = () => {
     today.setDate(today.getDate() + 7);
     return today.toISOString().split("T")[0];
   };
+
   const isAddressValid = () => {
-    const { areaStreet, city, state, pincode } = currentUser.address;
+    const { areaStreet, city, state, pincode } = currentUser.address || {};
     return areaStreet && city && state && pincode;
   };
 
@@ -226,15 +253,72 @@ const SalonDetails = () => {
     return stars;
   };
 
-  const getServiceOffers = (baseServiceId: string) => {
+  const getServiceOffers = (serviceId: string) => {
     return offers.filter(
       (offer) =>
         offer.isActive &&
         new Date(offer.expiryDate) >= new Date() &&
         (offer.serviceIds.length === 0 ||
-          offer.serviceIds.some((s) => s._id === baseServiceId))
+          offer.serviceIds.some((s) => s._id === serviceId))
     );
   };
+
+  const handleBookNow = async () => {
+    if (!selectedStylist) {
+      alert("Please select a stylist");
+      return;
+    }
+    if (!selectedSlotGroup) {
+      alert("Please select a time slot");
+      return;
+    }
+    if (serviceOption === 'home' && !isAddressValid()) {
+      alert("Please add your address to proceed with home service");
+      navigate("/profile");
+      return;
+    }
+
+    try {
+      const bookingResponse = await createBooking({
+        salonId: id!,
+        stylistId: selectedStylist,
+        serviceIds: selectedServices,
+        slotIds: selectedSlotGroup.slotIds,
+        startTime: selectedSlotGroup.startTime,
+        endTime: selectedSlotGroup.endTime,
+      });
+
+      const { reservation } = bookingResponse.data;
+
+      const stylistName = stylists.find((stylist) => stylist._id === selectedStylist)?.name || "";
+      const serviceNames = selectedServices
+        .map((serviceId) => salon?.services.find((s) => s._id === serviceId)?.name)
+        .filter(Boolean);
+
+      navigate(`/salons/${salon.salonName}/book`, {
+        state: {
+          user: currentUser._id,
+          salon: salon._id,
+          selectedServices,
+          slotIds: selectedSlotGroup.slotIds,
+          startTime: selectedSlotGroup.startTime,
+          endTime: selectedSlotGroup.endTime,
+          selectedStylist,
+          stylistName,
+          serviceNames,
+          serviceOption,
+          totalPrice: calculateTotal(),
+          totalDuration,
+          reservedUntil: reservation.reservedUntil,
+          timeZone: salon.timeZone,
+          selectedAddress: serviceOption === 'home' ? currentUser.address : null,
+        },
+      });
+    } catch (error: any) {
+      setError(error.response?.data?.message || "Failed to reserve slots");
+    }
+  };
+
   return (
     <div className="bg-gray-50">
       <Navbar />
@@ -300,9 +384,9 @@ const SalonDetails = () => {
                         {service.name}
                       </h3>
                       <p className="text-gray-500 text-sm mt-1">
-                        {service.description}
+                        {service.description} ({service.duration} min)
                       </p>
-                      {getServiceOffers(service.service._id).map((offer) => (
+                      {getServiceOffers(service._id).map((offer) => (
                         <div key={offer._id} className="mt-2 text-sm text-green-600">
                           <p>
                             <strong>{offer.title}:</strong> {offer.discount}% off{" "}
@@ -353,13 +437,13 @@ const SalonDetails = () => {
                       {selectedServices.map((serviceId) => {
                         const service = salon?.services.find((s) => s._id === serviceId);
                         if (!service) return null;
-                        const offers = getServiceOffers(service.service._id);
+                        const offers = getServiceOffers(serviceId);
                         const maxDiscount = offers.length > 0 ? Math.max(...offers.map((o) => o.discount), 0) : 0;
                         const discountedPrice = service.price * (1 - maxDiscount / 100);
                         const appliedOffer = offers.find((o) => o.discount === maxDiscount);
                         return (
                           <div key={service._id} className="mt-1">
-                            <p>{service.name}</p>
+                            <p>{service.name} ({service.duration} min)</p>
                             {maxDiscount > 0 ? (
                               <p>
                                 Original: ₹{service.price}, {maxDiscount}% off (
@@ -371,19 +455,17 @@ const SalonDetails = () => {
                           </div>
                         );
                       })}
+                      <p>Total Duration: {totalDuration} minutes</p>
                       {selectedStylist && (
                         <p>
                           Stylist: {stylists.find((s) => s._id === selectedStylist)?.name}
                         </p>
                       )}
-                      {selectedSlot && (
+                      {selectedSlotGroup && (
                         <p>
-                          {new Date(selectedSlot).toLocaleDateString()} -{" "}
-                          {new Date(selectedSlot).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                            hour12: true,
-                          })}
+                          {moment(selectedSlotGroup.startTime).format("MMM D, YYYY")} -{" "}
+                          {formatTimeInSalon(selectedSlotGroup.startTime, salon.timeZone)} -{" "}
+                          {formatTimeInSalon(selectedSlotGroup.endTime, salon.timeZone)}
                         </p>
                       )}
                       <p className="mt-1 font-semibold">Total: ₹{calculateTotal().toFixed(2)}</p>
@@ -404,44 +486,7 @@ const SalonDetails = () => {
                       </select>
                     </div>
                     <button
-                      onClick={() => {
-                        if (!selectedStylist) {
-                          alert("Please select a stylist");
-                          return;
-                        }
-                        if (!selectedSlot) {
-                          alert("Please select a time slot");
-                          return;
-                        }
-                        if (serviceOption === 'home' && !isAddressValid()) {
-                          alert("Please add your address to proceed with home service");
-                          navigate("/profile");
-                          return;
-                        }
-                        const stylistName = stylists.find((stylist) => stylist._id === selectedStylist)?.name || "";
-                        const serviceNames = selectedServices
-                          .map((serviceId) => {
-                            const service = salon?.services.find((s) => s._id === serviceId);
-                            return service?.name;
-                          })
-                          .filter(Boolean);
-                        navigate(`/salons/${salon.salonName}/book`, {
-                          state: {
-                            user: currentUser._id,
-                            salon: salon._id,
-                            selectedServices,
-                            selectedSlot,
-                            slotId: selectedSlotId,
-                            selectedDate,
-                            selectedStylist,
-                            stylistName,
-                            serviceNames,
-                            serviceOption,
-                            totalPrice: calculateTotal(),
-                            selectedAddress: serviceOption === 'home' ? currentUser.address : null,
-                          },
-                        });
-                      }}
+                      onClick={handleBookNow}
                       className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors mt-4"
                     >
                       Book Now
@@ -460,7 +505,10 @@ const SalonDetails = () => {
             value={selectedDate}
             min={getMinDate()}
             max={getMaxDate()}
-            onChange={(e) => setSelectedDate(e.target.value)}
+            onChange={(e) => {
+              setSelectedDate(e.target.value);
+              setSelectedSlotGroup(null);
+            }}
             className="p-2 border rounded-lg w-full"
           />
         </div>
@@ -475,7 +523,7 @@ const SalonDetails = () => {
                     key={stylist._id}
                     onClick={() => {
                       setSelectedStylist(stylist._id);
-                      setSelectedSlot(null);
+                      setSelectedSlotGroup(null);
                     }}
                     className={`p-3 rounded-lg transition-colors ${
                       selectedStylist === stylist._id
@@ -499,29 +547,28 @@ const SalonDetails = () => {
             <div className="text-center py-4">Loading slots...</div>
           ) : (
             <div className="flex flex-wrap gap-2">
-              {availableSlots.length > 0 ? (
-                availableSlots.map((slot) => (
+              {slotGroups.length > 0 ? (
+                slotGroups.map((group) => (
                   <button
-                    key={`${slot.startTime}-${slot.endTime}`}
-                    onClick={() => {
-                      setSelectedSlot(slot.startTime);
-                      setSelectedSlotId(slot._id);
-                    }}
+                    key={group._id}
+                    onClick={() => setSelectedSlotGroup(group)}
                     className={`px-4 py-2 rounded-lg text-sm ${
-                      selectedSlot === slot.startTime
+                      selectedSlotGroup?._id === group._id
                         ? "bg-blue-600 text-white"
                         : "bg-gray-200 hover:bg-gray-300"
                     }`}
                   >
-                    {formatTimeInSalon(slot.startTime, salon.timeZone)} -{" "}
-                    {formatTimeInSalon(slot.endTime, salon.timeZone)}
+                    {formatTimeInSalon(group.startTime, salon.timeZone)} -{" "}
+                    {formatTimeInSalon(group.endTime, salon.timeZone)} ({group.duration} min)
                   </button>
                 ))
               ) : (
                 <p className="text-gray-500">
                   {selectedServices.length === 0
                     ? "Select a service to view slots"
-                    : "No slots available for selected date"}
+                    : selectedStylist
+                    ? "No slots available for selected date and stylist"
+                    : "Select a stylist to view slots"}
                 </p>
               )}
             </div>

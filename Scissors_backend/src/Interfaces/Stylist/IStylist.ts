@@ -9,7 +9,7 @@ export interface IStylist{
     workingHours:{
         day:string,
         startTime:string,
-        endTime:String
+        endTime:string
     }[];
     services:string[];
     isAvailable:boolean,
@@ -27,7 +27,7 @@ export interface IStylistDocument extends Document{
     workingHours:{
         day:string,
         startTime:string,
-        endTime:String
+        endTime:string
     }[];
     services:string[];
     isAvailable:boolean,

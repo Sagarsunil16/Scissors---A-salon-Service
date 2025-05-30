@@ -24,7 +24,7 @@ class ReviewRepository extends BaseRepository<IReviewDocument> implements IRevie
     super(Review);
   }
 
-  async create(data: Partial<IReview>): Promise<IReviewDocument> {
+  async createReview(data: Partial<IReview>): Promise<IReviewDocument> {
     return await this.create(data);
   }
 

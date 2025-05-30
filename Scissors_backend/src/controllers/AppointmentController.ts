@@ -2,16 +2,18 @@ import { Request, Response, NextFunction } from "express";
 import mongoose from "mongoose";
 import CustomError from "../Utils/cutsomError";
 import { IAppointmentService } from "../Interfaces/Appointment/IAppointmentService";
+import { Messages } from "../constants/Messages";
+import { HttpStatus } from "../constants/HttpStatus";
 
 interface AuthenticatedRequest extends Request {
   user?: { id: string };
 }
 
 class AppointmentController {
-  private appointmentService: IAppointmentService;
+  private _appointmentService: IAppointmentService;
 
   constructor(appointmentService: IAppointmentService) {
-    this.appointmentService = appointmentService;
+    this._appointmentService = appointmentService;
   }
 
   async getAppointmentDetails(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
@@ -20,20 +22,20 @@ class AppointmentController {
       const userId = req.user?.id;
 
       if (!userId) {
-        throw new CustomError("Authentication required.", 401);
+        throw new CustomError(Messages.AUTHENTICATION_REQUIRED, HttpStatus.UNAUTHORIZED);
       }
 
       if (!mongoose.Types.ObjectId.isValid(appointmentId)) {
-        throw new CustomError("Invalid appointment ID.", 400);
+        throw new CustomError(Messages.INVALID_APPOINTMENT_ID, HttpStatus.BAD_REQUEST);
       }
 
-      const appointment = await this.appointmentService.getAppointmentDetails(appointmentId, userId);
+      const appointment = await this._appointmentService.getAppointmentDetails(appointmentId, userId);
       if (!appointment) {
-        throw new CustomError("Appointment not found.", 404);
+        throw new CustomError(Messages.APPOINTMENT_NOT_FOUND, HttpStatus.NOT_FOUND);
       }
 
-      res.status(200).json({
-        message: "Appointment details fetched successfully.",
+      res.status(HttpStatus.OK).json({
+        message: Messages.APPOINTMENT_DETAILS_FETCHED,
         data: appointment,
       });
     } catch (error) {
@@ -47,18 +49,25 @@ class AppointmentController {
       const { status, page = "1", limit = "10" } = req.query;
 
       if (!userId) {
-        throw new CustomError("Authentication required.", 401);
+        throw new CustomError(Messages.AUTHENTICATION_REQUIRED, HttpStatus.UNAUTHORIZED);
       }
 
-      const result = await this.appointmentService.getUserAppointments(
+      const pageNumber = parseInt(page as string, 10);
+      const limitNumber = parseInt(limit as string, 10);
+
+      if (isNaN(pageNumber) || isNaN(limitNumber) || pageNumber < 1 || limitNumber < 1) {
+        throw new CustomError(Messages.INVALID_PAGINATION_PARAMS, HttpStatus.BAD_REQUEST);
+      }
+
+      const result = await this._appointmentService.getUserAppointments(
         userId,
         status?.toString(),
-        parseInt(page as string),
-        parseInt(limit as string)
+        pageNumber,
+        limitNumber
       );
 
-      res.status(200).json({
-        message: "User appointments fetched successfully.",
+      res.status(HttpStatus.OK).json({
+        message: Messages.USER_APPOINTMENTS_FETCHED,
         data: result,
       });
     } catch (error) {
@@ -72,18 +81,25 @@ class AppointmentController {
       const { status, page = "1", limit = "10" } = req.query;
 
       if (!salonId) {
-        throw new CustomError("Authentication required.", 401);
+        throw new CustomError(Messages.AUTHENTICATION_REQUIRED, HttpStatus.UNAUTHORIZED);
       }
 
-      const result = await this.appointmentService.getSalonAppointments(
+      const pageNumber = parseInt(page as string, 10);
+      const limitNumber = parseInt(limit as string, 10);
+
+      if (isNaN(pageNumber) || isNaN(limitNumber) || pageNumber < 1 || limitNumber < 1) {
+        throw new CustomError(Messages.INVALID_PAGINATION_PARAMS, HttpStatus.BAD_REQUEST);
+      }
+
+      const result = await this._appointmentService.getSalonAppointments(
         salonId,
         status?.toString(),
-        parseInt(page as string),
-        parseInt(limit as string)
+        pageNumber,
+        limitNumber
       );
 
-      res.status(200).json({
-        message: "Salon appointments fetched successfully.",
+      res.status(HttpStatus.OK).json({
+        message: Messages.SALON_APPOINTMENTS_FETCHED,
         data: result,
       });
     } catch (error) {
@@ -97,20 +113,20 @@ class AppointmentController {
       const salonId = req.user?.id;
 
       if (!salonId) {
-        throw new CustomError("Authentication required.", 401);
+        throw new CustomError(Messages.AUTHENTICATION_REQUIRED, HttpStatus.UNAUTHORIZED);
       }
 
       if (!mongoose.Types.ObjectId.isValid(id)) {
-        throw new CustomError("Invalid appointment ID.", 400);
+        throw new CustomError(Messages.INVALID_APPOINTMENT_ID, HttpStatus.BAD_REQUEST);
       }
 
-      const updatedAppointment = await this.appointmentService.cancelAppointment(id, salonId);
+      const updatedAppointment = await this._appointmentService.cancelAppointment(id, salonId);
       if (!updatedAppointment) {
-        throw new CustomError("Appointment not found or cannot be cancelled.", 404);
+        throw new CustomError(Messages.APPOINTMENT_CANCEL_FAILED, HttpStatus.NOT_FOUND);
       }
 
-      res.status(200).json({
-        message: "Appointment cancelled successfully.",
+      res.status(HttpStatus.OK).json({
+        message: Messages.APPOINTMENT_CANCELLED,
         data: updatedAppointment,
       });
     } catch (error) {
@@ -124,20 +140,20 @@ class AppointmentController {
       const salonId = req.user?.id;
 
       if (!salonId) {
-        throw new CustomError("Authentication required.", 401);
+        throw new CustomError(Messages.AUTHENTICATION_REQUIRED, HttpStatus.UNAUTHORIZED);
       }
 
       if (!mongoose.Types.ObjectId.isValid(id)) {
-        throw new CustomError("Invalid appointment ID.", 400);
+        throw new CustomError(Messages.INVALID_APPOINTMENT_ID, HttpStatus.BAD_REQUEST);
       }
 
-      const updatedAppointment = await this.appointmentService.completeAppointment(id, salonId);
+      const updatedAppointment = await this._appointmentService.completeAppointment(id, salonId);
       if (!updatedAppointment) {
-        throw new CustomError("Appointment not found or cannot be completed.", 404);
+        throw new CustomError(Messages.APPOINTMENT_COMPLETE_FAILED, HttpStatus.NOT_FOUND);
       }
 
-      res.status(200).json({
-        message: "Appointment marked as completed successfully.",
+      res.status(HttpStatus.OK).json({
+        message: Messages.APPOINTMENT_COMPLETED,
         data: updatedAppointment,
       });
     } catch (error) {
@@ -151,20 +167,20 @@ class AppointmentController {
       const userId = req.user?.id;
 
       if (!userId) {
-        throw new CustomError("Authentication required.", 401);
+        throw new CustomError(Messages.AUTHENTICATION_REQUIRED, HttpStatus.UNAUTHORIZED);
       }
 
       if (!mongoose.Types.ObjectId.isValid(appointmentId)) {
-        throw new CustomError("Invalid appointment ID.", 400);
+        throw new CustomError(Messages.INVALID_APPOINTMENT_ID, HttpStatus.BAD_REQUEST);
       }
 
-      const updatedAppointment = await this.appointmentService.cancelAppointmentByUser(appointmentId, userId);
+      const updatedAppointment = await this._appointmentService.cancelAppointmentByUser(appointmentId, userId);
       if (!updatedAppointment) {
-        throw new CustomError("Appointment not found or cannot be cancelled.", 404);
+        throw new CustomError(Messages.APPOINTMENT_CANCEL_FAILED, HttpStatus.NOT_FOUND);
       }
 
-      res.status(200).json({
-        message: "Appointment cancelled successfully.",
+      res.status(HttpStatus.OK).json({
+        message: Messages.APPOINTMENT_CANCELLED,
         data: updatedAppointment,
       });
     } catch (error) {

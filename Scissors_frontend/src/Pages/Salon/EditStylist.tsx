@@ -16,7 +16,7 @@ const EditStylist = () => {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [workingHours, setWorkingHours] = useState<WorkingHours[]>([]);
-  const [available, setAvailable] = useState(false);
+  const [isAvailable, setIsAvailable] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,7 +28,7 @@ const EditStylist = () => {
         setEmail(stylistData.email);
         setPhone(stylistData.phone);
         setWorkingHours(stylistData.workingHours);
-        setAvailable(stylistData.isAvailable); // Assuming API returns isAvailable
+        setIsAvailable(stylistData.isAvailable); // Assuming API returns isAvailable
       } catch (error) {
         console.error("Error fetching stylist:", error);
         toast.error("Failed to load stylist data");
@@ -83,7 +83,7 @@ const EditStylist = () => {
         name,
         email,
         phone,
-        available, // Match API expectation
+        isAvailable, 
         workingHours,
       };
       await updateStylist(id as string, data);
@@ -249,18 +249,18 @@ const EditStylist = () => {
                   <div className="relative">
                     <input
                       type="checkbox"
-                      checked={available}
-                      onChange={(e) => setAvailable(e.target.checked)}
+                      checked={isAvailable}
+                      onChange={(e) => setIsAvailable(e.target.checked)}
                       className="sr-only"
                     />
                     <div
                       className={`w-8 h-5 sm:w-10 sm:h-6 rounded-full transition-colors ${
-                        available ? "bg-blue-500" : "bg-gray-300"
+                        isAvailable ? "bg-blue-500" : "bg-gray-300"
                       }`}
                     >
                       <div
                         className={`absolute top-1 left-1 w-3 h-3 sm:w-4 sm:h-4 bg-white rounded-full shadow-sm transform transition-transform ${
-                          available ? "translate-x-3 sm:translate-x-5" : "translate-x-0"
+                          isAvailable ? "translate-x-3 sm:translate-x-5" : "translate-x-0"
                         }`}
                       />
                     </div>

@@ -3,6 +3,7 @@ import auth from '../middleware/auth';
 import { ROLES } from '../constants';
 import upload from '../config/multer';
 import { appointmentController, bookingController, chatController, messageController, reviewController, salonController, userController } from '../container/di';
+import BookingController from '../controllers/BookingController';
 
 const userRouter = Router();
 
@@ -18,11 +19,14 @@ userRouter.put('/reset-password', userController.resetPassword.bind(userControll
 userRouter.post('/auth/google', userController.googleLogin.bind(userController));
 
 // Protected routes
-userRouter.get('/salons', auth([ROLES.USER]), salonController.getAllSalons.bind(salonController));
-userRouter.post('/salons/nearby', auth([ROLES.USER]), salonController.getNearbySalons.bind(salonController));
+userRouter.get('/salons', auth([ROLES.USER]), salonController.getNearbySalons.bind(salonController));
+// userRouter.get('/salons/nearby', auth([ROLES.USER]), salonController.getNearbySalons.bind(salonController));
 userRouter.get('/salon-details', auth([ROLES.USER]), bookingController.getSalonDataWithSlots.bind(bookingController));
-userRouter.get('/salons/:salonId/stylist', auth([ROLES.USER]), bookingController.getServiceStylist.bind(bookingController));
+userRouter.get('/salons/:salonId/stylist', auth([ROLES.USER]), bookingController.getServiceStylists.bind(bookingController));
+userRouter.post("/timeslots/available", bookingController.getAvailableSlots.bind(bookingController));
 userRouter.get('/salons/:salonId/reviews', auth([ROLES.USER]), reviewController.getSalonReviews.bind(reviewController));
+userRouter.post('/bookings',auth([ROLES.USER]),bookingController.createBooking.bind(bookingController))
+
 
 userRouter.put('/profile', auth([ROLES.USER], true), userController.updateUser.bind(userController));
 userRouter.put('/change-password', auth([ROLES.USER], true), userController.changePassword.bind(userController));
@@ -35,8 +39,13 @@ userRouter.put('/appointment/cancel/:id', auth([ROLES.USER]), appointmentControl
 userRouter.get('/chats', auth([ROLES.USER]), chatController.getUserChats.bind(chatController));
 userRouter.get('/messages/:salonId', auth([ROLES.USER]), messageController.getMessages.bind(messageController));
 userRouter.post('/messages/upload', auth([ROLES.USER]), upload.single('file'), messageController.uploadAttachment.bind(messageController));
+userRouter.delete('/chats/:salonId', auth([ROLES.USER]), chatController.deleteChat.bind(chatController)); // New: Delete chat
+userRouter.post('/messages/:salonId/read', auth([ROLES.USER]), messageController.markMessagesAsRead.bind(messageController)); // New: Mark messages as read
+userRouter.post('/messages/:messageId/reaction', auth([ROLES.USER]), messageController.addReaction.bind(messageController)); // New: Add reaction to message
 
 // Reviews
 userRouter.post('/reviews', auth([ROLES.USER]), upload.single('file'), reviewController.createReview.bind(reviewController));
 
 export default userRouter;
+
+

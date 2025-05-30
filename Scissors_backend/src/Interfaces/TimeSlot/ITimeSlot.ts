@@ -1,19 +1,26 @@
-import mongoose , {Document} from "mongoose";
+import mongoose from "mongoose";
 
-export interface ITimeSlot{
-    salon:mongoose.Types.ObjectId,
-    stylist:mongoose.Types.ObjectId,
-    startTime:Date,
-    endTime:Date,
-    service:mongoose.Types.ObjectId[],
-    status:'available' | 'booked' | 'cancelled'
+export interface ITimeSlot {
+  startTime: Date;
+  endTime: Date;
+  stylist: mongoose.Types.ObjectId;
+  salon: mongoose.Types.ObjectId;
+  status: "available" | "booked" | "cancelled" | "reserved";
+  version: number;
+  reservedUntil: Date | null;
 }
 
-export interface ITimeSlotDocument extends Document{
-    salon:mongoose.Types.ObjectId,
-    stylist:mongoose.Types.ObjectId,
-    startTime:Date,
-    endTime:Date,
-    service:mongoose.Types.ObjectId[],
-    status:'available' | 'booked' | 'cancelled'
+export interface ITimeSlotDocument extends ITimeSlot, Document {
+  _id: mongoose.Types.ObjectId;
+}
+
+export interface ISlotGroup {
+  _id: string; // Comma-separated slot IDs
+  startTime: Date;
+  endTime: Date;
+  stylist: mongoose.Types.ObjectId;
+  salon: mongoose.Types.ObjectId;
+  status: "available" | "booked" | "cancelled" | "reserved";
+  slotIds: string[]; // Array of individual slot IDs
+  duration:number;
 }

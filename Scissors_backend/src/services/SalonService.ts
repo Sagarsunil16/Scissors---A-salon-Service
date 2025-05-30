@@ -1,4 +1,4 @@
-import { GeolocationApiResponse, GeolocationResult, ISalon } from "../Interfaces/Salon/ISalon";
+import { GeolocationApiResponse, GeolocationResult, ISalon, SalonQueryParamsForUser, SalonResult } from "../Interfaces/Salon/ISalon";
 import { ISalonDocument } from "../models/Salon";
 import { ISalonRepository } from "../Interfaces/Salon/ISalonRepository";
 import { sendOtpEmail,generateOtp } from "../Utils/otp";
@@ -13,16 +13,17 @@ import axios from "axios";
 import { GEOLOCATION_API } from "../constants";
 import { TokenPayload } from "../controllers/AuthController";
 import { ISalonService } from "../Interfaces/Salon/ISalonService";
+import Offer from "../models/Offer";
 
 class SalonService implements ISalonService {
-    private salonRepository: ISalonRepository;
-    private categoryRepository: ICategoryRepository;
+    private _salonRepository: ISalonRepository;
+    private _categoryRepository: ICategoryRepository;
     constructor(salonRepository:ISalonRepository,categoryRepository:ICategoryRepository){
-        this.salonRepository = salonRepository
-        this.categoryRepository = categoryRepository
+        this._salonRepository = salonRepository
+        this._categoryRepository = categoryRepository
     }
     async createSalon(salonData:ISalon):Promise<ISalonDocument>{
-        const categoryData =  await this.categoryRepository.findByName(salonData.category)
+        const categoryData =  await this._categoryRepository.findByName(salonData.category)
         if(!categoryData){
             throw new CustomError("Category not found. Please choose a valid category.", 400);
          }
@@ -54,27 +55,27 @@ class SalonService implements ISalonService {
         
 
         salonData.password = await bcrypt.hash(salonData.password,10)
-        return await this.salonRepository.createSalon(salonData)
+        return await this._salonRepository.createSalon(salonData)
     }
 
     async findSalon(id:string):Promise<ISalonDocument | null>{
-        return this.salonRepository.getSalonById(id)
+        return this._salonRepository.getSalonById(id)
     }
 
     async sendOtp(email:string):Promise<string>{
-            const salon = await this.salonRepository.getSalonByEmail(email)
+            const salon = await this._salonRepository.getSalonByEmail(email)
             if(!salon){
                 throw new CustomError("No account found with this email address. Please check and try again.", 404);
             }
             const otp = generateOtp()
             const otpExpiry = new Date(Date.now() + 1 * 60 * 1000) // 1minutes
-            await this.salonRepository.updateSalonOtp(email,otp,otpExpiry)
+            await this._salonRepository.updateSalonOtp(email,otp,otpExpiry)
             await sendOtpEmail(email,otp)
             return "OTP has been sent to your email address.";
     }
 
     async verifyOtp(email:string,otp:string):Promise<string>{
-        const salon =  await this.salonRepository.getSalonByEmail(email)
+        const salon =  await this._salonRepository.getSalonByEmail(email)
         if(!salon){
             throw new CustomError("Salon not found with this email. Please ensure your account exists.", 404);
         }
@@ -84,12 +85,12 @@ class SalonService implements ISalonService {
         if(salon.otpExpiry< new Date()){
             throw new CustomError("OTP has expired. Please request a new one.", 400);
         }
-        await this.salonRepository.verifyOtpAndUpdate(email)
+        await this._salonRepository.verifyOtpAndUpdate(email)
         return "Verification successful. You may now log in.";
     }
 
     async loginSalon(email:string,password:string):Promise<{salon:ISalonDocument,accessToken:string,refreshToken:string}>{
-        const salon = await this.salonRepository.getSalonByEmail(email)
+        const salon = await this._salonRepository.getSalonByEmail(email)
         if(!salon){
             throw new CustomError("Salon not found. Please check your email or create an account.", 404);
         }
@@ -118,7 +119,7 @@ class SalonService implements ISalonService {
             refreshToken:refreshToken,
             refreshTokenExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
         }
-        this.salonRepository.updateSalon(salon._id.toString(),updateData,{new:true})
+        this._salonRepository.updateSalon(salon._id.toString(),updateData,{new:true})
 
         return {salon,accessToken,refreshToken}
     }
@@ -128,9 +129,9 @@ class SalonService implements ISalonService {
             try {
                 const decoded = jwt.verify(refreshToken,process.env.REFRESH_TOKEN_SECRET as string) as TokenPayload
                 if(decoded.role == 'Salon'){
-                    const salon = await this.salonRepository.getSalonById(decoded.id)
+                    const salon = await this._salonRepository.getSalonById(decoded.id)
                     if (salon) {
-                        await this.salonRepository.updateSalon(salon._id.toString(),{refreshToken: null, refreshTokenExpiresAt: null})
+                        await this._salonRepository.updateSalon(salon._id.toString(),{refreshToken: null, refreshTokenExpiresAt: null})
                     }
                 }
             } catch (error) {
@@ -143,13 +144,58 @@ class SalonService implements ISalonService {
         if(!id){
             throw new CustomError("Salon ID is required to fetch salon data.", 400);
         }
-        return this.salonRepository.getSalonById(id)
+        return this._salonRepository.getSalonById(id)
     }
 
-    async getNearbySalons(latitude:number,longitude:number,radius:number):Promise<ISalonDocument[]>{
-        return await this.salonRepository.getNearbySalons(longitude,latitude,radius)
-    }
+    async getNearbySalons(params:SalonQueryParamsForUser):Promise<SalonResult>{
+        const { longitude, latitude, radius, search, maxPrice, ratings, discount, page, limit } = params;
+       const skip = (page - 1) * limit
+       if(longitude!==undefined && latitude!==undefined){
+        if(isNaN(longitude) || isNaN(latitude)){
+            throw new CustomError('Invalid longitude or latitude.', 400);
+        }
+       }
 
+       let query:any = {}
+       if(search){
+        query.$or = [{ salonName: { $regex: search, $options: 'i' } },
+            { 'services.name': { $regex: search, $options: 'i' } },]
+       }
+
+       if (maxPrice < 100000) {
+        query['services.price'] = { $lte: maxPrice };
+      }
+      if (ratings.length > 0) {
+        query.rating = { $in: ratings };
+      }
+
+      if (discount > 0) {
+        const offerSalonIds = await Offer.find({
+          discount: { $gte: discount },
+          isActive: true,
+          expiryDate: { $gte: new Date() },
+        }).distinct('salonId');
+        query._id = { $in: offerSalonIds };
+      }
+
+      let salons: ISalonDocument[] = [];
+        let totalSalons = 0;
+        if (longitude !== undefined && latitude !== undefined) {
+            salons = await this._salonRepository.getNearbySalons(longitude, latitude, radius, query, skip, limit);
+            totalSalons = await this._salonRepository.countNearbySalons(longitude, latitude, radius, query);
+          } else {
+            // Non-geolocation query (all salons)
+            salons = await this._salonRepository.getAllSalons(query, skip, limit);
+            totalSalons = await this._salonRepository.countAllSalons(query);
+          }
+        
+          return {
+            salons,
+            totalSalons,
+            totalPages: Math.ceil(totalSalons / limit),
+          };
+    }
+        
     async getFilteredSalons(filters:{search?: string;
             location?: string;
             maxPrice?: number;
@@ -158,7 +204,7 @@ class SalonService implements ISalonService {
           },
           page: number,
           itemsPerPage: number):Promise<{salons:ISalonDocument[],total:number,totalPages:number}>{
-            const { salons, total } = await this.salonRepository.findAllSalons(
+            const { salons, total } = await this._salonRepository.findAllSalons(
             filters,
             page,
             itemsPerPage
@@ -176,12 +222,12 @@ class SalonService implements ISalonService {
        if(!updatedData.salonName || !updatedData.email || !updatedData.phone){
         throw new CustomError("Missing required fields. Salon name, email, and phone are mandatory.", 400);
        }
-       const updatedSalon =  await this.salonRepository.updateSalonProfile(updatedData)
+       const updatedSalon =  await this._salonRepository.updateSalonProfile(updatedData)
        return updatedSalon
     }
 
     async updateSalonStatus(id:string,isActive:boolean):Promise<ISalonDocument | null>{
-      return await this.salonRepository.updateSalonStatus(id,isActive)
+      return await this._salonRepository.updateSalonStatus(id,isActive)
     }
 
     async getAllSalons(page:number,search:string):Promise<{data:ISalonDocument[],totalCount:number}>{
@@ -192,24 +238,29 @@ class SalonService implements ISalonService {
                 {email:{$regex:search,$options:'i'}}
             ] 
         }
-        return await this.salonRepository.getAllSalon(page,query)
+        return await this._salonRepository.getAllSalon(page,query)
     }
 
     async allSalonListForChat():Promise <Partial<ISalonDocument>[]>{
-        return await this.salonRepository.allSalonListForChat()
+        return await this._salonRepository.allSalonListForChat()
     }
 
   async uploadSalonImage(salonId:string,filePath:string):Promise<ISalonDocument | null>{
-    const{public_id,secure_url} =  await cloudinary.uploader.upload(filePath,{
+    try {
+         const{public_id,secure_url} =  await cloudinary.uploader.upload(filePath,{
         folder:"salon_gallery"
     })
     const imageData = {id:public_id,url:secure_url};
-    const updatedSalonData =  this.salonRepository.addImagesToSalon(salonId,imageData)
+    const updatedSalonData =  this._salonRepository.addImagesToSalon(salonId,imageData)
     return updatedSalonData
+    } catch (error) {
+        console.log(error)
+        return null
+    }
   }
 
   async deleteSalonImage(salonId:string,imageId:string,cloudinaryImageId:string):Promise<ISalonDocument | null>{
-    const salon = await this.salonRepository.getSalonById(salonId)
+    const salon = await this._salonRepository.getSalonById(salonId)
     if(!salon){
         throw new CustomError("Salon not found. Please verify the salon ID.", 404);
     }
@@ -219,7 +270,7 @@ class SalonService implements ISalonService {
         throw new CustomError("The image you are trying to delete does not exist.", 404);
     }
 
-    const updatedSalonData = await this.salonRepository.deleteSalonImage(salonId,imageId)
+    const updatedSalonData = await this._salonRepository.deleteSalonImage(salonId,imageId)
     return updatedSalonData
   }
 
@@ -230,7 +281,7 @@ class SalonService implements ISalonService {
     if (!serviceData.name || !serviceData.price || !serviceData.description || !serviceData.service || !serviceData.duration ) {
         throw new CustomError("All fields are required to add a service.", 400);
     }
-    const result =  await this.salonRepository.addService(salonId,serviceData)
+    const result =  await this._salonRepository.addService(salonId,serviceData)
 
    return result
   }
@@ -271,7 +322,7 @@ class SalonService implements ISalonService {
         stylists: serviceData.stylists.map(id => new mongoose.Types.ObjectId(id))
     };
 
-    return this.salonRepository.updateService(
+    return this._salonRepository.updateService(
         serviceData.salonId,
         serviceData.serviceId,
         data
@@ -284,11 +335,11 @@ class SalonService implements ISalonService {
             throw new CustomError("Both Salon ID and Service ID are required to remove a service.", 400);
         }
 
-        const salon = this.salonRepository.getSalonById(salonId)
+        const salon = this._salonRepository.getSalonById(salonId)
         if(!salon){
             throw new CustomError("Salon not found. Please verify the salon ID.", 404);
         }
-        return this.salonRepository.removeService(salonId,serviceId)
+        return this._salonRepository.removeService(salonId,serviceId)
     }
 }
 

@@ -16,7 +16,7 @@ export interface Address {
     phone: number;
     password: string;
     role: string;
-    is_Active: string;
+    is_Active: boolean;
     otp: string | null;
     otpExpiry: string | null; // Use Date if parsed into a Date object
     __v: number;

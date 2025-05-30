@@ -1,252 +1,374 @@
-import { NextFunction, Request,Response } from "express";
-import { ITimeSlot } from "../Interfaces/TimeSlot/ITimeSlot";
-import CustomError from "../Utils/cutsomError";
-import Stripe from "stripe";
-import mongoose from "mongoose";
-import { AppointmentStatus, IAppointment, PaymentMethod, PaymentStatus } from "../Interfaces/Appointment/IAppointment";
-import Appointment from "../models/Appointment";
+import { NextFunction, Request, Response } from "express";
+import { ITimeSlotService } from "../Interfaces/TimeSlot/ITimeSlotService";
+import { ISalonService } from "../Interfaces/Salon/ISalonService";
 import { IOfferService } from "../Interfaces/Offers/IOfferService";
 import { IReviewService } from "../Interfaces/Reviews/IReviewService";
-import { ISalonService } from "../Interfaces/Salon/ISalonService";
-import { ITimeSlotService } from "../Interfaces/TimeSlot/ITimeSlotService";
-const stripe =  new Stripe(process.env.STRIPE_SECRET_KEY as string)
-class BookingController{
-    private offerService: IOfferService
-    private reviewService: IReviewService
-    private timeSlotService : ITimeSlotService
-    private salonService: ISalonService
-    constructor(offerService:IOfferService,reviewService:IReviewService,timeSlotService:ITimeSlotService,salonService:ISalonService){
-        this.offerService = offerService,
-        this.reviewService = reviewService
-        this.timeSlotService = timeSlotService
-        this.salonService = salonService
-        this.webHooks = this.webHooks.bind(this)
+import { IBookingService } from "../Interfaces/Booking/IBookingService";
+import CustomError from "../Utils/cutsomError";
+import Stripe from "stripe";
+import { HttpStatus } from "../constants/HttpStatus";
+import { Messages } from "../constants/Messages";
+import moment from "moment-timezone";
+import mongoose from "mongoose";
+import { ISlotGroup, ITimeSlot, ITimeSlotDocument } from "../Interfaces/TimeSlot/ITimeSlot";
+import Salon from "../models/Salon";
+import { IStylistService } from "../Interfaces/Stylist/IStylistService";
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
+
+class BookingController {
+  private _offerService: IOfferService;
+  private _reviewService: IReviewService;
+  private _timeSlotService: ITimeSlotService;
+  private salonService: ISalonService;
+  private _bookingService: IBookingService;
+  private _stylistService: IStylistService;
+
+  constructor(
+    offerService: IOfferService,
+    reviewService: IReviewService,
+    timeSlotService: ITimeSlotService,
+    salonService: ISalonService,
+    bookingService: IBookingService,
+    stylistService: IStylistService
+  ) {
+    this._offerService = offerService;
+    this._reviewService = reviewService;
+    this._timeSlotService = timeSlotService;
+    this.salonService = salonService;
+    this._bookingService = bookingService;
+    this._stylistService = stylistService;
+    this.webHooks = this.webHooks.bind(this);
+  }
+
+  async getSalonDataWithSlots(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const { id: salonId, serviceIds, stylistIds, date } = req.query;
+
+      if (!salonId || typeof salonId !== "string") {
+        throw new CustomError("Salon ID is required", HttpStatus.BAD_REQUEST);
+      }
+
+      const serviceIdsArray =
+        typeof serviceIds === "string" ? serviceIds.split(",") : [];
+
+      const salon = await this.salonService.getSalonData(salonId);
+      if (!salon) {
+        throw new CustomError("Salon not found", HttpStatus.NOT_FOUND);
+      }
+
+      const response = await this._bookingService.getSalonDataWithSlots(
+        salonId,
+        serviceIdsArray,
+        stylistIds as string,
+        date as string
+      );
+
+      console.log("getSalonDataWithSlots response:", {
+        salonId,
+        reviewsCount: response.reviews.length,
+        offersCount: response.offers.length,
+      });
+
+      res.status(HttpStatus.OK).json({
+        message: "Salon data fetched successfully",
+        salonData: response.salonData,
+        reviews: response.reviews,
+        offers: response.offers,
+      });
+    } catch (error: any) {
+      console.error("Error in getSalonDataWithSlots:", {
+        salonId: req.query.id,
+        serviceNames: req.query.serviceNames,
+        stylistIds: req.query.stylistIds,
+        error,
+      });
+      if (error.statusCode === HttpStatus.BAD_REQUEST) {
+        res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+        return;
+      }
+      next(error);
     }
-    async getAvailableSlots(req:Request,res:Response,next:NextFunction):Promise<any>{
-        try {
-            const slots = await this.timeSlotService.generateSlots(req.params.salonId,[req.params.service],new Date(req.query.date as string),req.params.stylistId)
-            res.json(slots)
-        } catch (error:any) {
-            return next(new CustomError(error.message || "There was an issue fetching the available slots. Please try again later.",500));
+  }
+
+  async getAvailableSlots(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { salonId, stylistId, selectedDate, serviceIds } = req.body;
+      if (!salonId || !stylistId || !selectedDate || !serviceIds?.length) {
+        throw new CustomError("Missing required parameters", HttpStatus.BAD_REQUEST);
+      }
+
+      const salon = await this.salonService.getSalonData(salonId);
+      if (!salon) {
+        throw new CustomError(Messages.SALON_NOT_FOUND, HttpStatus.NOT_FOUND);
+      }
+
+      const stylistExists = salon.services.some((service: any) =>
+        service.stylists.some((s: any) => s._id.toString() === stylistId)
+      );
+      if (!stylistExists) {
+        throw new CustomError(
+          "Stylist does not belong to this salon",
+          HttpStatus.BAD_REQUEST
+        );
+      }
+
+      const timeZone = salon.timeZone || 'Asia/Kolkata';
+      const date = moment.tz(selectedDate, 'YYYY-MM-DD', timeZone).startOf("day").toDate();
+      console.log(`Parsed date for slot query: ${moment(date).tz(timeZone).format('YYYY-MM-DD HH:mm:ss Z')}`);
+
+      const slotGroups: ISlotGroup[] = await this._timeSlotService.findAvailableSlots(
+        salonId,
+        serviceIds,
+        date,
+        stylistId
+      );
+
+      const totalDuration = salon.services
+        .filter((s: any) => serviceIds.includes(s._id.toString()))
+        .reduce((sum: number, s: any) => sum + (s.duration || 30), 0);
+
+      console.log(`Found ${slotGroups.length} slot groups for ${totalDuration} minutes`);
+
+      const formattedSlotGroups = slotGroups.map(group => ({
+        _id: group._id,
+        slotIds: group.slotIds,
+        startTime: moment(group.startTime).tz(timeZone).toISOString(),
+        endTime: moment(group.endTime).tz(timeZone).toISOString(),
+        duration: group.duration
+      }));
+
+      res.status(HttpStatus.OK).json({
+        message: "Available slot groups fetched successfully",
+        slotGroups: formattedSlotGroups,
+        totalDuration
+      });
+    } catch (error: any) {
+      console.error("Error in getAvailableSlots:", error);
+      if (error.statusCode === HttpStatus.BAD_REQUEST || error.statusCode === HttpStatus.NOT_FOUND) {
+        res.status(error.statusCode).json({ message: error.message });
+        return;
+      }
+      next(error);
+    }
+  }
+
+  async getServiceStylists(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const { salonId } = req.params;
+      const { serviceIds } = req.query;
+
+      const serviceIdsArray =
+        typeof serviceIds === "string" ? serviceIds.split(",") : [];
+      const stylists = await this._bookingService.getServiceStylists(
+        salonId,
+        serviceIdsArray
+      );
+      res
+        .status(HttpStatus.OK)
+        .json({ message: Messages.STYLISTS_FETCHED, stylists });
+    } catch (error: any) {
+      console.error("Error in getServiceStylists:", error);
+      if (error.statusCode === HttpStatus.BAD_REQUEST) {
+        res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+        return;
+      }
+      next(error);
+    }
+  }
+
+  async createBooking(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { salonId, stylistId, serviceIds, slotIds, startTime, endTime } = req.body;
+
+      console.log(slotIds, serviceIds);
+      
+      if (!salonId || !stylistId || !serviceIds?.length || !slotIds?.length || !startTime || !endTime) {
+        throw new CustomError("Missing required parameters", HttpStatus.BAD_REQUEST);
+      }
+
+      const salon = await this.salonService.getSalonData(salonId);
+      if (!salon) {
+        throw new CustomError(Messages.SALON_NOT_FOUND, HttpStatus.NOT_FOUND);
+      }
+
+      // Validate services and stylist
+      const validServices = salon.services.filter((service: any) =>
+        serviceIds.includes(service._id.toString()) &&
+        service.stylists.some((s: any) => s._id.toString() === stylistId)
+      );
+      if (validServices.length !== serviceIds.length) {
+        throw new CustomError("Invalid services or stylist-service mismatch", HttpStatus.BAD_REQUEST);
+      }
+
+      // Verify total duration
+      const totalDuration = validServices.reduce((sum: number, service: any) => sum + (service.duration || 30), 0);
+      const slotDuration = slotIds.length * 30;
+      if (slotDuration < totalDuration) {
+        throw new CustomError("Selected slots do not cover service duration", HttpStatus.BAD_REQUEST);
+      }
+
+      // Reserve slots temporarily
+      const reservedUntil = moment().add(15, 'minutes').toDate();
+      await this._timeSlotService.reserveSlotGroup(slotIds, reservedUntil);
+
+      res.status(HttpStatus.OK).json({
+        message: "Slots reserved successfully",
+        reservation: {
+          slotIds,
+          startTime,
+          endTime,
+          reservedUntil: reservedUntil.toISOString()
         }
+      });
+    } catch (error: any) {
+      console.error("Error in createBooking:", error);
+      if (error.statusCode === HttpStatus.BAD_REQUEST || error.statusCode === HttpStatus.NOT_FOUND || error.statusCode === HttpStatus.CONFLICT) {
+        res.status(error.statusCode).json({ message: error.message });
+        return;
+      }
+      next(error);
+    }
+  }
+
+  async createCheckoutSession(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const { amount, currency, metadata, reservedUntil: prevReservedUntil } = req.body;
+
+      if (
+        !amount ||
+        !currency ||
+        !metadata ||
+        !metadata.slotIds ||
+        !metadata.services ||
+        !prevReservedUntil
+      ) {
+        throw new CustomError(
+          Messages.INVALID_CHECKOUT_DATA,
+          HttpStatus.BAD_REQUEST
+        );
+      }
+
+      const session = await mongoose.startSession();
+      session.startTransaction();
+
+      try {
+        const slotIds = Array.isArray(metadata.slotIds)
+          ? metadata.slotIds
+          : JSON.parse(metadata.slotIds);
+
+        // Check slot reservation
+        const slots = await this._timeSlotService.getSlotsByIds(slotIds);
+        const now = new Date();
+        if (slots.length !== slotIds.length) {
+          throw new CustomError("One or more slots not found", HttpStatus.NOT_FOUND);
+        }
+        if (slots.some(slot => slot.status === 'booked')) {
+          throw new CustomError("One or more slots are already booked", HttpStatus.BAD_REQUEST);
+        }
+        const prevReservedUntilDate = new Date(prevReservedUntil);
+        if (slots.some(slot => !slot.reservedUntil || slot.reservedUntil < now || slot.reservedUntil.toISOString() !== prevReservedUntilDate.toISOString())) {
+          throw new CustomError("Slot reservation invalid or expired", HttpStatus.BAD_REQUEST);
+        }
+
+        // Extend reservation
+        const newReservedUntil = new Date(Date.now() + 10 * 60 * 1000);
+        await this._timeSlotService.reserveSlotGroup(slotIds, newReservedUntil);
+
+        const lineItems = [
+          {
+            price_data: {
+              currency: currency,
+              product_data: {
+                name: "Salon Booking Payment",
+                description: `Payment for services: ${metadata.services}`,
+              },
+              unit_amount: Math.round(amount * 100),
+            },
+            quantity: 1,
+          },
+        ];
+
+        const stripeSession = await stripe.checkout.sessions.create({
+          payment_method_types: ["card"],
+          line_items: lineItems,
+          mode: "payment",
+          success_url: process.env.SUCCESS_URL || "http://localhost:5173/booking-success?session_id={CHECKOUT_SESSION_ID}",
+          cancel_url: process.env.CANCEL_URL || "http://localhost:5173/booking-confirmation",
+          metadata: { ...metadata, slotIds: JSON.stringify(slotIds) },
+        });
+
+        await session.commitTransaction();
+        res.status(HttpStatus.OK).json({
+          message: Messages.CHECKOUT_SESSION_CREATED,
+          id: stripeSession.id,
+        });
+      } catch (error) {
+        await session.abortTransaction();
+        throw error;
+      } finally {
+        session.endSession();
+      }
+    } catch (error: any) {
+      console.error("Error in createCheckoutSession:", {
+        error
+      });
+      if (error.statusCode) {
+        res.status(error.statusCode).json({ message: error.message });
+        return;
+      }
+      next(error);
+    }
+  }
+
+  async webHooks(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    const sig = req.headers["stripe-signature"];
+    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+    if (!endpointSecret) {
+      throw new CustomError(
+        Messages.WEBHOOK_SERVER_ERROR,
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
     }
 
-    async getSalonDataWithSlots(req: Request, res: Response,next:NextFunction): Promise<any> {
-        try {
-            // console.log(req.query)
-            const { id, serviceId,stylistId, date } = req.query;
-            if (!id) {
-                return next(new CustomError( "Salon ID is required to fetch the salon data.",400));
-            }
-
-            // console.log(`Fetching details for salonId: ${id}, serviceId: ${serviceId}, date: ${date}`);
-
-            // Fetch Salon Data
-            const salonData = await this.salonService.getSalonData(id as string);
-            if (!salonData) {
-                return next(new CustomError("Salon not found. Please check the salon ID and try again.",404));
-            }
-
-            let availableSlots:ITimeSlot[] = [];
-            if (stylistId && date) {
-                // Fetch Available Slots only if stylistId is provided
-                availableSlots = await this.timeSlotService.generateSlots(
-                    id as string, 
-                    [serviceId as string], 
-                    new Date(date as string),
-                    stylistId as string
-                );
-            }
-            const reviews = await this.reviewService.getSalonReviews(id as string)
-            const offers = await this.offerService.getSalonOffer(id as string)
-            return res.status(200).json({
-                message: "Salon data and slots fetched successfully",
-                salonData,
-                reviews,
-                availableSlots,
-                offers
-            });
-
-        } catch (error: any) {
-            console.error("Error fetching salon data or slots:", error);
-            return next(new CustomError( error.message || "There was an issue fetching the salon data or available slots. Please try again later.",500));
-        }
+    let event: Stripe.Event;
+    try {
+      event = stripe.webhooks.constructEvent(
+        req.body,
+        sig as string,
+        endpointSecret
+      );
+    } catch (error: any) {
+      console.error(`Webhook signature verification failed: ${error.message}`);
+      res.status(400).send(`Webhook Error: ${error.message}`);
+      return;
     }
 
-    async getServiceStylist(req: Request, res: Response, next: NextFunction): Promise<any> {
-        try {
-            console.log("entered in the service stylist");
-            const { salonId } = req.params;
-            const { serviceIds } = req.query;
-    
-            // Convert comma-separated string to array
-            const serviceIdsArray = typeof serviceIds === 'string' ? serviceIds.split(',') : [];
-    
-            console.log("Received serviceIds:", serviceIds);
-            console.log("Parsed serviceIdsArray:", serviceIdsArray);
-    
-            const salon = await this.salonService.getSalonData(salonId);
-            if (!salon) {
-                return next(new CustomError("Salon not found", 404));
-            }
-    
-            // Filter services based on the provided service IDs
-            const services = salon.services.filter(service =>
-                serviceIdsArray.includes(service._id.toString())
-            );
-    
-            console.log("Filtered Services:", services);
-    
-            if (services.length === 0) {
-                return next(new CustomError("No valid services found", 404));
-            }
-    
-            // Fetch stylists for all selected services and deduplicate
-            const stylistsMap = new Map<string, { _id: string; name: string, rating:number }>();
-            services.forEach(service => {
-                service.stylists.forEach(stylist => {
-                    if (!stylistsMap.has(stylist._id.toString())) {
-                        stylistsMap.set(stylist._id.toString(), {
-                            _id: stylist._id.toString(),
-                            name: stylist.name,
-                            rating:stylist.rating
-                        });
-                    }
-                });
-            });
-    
-            const stylists = Array.from(stylistsMap.values());
-    
-            console.log("Fetched Stylists:", stylists);
-    
-            if (stylists.length === 0) {
-                return next(new CustomError("No stylists found for the selected services", 404));
-            }
-    
-            return res.status(200).json({ message: "Stylists fetched successfully", stylists });
-        } catch (error: any) {
-            return next(new CustomError(error.message || "There was an issue fetching the service stylist. Please try again later.", 500));
-        }
+    try {
+      await this._bookingService.handleWebhookEvent(event);
+      res.status(HttpStatus.OK).send();
+    } catch (error: any) {
+      console.error("Error in webHooks:", error);
+      next(error);
     }
-
-    async createCheckoutSession(req:Request,res:Response,next:NextFunction):Promise<void>{
-        try {
-            const { amount, currency,metadata } = req.body;
-            const line_Items = [{
-                price_data:{
-                    currency:currency,
-                    product_data:{
-                        name:"Scissors Booking Payment",
-                        description:'Payment for selected Services'
-                    },
-                    unit_amount:amount * 100
-                },
-                quantity:1
-            }]
-            const session = await stripe.checkout.sessions.create({
-                payment_method_types:["card"],
-                line_items:line_Items,
-                mode:'payment',
-                success_url:"http://localhost:5173/booking-success?session_id={CHECKOUT_SESSION_ID}",
-                cancel_url:"http://localhost:5173/booking-confirmation",
-                metadata:metadata
-            })
-            res.json({id:session.id})
-        } catch (error:any) {
-           return next(new CustomError(error.message || "Something went wrong during stripe payment, please try again later.",500))
-        }
-    }
-
-    async webHooks(req: Request, res: Response): Promise<any> {
-        console.log("am entered")
-        const sig = req.headers['stripe-signature'];
-        const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
-        
-        if (!endpointSecret) {
-            console.error("Stripe webhook secret not configured");
-            return res.status(500).send("Server configuration error");
-        }
-    
-        let event;
-        try {
-            event = stripe.webhooks.constructEvent(req.body, sig as string, endpointSecret);
-        } catch (error: any) {
-            console.error(`Webhook signature verification failed: ${error.message}`);
-            return res.status(400).send(`Webhook Error: ${error.message}`);
-        }
-        const dbSession = await mongoose.startSession();
-        dbSession.startTransaction();
-        try {
-            switch (event.type) {
-                case 'checkout.session.completed':
-                    const session = event.data.object;
-                   
-                    // Verify payment was successful
-                    if (session.payment_status !== 'paid') {
-                        console.warn(`Unpaid session: ${session.id}`);
-                        break;
-                    }
-    
-                    // Validate metadata exists
-                    if (!session.metadata) {
-                        throw new Error("Missing metadata in session");
-                    }
-    
-                    const { metadata } = session;
-                    
-
-                    await this.timeSlotService.updateSlotStatus(
-                        metadata.slot.toString(),
-                        'booked'
-                    );
-                    // Create appointment
-                    const appointmentData = await this.prepareAppointmentData(metadata, session);
-                    const appointment = await Appointment.create([appointmentData], { session: dbSession });
-          
-                    await dbSession.commitTransaction();
-                    // console.log(`Appointment created for session: ${session.`id}`);
-                    break;
-                    
-                default:
-                    console.log(`Unhandled event type: ${event.type}`);
-            }
-    
-            res.status(200).send();
-        } catch (error: any) {
-            await dbSession.abortTransaction();
-            console.error(`Webhook processing error: ${error.message}`);
-            res.status(400).send(`Processing failed: ${error.message}`);
-        } finally {
-            dbSession.endSession();
-        }
-    }
-    
-    private async prepareAppointmentData(metadata: any, session: Stripe.Checkout.Session): Promise<IAppointment> {
-
-        console.log(metadata,session,"metadata and session details")
-        // Validate required metadata fields
-        const requiredFields = ['user', 'salon', 'stylist', 'services', 'slot'];
-        for (const field of requiredFields) {
-            if (!metadata[field]) {
-                throw new Error(`Missing required field in metadata: ${field}`);
-            }
-        }
-        return {
-            user: new mongoose.Types.ObjectId(metadata.user),
-            salon: new mongoose.Types.ObjectId(metadata.salon),
-            stylist: new mongoose.Types.ObjectId(metadata.stylist),
-            services: metadata.services.split(",").map((s: string) => new mongoose.Types.ObjectId(s)),
-            slot: new mongoose.Types.ObjectId(metadata.slot),
-            status: AppointmentStatus.Confirmed,
-            totalPrice: session.amount_total ? session.amount_total / 100 : 0, // convert back to dollars
-            paymentStatus: PaymentStatus.paid,
-            paymentMethod: PaymentMethod.Online,
-            serviceOption: metadata.serviceOption === 'home' ? 'home' : 'store',
-            address: metadata.serviceOption === 'home' ? JSON.parse(metadata.address) : undefined,
-            stripeSessionId:session.id
-        } as IAppointment;
-    }
+  }
 }
 
-
-export default BookingController
+export default BookingController;

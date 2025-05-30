@@ -1,6 +1,6 @@
 import { ISalonDocument } from "../../models/Salon";
-import { ISalon } from "./ISalon";
-
+import { ISalon, SalonResult } from "./ISalon";
+import { SalonQueryParams } from "./ISalon";
 export interface ISalonService{
     createSalon(salonData: ISalon): Promise<ISalonDocument>;
     findSalon(id: string): Promise<ISalonDocument | null>;
@@ -9,7 +9,7 @@ export interface ISalonService{
     loginSalon(email: string, password: string): Promise<{ salon: ISalonDocument; accessToken: string; refreshToken: string }>;
     signOut(refreshToken: string): Promise<void>;
     getSalonData(id: string): Promise<ISalonDocument | null>;
-    getNearbySalons(latitude: number, longitude: number, radius: number): Promise<ISalonDocument[]>;
+    getNearbySalons(params:SalonQueryParams): Promise<SalonResult>;
     getFilteredSalons(
       filters: {
         search?: string;

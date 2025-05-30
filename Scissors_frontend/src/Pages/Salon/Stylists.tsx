@@ -4,12 +4,12 @@ import SalonSidebar from "../../Components/SalonSidebar";
 import { getStylists, deleteStylist } from "../../Services/salonAPI";
 import { useSelector } from "react-redux";
 import { Link } from "react-router-dom";
-import { Input } from "../../Components/ui/input";
 import { Button } from "../../Components/ui/button";
 import { IStylist } from "../../interfaces/interface";
 import ConfirmationModal from "../../Components/ConfirmationModal";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import ReusableTable, { Column } from "../../Components/ReusableTable";
 
 const Stylists = () => {
   const [stylists, setStylists] = useState<IStylist[]>([]);
@@ -34,6 +34,7 @@ const Stylists = () => {
           search: searchTerm,
         };
         const response = await getStylists(data);
+        console.log(response,"stylist reponse")
         setStylists(response.data.result.stylists);
         setTotalItems(response.data.result.total || response.data.result.stylists.length);
       } catch (error: any) {
@@ -70,9 +71,84 @@ const Stylists = () => {
     setCurrentPage(1); // Reset to first page on search
   };
 
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage + 1;
-  const endIndex = Math.min(startIndex + itemsPerPage - 1, totalItems);
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const columns: Column<IStylist>[] = [
+    {
+      header: "Name",
+      accessor: "name",
+      minWidth: "100px",
+    },
+    {
+      header: "Contact",
+      accessor: "email",
+      minWidth: "120px",
+      render: (item: IStylist) => (
+        <div>
+          <div className="text-gray-900">{item.email}</div>
+          <div className="text-gray-500">{item.phone}</div>
+        </div>
+      ),
+    },
+    {
+      header: "Working Hours",
+      accessor: "workingHours",
+      minWidth: "120px",
+      render: (item: IStylist) => (
+        <div className="max-w-xs truncate">
+          {item.workingHours[0]?.startTime || "N/A"} - {item.workingHours[0]?.endTime || "N/A"}
+        </div>
+      ),
+    },
+    {
+      header: "Services",
+      accessor: "services",
+      minWidth: "150px",
+      render: (item: IStylist) => item.services.map((s) => s.name).join(", ") || "None",
+    },
+    {
+      header: "Status",
+      accessor: "isAvailable",
+      minWidth: "80px",
+      render: (item: IStylist) => (
+        <span
+          className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+            item.isAvailable ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+          }`}
+        >
+          {item.isAvailable ? "Available" : "Unavailable"}
+        </span>
+      ),
+    },
+  ];
+
+  const actions = [
+    {
+      label: "Edit",
+      onClick: () => {}, // Handled by Link in render
+      className:
+        "w-full sm:w-auto px-2 py-1 text-xs sm:text-sm rounded font-medium text-indigo-600 hover:text-indigo-900 text-center",
+      render: (item: IStylist) => (
+        <Link
+          to={`/salon/stylists/edit/${item._id}`}
+          className="w-full sm:w-auto px-2 py-1 text-xs sm:text-sm rounded font-medium text-indigo-600 hover:text-indigo-900 text-center"
+        >
+          Edit
+        </Link>
+      ),
+    },
+    {
+      label: "Delete",
+      onClick: (item: IStylist) => {
+        setSelectedStylist(item);
+        setShowDeleteModal(true);
+      },
+      className:
+        "w-full sm:w-auto px-2 py-1 text-xs sm:text-sm rounded font-medium text-red-600 hover:text-red-900",
+    },
+  ];
 
   return (
     <div className="flex flex-col min-h-screen bg-white md:flex-row">
@@ -88,140 +164,29 @@ const Stylists = () => {
               </Button>
             </Link>
           </div>
-          <div className="mb-4">
-            <Input
-              type="text"
-              placeholder="Search stylists..."
-              value={searchTerm}
-              onChange={handleSearchChange}
-              className="w-full sm:w-64 text-sm"
-            />
-          </div>
-          {loading ? (
-            <div className="text-center py-4">Loading...</div>
-          ) : stylists.length === 0 ? (
-            <div className="text-center py-4 text-gray-500">No stylists found</div>
-          ) : (
-            <>
-              <div className="text-xs sm:text-sm text-gray-600 mb-2">
-                Showing {startIndex}-{endIndex} of {totalItems} stylists
-              </div>
-              <div className="bg-white rounded-lg shadow overflow-x-auto">
-                <table className="w-full text-left border-collapse border border-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="border border-gray-200 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm font-medium text-gray-700 uppercase tracking-wider min-w-[100px]">
-                        Name
-                      </th>
-                      <th className="border border-gray-200 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm font-medium text-gray-700 uppercase tracking-wider min-w-[120px]">
-                        Contact
-                      </th>
-                      <th className="border border-gray-200 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm font-medium text-gray-700 uppercase tracking-wider min-w-[120px]">
-                        Working Hours
-                      </th>
-                      <th className="border border-gray-200 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm font-medium text-gray-700 uppercase tracking-wider min-w-[150px]">
-                        Services
-                      </th>
-                      <th className="border border-gray-200 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm font-medium text-gray-700 uppercase tracking-wider min-w-[80px]">
-                        Status
-                      </th>
-                      <th className="border border-gray-200 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm font-medium text-gray-700 uppercase tracking-wider min-w-[100px]">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {stylists.map((stylist) => (
-                      <tr key={stylist._id} className="hover:bg-gray-50">
-                        <td className="border border-gray-200 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm text-gray-900 align-middle">
-                          {stylist.name}
-                        </td>
-                        <td className="border border-gray-200 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm text-gray-900 align-middle">
-                          <div className="text-gray-900">{stylist.email}</div>
-                          <div className="text-gray-500">{stylist.phone}</div>
-                        </td>
-                        <td className="border border-gray-200 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm text-gray-900 align-middle">
-                          <div className="max-w-xs truncate">
-                            {stylist.workingHours[0]?.startTime || "N/A"} -{" "}
-                            {stylist.workingHours[0]?.endTime || "N/A"}
-                          </div>
-                        </td>
-                        <td className="border border-gray-200 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm text-gray-900 align-middle">
-                          {stylist.services.map((s) => s.name).join(", ") || "None"}
-                        </td>
-                        <td className="border border-gray-200 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm align-middle">
-                          <span
-                            className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                              stylist.isAvailable
-                                ? "bg-green-100 text-green-800"
-                                : "bg-red-100 text-red-800"
-                            }`}
-                          >
-                            {stylist.isAvailable ? "Available" : "Unavailable"}
-                          </span>
-                        </td>
-                        <td className="border border-gray-200 px-2 py-2 sm:px-4 sm:py-3 align-middle">
-                          <div className="flex flex-col sm:flex-row justify-center items-center space-y-2 sm:space-y-0 sm:space-x-2">
-                            <Link
-                              to={`/salon/stylists/edit/${stylist._id}`}
-                              className="w-full sm:w-auto px-2 py-1 text-xs sm:text-sm rounded font-medium text-indigo-600 hover:text-indigo-900 text-center"
-                            >
-                              Edit
-                            </Link>
-                            <button
-                              onClick={() => {
-                                setSelectedStylist(stylist);
-                                setShowDeleteModal(true);
-                              }}
-                              className="w-full sm:w-auto px-2 py-1 text-xs sm:text-sm rounded font-medium text-red-600 hover:text-red-900"
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="flex flex-wrap justify-center gap-2 mt-4">
-                <Button
-                  variant="outline"
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage(currentPage - 1)}
-                  className="px-2 py-1 text-xs sm:text-sm"
-                >
-                  Previous
-                </Button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <Button
-                    key={page}
-                    variant={currentPage === page ? "default" : "outline"}
-                    onClick={() => setCurrentPage(page)}
-                    className="px-2 py-1 text-xs sm:text-sm min-w-[2rem]"
-                  >
-                    {page}
-                  </Button>
-                ))}
-                <Button
-                  variant="outline"
-                  disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage(currentPage + 1)}
-                  className="px-2 py-1 text-xs sm:text-sm"
-                >
-                  Next
-                </Button>
-              </div>
-            </>
-          )}
+          <ReusableTable<IStylist>
+            columns={columns}
+            data={stylists}
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            currentPage={currentPage}
+            loading={loading}
+            searchQuery={searchTerm}
+            editingId={null} // No inline editing
+            editForm={{}} // No edit form
+            onSearchChange={handleSearchChange}
+            onPageChange={handlePageChange}
+            actions={actions}
+            getRowId={(item: IStylist) => item._id}
+          />
+          <ConfirmationModal
+            isOpen={showDeleteModal}
+            onClose={() => setShowDeleteModal(false)}
+            onConfirm={handleDelete}
+            title="Delete Stylist"
+            message={`Are you sure you want to delete ${selectedStylist?.name}?`}
+          />
         </div>
-        <ConfirmationModal
-          isOpen={showDeleteModal}
-          onClose={() => setShowDeleteModal(false)}
-          onConfirm={handleDelete}
-          title="Delete Stylist"
-          message={`Are you sure you want to delete ${selectedStylist?.name}?`}
-        />
       </div>
     </div>
   );

@@ -24,7 +24,7 @@ export interface IAppointment extends Document {
     salon:mongoose.Types.ObjectId,
     stylist:mongoose.Types.ObjectId,
     services:mongoose.Types.ObjectId[],
-    slot:mongoose.Types.ObjectId,
+    slots:mongoose.Types.ObjectId[],
     status:AppointmentStatus
     stripeSessionId:string
     totalPrice: number; // Total price of the appointment

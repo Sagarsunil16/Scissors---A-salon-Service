@@ -28,22 +28,43 @@ class SalonRepository extends BaseRepository<ISalonDocument> implements ISalonRe
     return await this.model.findById(id).populate("services.service").populate("services.stylists").exec();
   }
 
-  async getNearbySalons(longitude: number, latitude: number, radius: number): Promise<ISalonDocument[]> {
+  async getNearbySalons(longitude: number, latitude: number, radius: number, query: any, skip: number, limit: number): Promise<ISalonDocument[]> {
     return await this.model
       .find({
+        ...query,
         "address.location": {
-          $near: {
-            $geometry: {
-              type: "Point",
-              coordinates: [longitude, latitude],
-            },
-            $maxDistance: radius,
+          $geoWithin: {
+            $centerSphere: [[longitude, latitude], radius / 6378100], // Radius in radians (Earth radius ~6378.1 km)
           },
         },
       })
-      .select("salonName address services rating")
+      .select("salonName address services rating images")
+      .skip(skip)
+      .limit(limit)
       .lean()
       .exec();
+  }
+
+  async getAllSalons(query: any, skip: number, limit: number): Promise<ISalonDocument[]> {
+      return this.model.find(query).select('salonName address services rating images')
+      .sort({ratings:-1}).skip(skip).limit(limit).lean().exec()
+  }
+
+  async countNearbySalons(longitude: number, latitude: number, radius: number, query: any): Promise<number> {
+    return await this.model
+      .countDocuments({
+        ...query,
+        "address.location": {
+          $geoWithin: {
+            $centerSphere: [[longitude, latitude], radius / 6378100],
+          },
+        },
+      })
+      .exec();
+  }
+
+  async countAllSalons(query: any): Promise<number> {
+    return await this.model.countDocuments(query).exec();
   }
 
   async getAllSalon(page: number, query: any = {}, limit: number = 10): Promise<{ data: ISalonDocument[]; totalCount: number }> {

@@ -25,11 +25,13 @@ const appointmentSchema: Schema<IAppointmentDocument> = new Schema(
         required: true,
       },
     ],
-    slot: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "TimeSlot",
-      required: true,
-    },
+   slots: [
+  {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "TimeSlot",
+    required: true,
+  },
+],
     status: {
       type: String,
       enum: Object.values(AppointmentStatus),
@@ -63,7 +65,12 @@ const appointmentSchema: Schema<IAppointmentDocument> = new Schema(
       default:false
     },
     address: {
-      type: String,
+      type:{
+        areaStreet: String,
+        city: String,
+        state: String,
+        pincode: String
+      },
       required: function () {
         return this.serviceOption === "home";
       },

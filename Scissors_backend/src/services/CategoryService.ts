@@ -4,12 +4,12 @@ import { ICategoryService } from "../Interfaces/Category/ICategoryService";
 import CustomError from "../Utils/cutsomError";
 
 class CategoryService implements ICategoryService {
-  private repository: ICategoryRepository;
+  private _repository: ICategoryRepository;
   constructor(repository: ICategoryRepository) {
-    this.repository = repository;
+    this._repository = repository;
   }
   async getAllCategory(): Promise<ICategoryDocument[]> {
-    const result = await this.repository.getAllCategory();
+    const result = await this._repository.getAllCategory();
     if (!result || result.length === 0) {
       throw new CustomError("No categories found. Please add some categories first.", 404);
     }
@@ -26,8 +26,8 @@ class CategoryService implements ICategoryService {
     ]
    }
    const [categories,totalItems] = await Promise.all([
-    await this.repository.getCategoriesPaginated(query,skip,limit),
-    await this.repository.countCategories(query)
+    await this._repository.getCategoriesPaginated(query,skip,limit),
+    await this._repository.countCategories(query)
    ])
 
    return {categories,totalItems}
@@ -37,7 +37,7 @@ class CategoryService implements ICategoryService {
     if (!name || !description) {
       throw new CustomError("Both category name and description are required to create a new category.", 400);
     }
-    const result = await this.repository.createCategory(categoryData);
+    const result = await this._repository.createCategory(categoryData);
     return result;
   }
 
@@ -47,14 +47,14 @@ class CategoryService implements ICategoryService {
     description: string;
   }): Promise<ICategoryDocument | null> {
     const { id, ...data } = updatedData;
-    const category = this.repository.findByIdCategory(id);
+    const category = this._repository.findByIdCategory(id);
     if (!category) {
       throw new CustomError("Category not found. Please verify the category ID and try again.", 404);
     }
     if (!data.name || !data.description) {
       throw new CustomError("Both category name and description are required to update the category.", 400);
     }
-    const result = await this.repository.updateCategory(id, data);
+    const result = await this._repository.updateCategory(id, data);
     return result;
   }
 
@@ -62,7 +62,7 @@ class CategoryService implements ICategoryService {
     if (!id) {
       throw new CustomError("Category ID is required to delete a category.", 400);
     }
-    const result = await this.repository.deleteCategory(id);
+    const result = await this._repository.deleteCategory(id);
     console.log(result);
     return result;
   }

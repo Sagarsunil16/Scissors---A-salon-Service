@@ -5,7 +5,6 @@ import SalonSidebar from "../../Components/SalonSidebar";
 import { useSelector } from "react-redux";
 import {
   getAllService,
-  addService,
   getSalonData,
   updateService,
   deleteService,
@@ -16,7 +15,7 @@ import Swal from "sweetalert2";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { Button } from "../../Components/ui/button";
-import { Input } from "../../Components/ui/input";
+import ReusableTable, { Column } from "../../Components/ReusableTable";
 
 interface Service {
   _id: string;
@@ -46,52 +45,39 @@ const SalonService = () => {
     duration: 30,
     stylists: [] as string[],
   });
-  const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5);
   const [totalServices, setTotalServices] = useState(0);
   const [loading, setLoading] = useState(true);
 
-
   const fetchServices = async () => {
-      try {
-        setLoading(true);
-        const serviceData = await getAllService();
-        setFetchedServices(serviceData.data.services);
-        const data = {
-          id: salon._id,
-          search: searchQuery,
-          page: currentPage,
-          limit: itemsPerPage,
-        };
-        const salonData = await getSalonData(data);
-        setSalonServices(salonData.data.salonData.services);
-        setTotalServices(salonData.data.salonData.total || salonData.data.salonData.services.length);
-        const stylistData = await getStylists({ id: salon._id });
-        setStylists(stylistData.data.result.stylists);
-      } catch (error) {
-        console.error("Error fetching services:", error);
-        toast.error("Failed to fetch services");
-      } finally {
-        setLoading(false);
-      }
-    };
-  useEffect(() => {
-    
-    fetchServices();
-  }, [salon._id, editingService, searchQuery, currentPage]);
-
-  const handleSubmit = async (values: any) => {
     try {
-      const data = { id: salon._id, ...values };
-      const response = await addService(data);
-      setSalonServices(response.data.updatedSalonData.services);
-      toast.success("Service added successfully");
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to add service");
+      setLoading(true);
+      const serviceData = await getAllService();
+      setFetchedServices(serviceData.data.services);
+      const data = {
+        id: salon._id,
+        search: searchQuery,
+        page: currentPage,
+        limit: itemsPerPage,
+      };
+      const salonData = await getSalonData(data);
+      setSalonServices(salonData.data.salonData.services);
+      setTotalServices(salonData.data.salonData.total || salonData.data.salonData.services.length);
+      const stylistData = await getStylists({ id: salon._id });
+      setStylists(stylistData.data.result.stylists);
+    } catch (error) {
+      console.error("Error fetching services:", error);
+      toast.error("Failed to fetch services");
+    } finally {
+      setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchServices();
+  }, [salon._id, editingService, searchQuery, currentPage]);
 
   const handleEditClick = (service: Service) => {
     setEditingService(service._id);
@@ -169,7 +155,7 @@ const SalonService = () => {
     }));
   };
 
-  const handleDeleteService = async (serviceId: string) => {
+  const handleDeleteService = async (service: Service) => {
     const result = await Swal.fire({
       title: "Are you Sure?",
       text: "This Action Cannot be Undone!",
@@ -182,11 +168,12 @@ const SalonService = () => {
     if (result.isConfirmed) {
       try {
         const salonId = salon._id;
+        const serviceId = service._id;
         const data = { salonId, serviceId };
         const response = await deleteService(data);
         toast.success(response.data.message);
         setSalonServices((prevServices) =>
-          prevServices.filter((service) => service._id !== serviceId)
+          prevServices.filter((s) => s._id !== serviceId)
         );
         setTotalServices((prev) => prev - 1);
         if (salonServices.length <= 1 && currentPage > 1) {
@@ -203,9 +190,148 @@ const SalonService = () => {
     setCurrentPage(1); // Reset to first page on search
   };
 
-  const totalPages = Math.ceil(totalServices / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage + 1;
-  const endIndex = Math.min(startIndex + itemsPerPage - 1, totalServices);
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const columns: Column<Service>[] = [
+    {
+      header: "Name",
+      accessor: "name",
+      minWidth: "100px",
+      render: (item: Service, isEditing: boolean, editForm: any) =>
+        isEditing ? (
+          <input
+            type="text"
+            name="name"
+            value={editForm.name}
+            className="border rounded px-2 py-1 w-full text-xs sm:text-sm"
+            onChange={handleInputChange}
+          />
+        ) : (
+          item.name
+        ),
+    },
+    {
+      header: "Description",
+      accessor: "description",
+      minWidth: "150px",
+      render: (item: Service, isEditing: boolean, editForm: any) =>
+        isEditing ? (
+          <input
+            type="text"
+            name="description"
+            value={editForm.description}
+            className="border rounded px-2 py-1 w-full text-xs sm:text-sm"
+            onChange={handleInputChange}
+          />
+        ) : (
+          item.description
+        ),
+    },
+    {
+      header: "Service",
+      accessor: "service",
+      minWidth: "100px",
+      render: (item: Service, isEditing: boolean, editForm: any) =>
+        isEditing ? (
+          <select
+            name="service"
+            value={editForm.service}
+            className="border rounded px-2 py-1 w-full text-xs sm:text-sm"
+            onChange={handleInputChange}
+          >
+            <option value="">Select a Service</option>
+            {fetchedServices.map((srv) => (
+              <option key={srv._id} value={srv._id}>
+                {srv.name}
+              </option>
+            ))}
+          </select>
+        ) : (
+          item.service.name
+        ),
+    },
+    {
+      header: "Price",
+      accessor: "price",
+      minWidth: "80px",
+      render: (item: Service, isEditing: boolean, editForm: any) =>
+        isEditing ? (
+          <input
+            type="text"
+            name="price"
+            value={editForm.price}
+            className="border rounded px-2 py-1 w-full text-xs sm:text-sm"
+            onChange={handleInputChange}
+          />
+        ) : (
+          `Rs ${item.price}`
+        ),
+    },
+    {
+      header: "Duration",
+      accessor: "duration",
+      minWidth: "80px",
+      render: (item: Service, isEditing: boolean, editForm: any) =>
+        isEditing ? (
+          <input
+            type="number"
+            min="15"
+            step="15"
+            value={editForm.duration}
+            className="border rounded px-2 py-1 w-full text-xs sm:text-sm"
+            onChange={handleDurationChange}
+          />
+        ) : (
+          `${item.duration} mins`
+        ),
+    },
+    {
+      header: "Stylists",
+      accessor: "stylists",
+      minWidth: "120px",
+      render: (item: Service, isEditing: boolean, editForm: any) =>
+        isEditing ? (
+          <div className="space-y-1 max-h-24 overflow-y-auto">
+            {stylists.map((stylist) => (
+              <label
+                key={stylist._id}
+                className="flex items-center space-x-2 text-xs sm:text-sm"
+              >
+                <input
+                  type="checkbox"
+                  checked={editForm.stylists.includes(stylist._id)}
+                  onChange={() => handleStylistChange(stylist._id)}
+                  className="h-4 w-4 text-blue-500"
+                />
+                <span>{stylist.name}</span>
+              </label>
+            ))}
+          </div>
+        ) : (
+          item.stylists
+            .map((stylist) => stylists.find((s) => s._id === stylist._id)?.name)
+            .filter(Boolean)
+            .join(", ")
+        ),
+    },
+  ];
+
+  const actions = [
+    {
+      label: "Edit",
+      onClick: handleEditClick,
+      className:
+        "w-full sm:w-auto px-2 py-1 text-xs sm:text-sm rounded font-medium text-indigo-600 hover:text-indigo-900",
+    },
+    {
+      label: "Delete",
+      onClick: handleDeleteService,
+      className:
+        "w-full sm:w-auto px-2 py-1 text-xs sm:text-sm rounded font-medium text-red-600 hover:text-red-900",
+    },
+  ];
 
   return (
     <div className="flex flex-col min-h-screen bg-white md:flex-row">
@@ -221,223 +347,24 @@ const SalonService = () => {
               </Button>
             </Link>
           </div>
-          <div className="mb-4">
-            <Input
-              type="text"
-              placeholder="Search by name or description..."
-              value={searchQuery}
-              onChange={handleSearchChange}
-              className="w-full sm:w-64 text-sm"
-            />
-          </div>
-          {loading ? (
-            <div className="text-center py-4">Loading...</div>
-          ) : salonServices.length === 0 ? (
-            <div className="text-center py-4">No services found</div>
-          ) : (
-            <>
-              <div className="text-xs sm:text-sm text-gray-600 mb-2">
-                Showing {startIndex}-{endIndex} of {totalServices} services
-              </div>
-              <div className="mb-6 overflow-x-auto">
-                <table className="w-full text-left border-collapse border border-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="border border-gray-200 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm font-medium text-gray-700 uppercase tracking-wider min-w-[100px]">
-                        Name
-                      </th>
-                      <th className="border border-gray-200 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm font-medium text-gray-700 uppercase tracking-wider min-w-[150px]">
-                        Description
-                      </th>
-                      <th className="border border-gray-200 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm font-medium text-gray-700 uppercase tracking-wider min-w-[100px]">
-                        Service
-                      </th>
-                      <th className="border border-gray-200 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm font-medium text-gray-700 uppercase tracking-wider min-w-[80px]">
-                        Price
-                      </th>
-                      <th className="border border-gray-200 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm font-medium text-gray-700 uppercase tracking-wider min-w-[80px]">
-                        Duration
-                      </th>
-                      <th className="border border-gray-200 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm font-medium text-gray-700 uppercase tracking-wider min-w-[120px]">
-                        Stylists
-                      </th>
-                      <th className="border border-gray-200 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm font-medium text-gray-700 uppercase tracking-wider min-w-[120px]">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {salonServices.map((service, index) => (
-                      <tr key={index} className="hover:bg-gray-50">
-                        <td className="border border-gray-200 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm text-gray-900 align-middle">
-                          {editingService === service._id ? (
-                            <input
-                              type="text"
-                              name="name"
-                              value={editForm.name}
-                              className="border rounded px-2 py-1 w-full text-xs sm:text-sm"
-                              onChange={handleInputChange}
-                            />
-                          ) : (
-                            service.name
-                          )}
-                        </td>
-                        <td className="border border-gray-200 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm text-gray-900 align-middle">
-                          {editingService === service._id ? (
-                            <input
-                              type="text"
-                              name="description"
-                              value={editForm.description}
-                              className="border rounded px-2 py-1 w-full text-xs sm:text-sm"
-                              onChange={handleInputChange}
-                            />
-                          ) : (
-                            service.description
-                          )}
-                        </td>
-                        <td className="border border-gray-200 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm text-gray-900 align-middle">
-                          {editingService === service._id ? (
-                            <select
-                              name="service"
-                              value={editForm.service}
-                              className="border rounded px-2 py-1 w-full text-xs sm:text-sm"
-                              onChange={handleInputChange}
-                            >
-                              <option value="">Select a Service</option>
-                              {fetchedServices.map((srv) => (
-                                <option key={srv._id} value={srv._id}>
-                                  {srv.name}
-                                </option>
-                              ))}
-                            </select>
-                          ) : (
-                            service.service.name
-                          )}
-                        </td>
-                        <td className="border border-gray-200 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm text-gray-900 align-middle">
-                          {editingService === service._id ? (
-                            <input
-                              type="text"
-                              name="price"
-                              value={editForm.price}
-                              className="border rounded px-2 py-1 w-full text-xs sm:text-sm"
-                              onChange={handleInputChange}
-                            />
-                          ) : (
-                            `Rs ${service.price}`
-                          )}
-                        </td>
-                        <td className="border border-gray-200 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm text-gray-900 align-middle">
-                          {editingService === service._id ? (
-                            <input
-                              type="number"
-                              min="15"
-                              step="15"
-                              value={editForm.duration}
-                              className="border rounded px-2 py-1 w-full text-xs sm:text-sm"
-                              onChange={handleDurationChange}
-                            />
-                          ) : (
-                            `${service.duration} mins`
-                          )}
-                        </td>
-                        <td className="border border-gray-200 px-2 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm text-gray-900 align-middle">
-                          {editingService === service._id ? (
-                            <div className="space-y-1 max-h-24 overflow-y-auto">
-                              {stylists.map((stylist) => (
-                                <label
-                                  key={stylist._id}
-                                  className="flex items-center space-x-2 text-xs sm:text-sm"
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={editForm.stylists.includes(stylist._id)}
-                                    onChange={() => handleStylistChange(stylist._id)}
-                                    className="h-4 w-4 text-blue-500"
-                                  />
-                                  <span>{stylist.name}</span>
-                                </label>
-                              ))}
-                            </div>
-                          ) : (
-                            service.stylists
-                              .map((stylist) =>
-                                stylists.find((s) => s._id === stylist._id)?.name
-                              )
-                              .filter(Boolean)
-                              .join(", ")
-                          )}
-                        </td>
-                        <td className="border border-gray-200 px-2 py-2 sm:px-4 sm:py-3 align-middle">
-                          <div className="flex flex-col sm:flex-row justify-center items-center space-y-2 sm:space-y-0 sm:space-x-2">
-                            {editingService === service._id ? (
-                              <>
-                                <button
-                                  onClick={() => handleEditSave(service._id)}
-                                  className="w-full sm:w-auto px-2 py-1 text-xs sm:text-sm rounded font-medium text-white bg-green-500 hover:bg-green-600 transition-colors"
-                                >
-                                  Save
-                                </button>
-                                <button
-                                  onClick={handleEditCancel}
-                                  className="w-full sm:w-auto px-2 py-1 text-xs sm:text-sm rounded font-medium text-white bg-gray-500 hover:bg-gray-600 transition-colors"
-                                >
-                                  Cancel
-                                </button>
-                              </>
-                            ) : (
-                              <>
-                                <button
-                                  className="w-full sm:w-auto px-2 py-1 text-xs sm:text-sm rounded font-medium text-white bg-yellow-500 hover:bg-yellow-600 transition-colors"
-                                  onClick={() => handleEditClick(service)}
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  className="w-full sm:w-auto px-2 py-1 text-xs sm:text-sm rounded font-medium text-white bg-red-500 hover:bg-red-600 transition-colors"
-                                  onClick={() => handleDeleteService(service._id)}
-                                >
-                                  Delete
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="flex flex-wrap justify-center gap-2 mt-4">
-                <Button
-                  variant="outline"
-                  disabled={currentPage === 1}
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  className="px-2 py-1 text-xs sm:text-sm"
-                >
-                  Previous
-                </Button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <Button
-                    key={page}
-                    variant={currentPage === page ? "default" : "outline"}
-                    onClick={() => handlePageChange(page)}
-                    className="px-2 py-1 text-xs sm:text-sm min-w-[2rem]"
-                  >
-                    {page}
-                  </Button>
-                ))}
-                <Button
-                  variant="outline"
-                  disabled={currentPage === totalPages}
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  className="px-2 py-1 text-xs sm:text-sm"
-                >
-                  Next
-                </Button>
-              </div>
-            </>
-          )}
+          <ReusableTable<Service>
+            columns={columns}
+            data={salonServices}
+            totalItems={totalServices}
+            itemsPerPage={itemsPerPage}
+            currentPage={currentPage}
+            loading={loading}
+            searchQuery={searchQuery}
+            editingId={editingService}
+            editForm={editForm}
+            onSearchChange={handleSearchChange}
+            onPageChange={handlePageChange}
+            onEditSave={handleEditSave}
+            onEditCancel={handleEditCancel}
+            onInputChange={handleInputChange}
+            actions={actions}
+            getRowId={(item: Service) => item._id}
+          />
         </div>
       </div>
     </div>

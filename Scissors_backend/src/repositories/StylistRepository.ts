@@ -12,7 +12,7 @@ class StylistRepository extends BaseRepository<IStylistDocument> implements ISty
   }
 
   async findStylistById(id: string): Promise<IStylistDocument | null> {
-    return await this.findById(id);
+    return await this.model.findById(id).exec()
   }
 
   async findStylists(

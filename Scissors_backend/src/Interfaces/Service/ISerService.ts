@@ -1,6 +1,6 @@
 import { IServiceDocument } from "./IService";
 
-export interface ISerService {
+export interface ISalonMenuService {
     findServiceById(serviceId: string): Promise<IServiceDocument | null>;
     createService(serviceData: { name: string; description: string }): Promise<IServiceDocument>;
     getAllServices(page: number, search: string): Promise<{ services: IServiceDocument[]; totalCount: number }>;

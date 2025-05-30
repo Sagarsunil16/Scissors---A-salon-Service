@@ -13,17 +13,20 @@ const Salons = () => {
   const [pincode, setPincode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<{
-    maxPrice: string;
+    maxPrice: number;
     ratings: number[];
-    offers: string;
+    discount: number;
   }>({
-    maxPrice: "100000",
+    maxPrice: 100000,
     ratings: [],
-    offers: "",
+    discount: 0,
   });
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalSalons, setTotalSalons] = useState(0);
   const itemsPerPage = 6;
   const [searchParams, setSearchParams] = useSearchParams();
+  const [coordinates, setCoordinates] = useState<{ latitude: number; longitude: number } | null>(null);
 
   const services = [
     { name: "Hair Cut" },
@@ -35,16 +38,41 @@ const Salons = () => {
     { name: "Lip Tinting" },
   ];
 
-  // Fetch nearby salons by coordinates
-  const getNearbySalons = async (longitude: number, latitude: number) => {
+  // Fetch salons from backend
+  const getNearbySalons = async () => {
     try {
-      const response = await getSalons(longitude,latitude)
-      console.log("Nearby salons response:", response.data); // Debug
+      const params: {
+        longitude?: number;
+        latitude?: number;
+        radius?: number;
+        search: string;
+        maxPrice: number;
+        ratings: string;
+        discount: number;
+        page: number;
+        limit: number;
+      } = {
+        search,
+        maxPrice: filters.maxPrice,
+        ratings: filters.ratings.join(","),
+        discount: filters.discount,
+        page: currentPage,
+        limit: itemsPerPage,
+      };
+      // Only include location params if coordinates are available
+      if (coordinates) {
+        params.longitude = coordinates.longitude;
+        params.latitude = coordinates.latitude;
+        params.radius = 5000;
+      }
+      const response = await getSalons(params);
       setSalonsData(response.data.salons);
+      setTotalPages(response.data.paginations.totalPages);
+      setTotalSalons(response.data.paginations.totalSalons);
       setError(null);
     } catch (err: any) {
-      setError("Failed to fetch nearby salons. Please try again.");
-      console.error("Nearby salons error:", err.response?.data || err.message);
+      setError(err.response?.data?.message || "Failed to fetch salons. Please try again.");
+      console.error("Salons fetch error:", err);
     }
   };
 
@@ -54,16 +82,18 @@ const Salons = () => {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
-          getNearbySalons(longitude, latitude);
+          setCoordinates({ latitude, longitude });
         },
         (err) => {
-          setError("Location access denied. Please enter a pincode.");
+          setError("Location access denied. Showing all salons.");
+          setCoordinates(null); // Allow fetching all salons
           console.error("Geolocation error:", err);
         },
         { timeout: 10000 }
       );
     } else {
-      setError("Geolocation is not supported by your browser.");
+      setError("Geolocation is not supported. Showing all salons.");
+      setCoordinates(null); // Allow fetching all salons
     }
   };
 
@@ -81,83 +111,73 @@ const Salons = () => {
           key: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
         },
       });
-      console.log("Geocoding response:", response.data); // Debug
       if (response.data.status === "OK" && response.data.results[0]) {
         const { lat, lng } = response.data.results[0].geometry.location;
-        getNearbySalons(lng, lat);
+        setCoordinates({ latitude: lat, longitude: lng });
       } else {
-        setError("Invalid pincode. Please try again.");
+        setError("Invalid pincode. Showing all salons.");
+        setCoordinates(null); // Fallback to all salons
       }
     } catch (err: any) {
-      setError("Failed to geocode pincode. Please try again.");
+      setError("Failed to geocode pincode. Showing all salons.");
       console.error("Pincode geocoding error:", err);
+      setCoordinates(null); // Fallback to all salons
     }
   };
 
+  // Fetch salons on mount or when filters change
   useEffect(() => {
-    getUserLocation(); // Fetch location on mount
+    getNearbySalons(); // Always fetch salons, with or without coordinates
+  }, [coordinates, search, filters, currentPage]);
+
+  // Try to get user location on mount
+  useEffect(() => {
+    getUserLocation();
   }, []);
 
+  // Sync URL search params
   useEffect(() => {
     const params = new URLSearchParams();
     if (search) params.set("search", search);
     if (pincode) params.set("pincode", pincode);
-    if (filters.maxPrice) params.set("maxPrice", filters.maxPrice);
+    if (filters.maxPrice !== 100000) params.set("maxPrice", String(filters.maxPrice));
     if (filters.ratings.length > 0) params.set("ratings", filters.ratings.join(","));
-    if (filters.offers) params.set("offers", filters.offers);
+    if (filters.discount > 0) params.set("discount", String(filters.discount));
     params.set("page", String(currentPage));
     setSearchParams(params);
   }, [search, pincode, filters, currentPage, setSearchParams]);
 
+  // Load URL search params on mount
   useEffect(() => {
     const params = Object.fromEntries(searchParams.entries());
     if (params.search) setSearch(params.search);
     if (params.pincode) setPincode(params.pincode);
-    if (params.maxPrice)
-      setFilters((prev: any) => ({ ...prev, maxPrice: Number(params.maxPrice) }));
-    if (params.ratings)
-      setFilters((prev: any) => ({
-        ...prev,
-        ratings: params.ratings.split(",").map(Number),
-      }));
-    if (params.offers) setFilters((prev) => ({ ...prev, offers: params.offers }));
+    if (params.maxPrice) setFilters((prev) => ({ ...prev, maxPrice: Number(params.maxPrice) }));
+    if (params.ratings) setFilters((prev) => ({ ...prev, ratings: params.ratings.split(",").map(Number) }));
+    if (params.discount) setFilters((prev) => ({ ...prev, discount: Number(params.discount) }));
     if (params.page) setCurrentPage(Number(params.page));
   }, [searchParams]);
 
   const handleMaxPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const maxPrice = Number(e.target.value);
-    setFilters((prev: any) => ({ ...prev, maxPrice }));
+    setFilters((prev) => ({ ...prev, maxPrice }));
   };
 
   const handleRatingChange = (star: number) => {
-    setFilters((prev: any) => {
+    setFilters((prev) => {
       const updatedRatings = prev.ratings.includes(star)
-        ? prev.ratings.filter((rating: any) => rating !== star)
+        ? prev.ratings.filter((rating) => rating !== star)
         : [...prev.ratings, star];
       return { ...prev, ratings: updatedRatings };
     });
   };
 
-  // Filter salons client-side
-  const filteredSalons = salonsData.filter((salon: any) => {
-    const matchesSearch =
-      salon.salonName.toLowerCase().includes(search.toLowerCase()) ||
-      salon.services.some((service: any) =>
-        service.name.toLowerCase().includes(search.toLowerCase())
-      );
-    const matchesPrice = salon.services.some(
-      (service: any) => service.price <= filters.maxPrice
-    );
-    const matchesRating =
-      filters.ratings.length === 0 ||
-      filters.ratings.includes(Math.floor(salon.rating || 0));
-    return matchesSearch && matchesPrice && matchesRating;
-  });
-
-  // Pagination
-  const totalPages = Math.ceil(filteredSalons.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const currentSalons = filteredSalons.slice(startIndex, startIndex + itemsPerPage);
+  const handleDiscountChange = (discount: number) => {
+    setFilters((prev) => ({
+      ...prev,
+      discount: prev.discount === discount ? 0 : discount,
+    }));
+  };
 
   const handleNextPage = () => {
     if (currentPage < totalPages) {
@@ -190,7 +210,6 @@ const Salons = () => {
 
         {/* Pincode Input and Service Buttons */}
         <div className="flex flex-col sm:flex-row justify-center items-center mt-5 gap-6 px-4">
-          {/* Pincode Input */}
           <div className="flex flex-col sm:flex-row items-center gap-2">
             <span className="text-gray-700 font-medium">Location:</span>
             <form onSubmit={handlePincodeSubmit} className="flex items-center gap-2">
@@ -210,7 +229,6 @@ const Salons = () => {
             </form>
           </div>
 
-          {/* Service Buttons */}
           <div className="flex flex-wrap justify-center gap-4">
             {services.map((service, index) => (
               <button
@@ -229,7 +247,6 @@ const Salons = () => {
         <div className="flex flex-col md:flex-row mt-5">
           <div className="w-full md:w-[20%] p-4">
             <h2 className="text-xl font-semibold text-gray-700 mb-4">Filters</h2>
-            {/* Price Range Filter */}
             <div className="mb-4 bg-white shadow-lg p-4 rounded-lg">
               <h3 className="text-lg font-medium text-gray-600 mb-2">Price Range</h3>
               <div className="flex flex-col gap-4">
@@ -248,11 +265,10 @@ const Salons = () => {
                 </div>
               </div>
             </div>
-            {/* Rating Filter */}
             <div className="mb-4 bg-white shadow-lg p-4 rounded-lg">
               <h3 className="text-lg font-medium text-gray-600 mb-2">Rating</h3>
               <div className="flex flex-col gap-2">
-                {[5, 4, 3].map((star: number) => (
+                {[5, 4, 3].map((star) => (
                   <label key={star} className="flex items-center gap-2">
                     <input
                       type="checkbox"
@@ -265,26 +281,20 @@ const Salons = () => {
                 ))}
               </div>
             </div>
-            {/* Special Offers Filter */}
             <div className="mb-4 bg-white shadow-lg p-4 rounded-lg">
               <h3 className="text-lg font-medium text-gray-600 mb-2">Special Offers</h3>
               <div className="flex flex-col gap-2">
-                {["20%", "50%"].map((offer) => (
+                {[20, 50].map((discount) => (
                   <button
-                    key={offer}
-                    onClick={() =>
-                      setFilters((prev) => ({
-                        ...prev,
-                        offers: prev.offers === offer ? "" : offer,
-                      }))
-                    }
+                    key={discount}
+                    onClick={() => handleDiscountChange(discount)}
                     className={`py-2 px-3 border rounded-lg ${
-                      filters.offers === offer
+                      filters.discount === discount
                         ? "bg-blue-500 text-white"
                         : "bg-white text-gray-700"
                     }`}
                   >
-                    {offer} Off Deals
+                    {discount}% Off Deals
                   </button>
                 ))}
               </div>
@@ -293,10 +303,12 @@ const Salons = () => {
 
           {/* Main Content */}
           <div className="w-full md:w-3/4 ml-0 md:ml-4">
-            <h2 className="text-xl font-semibold text-gray-700 mb-4">Salon Listings</h2>
+            <h2 className="text-xl font-semibold text-gray-700 mb-4">
+              Salon Listings ({totalSalons} found)
+            </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {currentSalons.length > 0 ? (
-                currentSalons.map((salon, index) => (
+              {salonsData.length > 0 ? (
+                salonsData.map((salon, index) => (
                   <SalonCard
                     key={index}
                     name={salon.salonName}
@@ -305,7 +317,7 @@ const Salons = () => {
                         ? salon.images[0].url
                         : "https://content.jdmagicbox.com/comp/ernakulam/g1/0484px484.x484.220123012003.f7g1/catalogue/chop-shop-barber-and-brand-panampilly-nagar-ernakulam-salons-1lafuvkusk.jpg"
                     }
-                    rating={salon.rating}
+                    rating={salon.rating.toFixed(0)}
                     comment={`${salon.address.areaStreet}, ${salon.address.city}`}
                     id={salon._id}
                   />
@@ -316,7 +328,6 @@ const Salons = () => {
                 </p>
               )}
             </div>
-            {/* Pagination Controls */}
             <div className="flex justify-center items-center mt-6">
               <button
                 onClick={handlePrevPage}

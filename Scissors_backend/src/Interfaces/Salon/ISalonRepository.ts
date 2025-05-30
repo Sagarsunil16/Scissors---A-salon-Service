@@ -1,4 +1,4 @@
-import { ISalon, ISalonService, SalonQueryParams } from "./ISalon";
+import { ISalon, ISalonService, SalonQueryParams, SalonResult } from "./ISalon";
 import { ISalonDocument } from "../../models/Salon";
 import mongoose from "mongoose";
 
@@ -19,9 +19,12 @@ export interface ISalonRepository{
     findOrCreateService(salonData:{serviceName:string,serviceDescription:string,category:string,price:number}):Promise<any>
     linkServiceToSalon(salonId:string,serviceId:string):Promise<any>
     totalPages():Promise<number>
-    findAllSalons(filters:SalonQueryParams,page:number,itemsPerPage:number):Promise<{salons:ISalonDocument[];total:number}>
+    findAllSalons(filters:SalonQueryParams,page:number,itemsPerPage:number):Promise<{salons:ISalonDocument[];total:number}>  
     removeService(salonId:string,serviceId:string):Promise<ISalonDocument | null>
     allSalonListForChat():Promise<Partial<ISalonDocument>[]>
     updateSalon(id:string,update:Partial<ISalonDocument>,options?:mongoose.QueryOptions):Promise<ISalonDocument | null>
-    getNearbySalons(longitude:number,latitude:number,radius:number):Promise<ISalonDocument[]>
+    getNearbySalons(longitude:number,latitude:number,radius:number,query:any,skip:number,limit:number):Promise<ISalonDocument[]>
+    countNearbySalons(longitude:number,latitude:number,radius:number,query:any):Promise<number>
+    getAllSalons(query: any, skip: number, limit: number): Promise<ISalonDocument[]> 
+    countAllSalons(query: any): Promise<number>
 }

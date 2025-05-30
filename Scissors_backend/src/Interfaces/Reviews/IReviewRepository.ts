@@ -4,7 +4,7 @@ import { IAppointment, IAppointmentDocument } from "../Appointment/IAppointment"
 import { IReview, IReviewDocument } from "./IReview";
 
 export interface IReviewRepository {
-    create(data: Partial<IReview>): Promise<IReviewDocument>; 
+    createReview(data: Partial<IReview>): Promise<IReviewDocument>; 
     findReviewByAppointmentId(appointmentId:string):Promise<IReviewDocument | null>
     findAppointmentById(appointmentId:string):Promise<IAppointmentDocument | null>
     findSalonById(salonId:string):Promise<ISalonDocument | null>

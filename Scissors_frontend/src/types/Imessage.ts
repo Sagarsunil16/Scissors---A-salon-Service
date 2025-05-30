@@ -2,29 +2,27 @@
 
 export interface IMessage {
   _id: string;
+  chatId: string;
   content: string;
-  image:string;
+  senderId: string;
   senderType: "User" | "Salon";
-  senderId:string;
   recipientId: string;
   recipientType: "User" | "Salon";
+  image?: string;
   timestamp: string;
-  attachments?: {
-    type: "image" | "file";
-    url: string;
-    filename: string;
-    size: number;
-  }[];
+  isRead?: boolean;
+  reactions?: { userId: string; emoji: string }[];
 }
 
 export interface Chat {
   id: string;
+  userId?: string;
+  salonId?: string;
   name: string;
-  image:string,
-  images:{url:string}[];
+  image?: string;
   lastMessage: string;
   lastActive: string;
-  salonId?: string; // For user side
-  userId?: string;  // For salon side
-  messages: IMessage[];
+  messages?: IMessage[];
+  unreadCount?: number;
+  avatar:string
 }

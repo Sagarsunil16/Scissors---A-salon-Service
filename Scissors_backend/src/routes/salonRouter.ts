@@ -8,9 +8,9 @@ const salonRouter = Router();
 
 // Public routes
 salonRouter.post('/register', salonController.createSalon.bind(salonController));
-salonRouter.post('/otp', salonController.sentOtp.bind(salonController));
-salonRouter.put('/verify', salonController.verifyOtAndUpdate.bind(salonController));
-salonRouter.post('/resend-otp', salonController.sentOtp.bind(salonController));
+salonRouter.post('/otp', salonController.sendOtp.bind(salonController));
+salonRouter.put('/verify', salonController.verifyOtpAndUpdate.bind(salonController));
+salonRouter.post('/resend-otp', salonController.sendOtp.bind(salonController));
 salonRouter.post('/login', salonController.loginSalon.bind(salonController));
 salonRouter.post('/signout', salonController.signOutSalon.bind(salonController));
 
@@ -31,9 +31,11 @@ salonRouter.put('/profile', auth([ROLES.SALON], true), salonController.updateSal
 
 // Chat-related routes
 salonRouter.get('/chats', auth([ROLES.SALON]), chatController.getSalonChats.bind(chatController));
-salonRouter.get('/messages/:userId', auth([ROLES.SALON]), messageController.getMessages.bind(messageController));
+salonRouter.get('/messages/:userId', auth([ROLES.SALON]), messageController.getSalonMessages.bind(messageController));
 salonRouter.post('/messages/upload', auth([ROLES.SALON]), upload.single('file'), messageController.uploadAttachment.bind(messageController));
-
+salonRouter.delete('/chats/:userId', auth([ROLES.SALON]), chatController.deleteSalonChat.bind(chatController)); // New: Delete chat
+salonRouter.post('/messages/:userId/read', auth([ROLES.SALON]), messageController.markSalonMessagesAsRead.bind(messageController)); // New: Mark messages as read
+salonRouter.post('/messages/:messageId/reaction', auth([ROLES.SALON]), messageController.addReaction.bind(messageController)); // New: Add reaction to message
 // Appointments
 salonRouter.get('/appointments', auth([ROLES.SALON]), appointmentController.getSalonAppointments.bind(appointmentController));
 salonRouter.put('/appointments/:id/cancel', auth([ROLES.SALON]), appointmentController.cancelAppointment.bind(appointmentController));
@@ -42,5 +44,8 @@ salonRouter.put('/appointments/:id/complete', auth([ROLES.SALON]), appointmentCo
 // Offers
 salonRouter.get('/offers', auth([ROLES.SALON]), offerController.getSalonOffers.bind(offerController));
 salonRouter.post('/offers/create', auth([ROLES.SALON]), offerController.createOffer.bind(offerController));
+salonRouter.put('/offers/:id', auth([ROLES.SALON]), offerController.updateOfferStatus.bind(offerController));
+salonRouter.delete('/offers/:id/delete', auth([ROLES.SALON]), offerController.deleteOffer.bind(offerController));
+
 
 export default salonRouter;

@@ -4,7 +4,7 @@ import { toast } from "react-hot-toast";
 import Swal from "sweetalert2";
 import SalonHeader from "../../Components/SalonHeader";
 import SalonSidebar from "../../Components/SalonSidebar";
-import Table from "../../Components/Table"; 
+import ReusableTable, { Column } from "../../Components/ReusableTable";
 import { Button } from "../../Components/ui/button";
 import {
   Dialog,
@@ -37,11 +37,11 @@ interface TableOffer {
   _id: string;
   title: string;
   description: string;
-  discount: string; 
+  discount: string;
   services: string;
   expiryDate: string;
   status: string;
-  is_Active: boolean; // For Table component's dynamic logic
+  is_Active: boolean;
 }
 
 const SalonOffers = () => {
@@ -115,15 +115,6 @@ const SalonOffers = () => {
 
   const filteredOffers = getFilteredOffers(offers);
 
-  const totalPages = Math.ceil(filteredOffers.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentOffers = filteredOffers.slice(startIndex, endIndex);
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
-
   const handleServiceToggle = (serviceId: string) => {
     setNewOffer((prev) => ({
       ...prev,
@@ -159,17 +150,17 @@ const SalonOffers = () => {
     }
   };
 
-  const handleDeactivateOffer = async (offerId: string, offerTitle: string) => {
+  const handleDeactivateOffer = async (offer: TableOffer) => {
     const result = await Swal.fire({
       title: "Deactivate Offer",
-      text: `Are you sure you want to deactivate "${offerTitle}"?`,
+      text: `Are you sure you want to deactivate "${offer.title}"?`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Deactivate",
       cancelButtonText: "Cancel",
       buttonsStyling: false,
       customClass: {
-        confirmButton: "bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm mr-2",
+        confirmButton: "bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-md text-sm mr-2",
         cancelButton: "bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-md text-sm",
         title: "text-lg sm:text-xl text-gray-800",
         popup: "rounded-lg p-6",
@@ -178,7 +169,7 @@ const SalonOffers = () => {
 
     if (result.isConfirmed) {
       try {
-        await deactivateOffer(offerId);
+        await deactivateOffer(offer._id);
         toast.success("Offer deactivated successfully!");
         const offersResponse = await getOffers({ id: salon._id });
         setOffers(offersResponse.data.offers);
@@ -188,10 +179,10 @@ const SalonOffers = () => {
     }
   };
 
-  const handleDeleteOffer = async (offerId: string, offerTitle: string) => {
+  const handleDeleteOffer = async (offer: TableOffer) => {
     const result = await Swal.fire({
       title: "Delete Offer",
-      text: `Are you sure you want to delete "${offerTitle}"? This action cannot be undone.`,
+      text: `Are you sure you want to delete "${offer.title}"? This action cannot be undone.`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Delete",
@@ -207,7 +198,7 @@ const SalonOffers = () => {
 
     if (result.isConfirmed) {
       try {
-        await deleteOffer(offerId);
+        await deleteOffer(offer._id);
         toast.success("Offer deleted successfully!");
         const offersResponse = await getOffers({ id: salon._id });
         setOffers(offersResponse.data.offers);
@@ -217,31 +208,30 @@ const SalonOffers = () => {
     }
   };
 
-  // Define actions for the Table component
-  const tableActions = [
+  const columns: Column<TableOffer>[] = [
+    { header: "Title", accessor: "title", minWidth: "120px" },
+    { header: "Description", accessor: "description", minWidth: "150px" },
+    { header: "Discount", accessor: "discount", minWidth: "100px" },
+    { header: "Services", accessor: "services", minWidth: "150px" },
+    { header: "Expiry Date", accessor: "expiryDate", minWidth: "120px" },
+    { header: "Status", accessor: "status", minWidth: "100px" },
+  ];
+
+  const actions = [
     {
       label: "Deactivate",
-      className: "bg-red-500 hover:bg-red-600",
-      onClick: (row: TableOffer) => handleDeactivateOffer(row._id, row.title),
-      isDynamic: false, // Not using isDynamic for styling
-      disabled: (row: TableOffer) => !row.is_Active,
+      onClick: handleDeactivateOffer,
+      className:
+        "w-full sm:w-auto px-2 py-1 text-xs sm:text-sm rounded font-medium text-indigo-600 hover:text-indigo-900 disabled:opacity-50 disabled:cursor-not-allowed",
+      disabled: (offer: TableOffer) => !offer.is_Active,
     },
     {
       label: "Delete",
-      className: "bg-red-500 hover:bg-red-600",
-      onClick: (row: TableOffer) => handleDeleteOffer(row._id, row.title),
-      isDynamic: false,
-      disabled: () => false, // Delete is always enabled
+      onClick: handleDeleteOffer,
+      className:
+        "w-full sm:w-auto px-2 py-1 text-xs sm:text-sm rounded font-medium text-red-600 hover:text-red-900",
+      disabled: () => false,
     },
-  ];
-
-  const tableColumns = [
-    { header: "Title", accessor: "title" },
-    { header: "Description", accessor: "description" },
-    { header: "Discount", accessor: "discount" },
-    { header: "Services", accessor: "services" },
-    { header: "Expiry Date", accessor: "expiryDate" },
-    { header: "Status", accessor: "status" },
   ];
 
   if (salon.role !== "Salon") {
@@ -258,8 +248,8 @@ const SalonOffers = () => {
             <CardContent>
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 space-y-2 sm:space-y-0">
                 <h2 className="text-xl sm:text-2xl font-semibold text-gray-800">Salon Offers</h2>
-                <Button 
-                  onClick={() => setShowModal(true)} 
+                <Button
+                  onClick={() => setShowModal(true)}
                   className="w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 sm:px-6 sm:py-2.5 text-xs sm:text-sm"
                 >
                   Add Offer
@@ -268,8 +258,8 @@ const SalonOffers = () => {
               <div className="flex flex-col sm:flex-row sm:space-x-4 mb-4 sm:mb-6 space-y-4 sm:space-y-0">
                 <div className="w-full sm:w-44">
                   <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Filter by Status</label>
-                  <Select 
-                    value={filterStatus} 
+                  <Select
+                    value={filterStatus}
                     onValueChange={(value) => setFilterStatus(value as "all" | "active" | "expired")}
                   >
                     <SelectTrigger className="w-full border-gray-200 rounded-md text-xs sm:text-sm">
@@ -309,87 +299,68 @@ const SalonOffers = () => {
                 <div className="text-center py-4 text-gray-500 text-xs sm:text-sm bg-gray-50 rounded-md">No offers found</div>
               ) : (
                 <>
-                  <div className="text-xs sm:text-sm text-gray-600 mb-2">
-                    Showing {startIndex + 1}-{Math.min(endIndex, filteredOffers.length)} of {filteredOffers.length} offers
+                  <div className="hidden sm:block">
+                    <ReusableTable<TableOffer>
+                      columns={columns}
+                      data={filteredOffers}
+                      totalItems={filteredOffers.length}
+                      itemsPerPage={itemsPerPage}
+                      currentPage={currentPage}
+                      loading={loading}
+                      searchQuery=""
+                      editingId={null}
+                      editForm={{}}
+                      onSearchChange={() => {}} // No search input for offers
+                      onPageChange={(page) => {
+                        console.log('SalonOffers onPageChange:', page);
+                        setCurrentPage(page);
+                      }}
+                      actions={actions}
+                      getRowId={(offer: TableOffer) => offer._id}
+                    />
                   </div>
-                  <div className="overflow-x-auto">
-                    <Table columns={tableColumns} data={currentOffers} actions={tableActions} />
-                    {/* Mobile Card View */}
-                    {/* <div className="sm:hidden space-y-4 mt-4">
-                      {currentOffers.map((offer) => (
-                        <div key={offer._id} className="bg-white p-4 rounded-md shadow-sm border border-gray-200">
-                          <div className="space-y-2">
-                            <div>
-                              <span className="font-semibold text-xs">Title:</span> {offer.title}
-                            </div>
-                            <div>
-                              <span className="font-semibold text-xs">Description:</span> {offer.description}
-                            </div>
-                            <div>
-                              <span className="font-semibold text-xs">Discount:</span> {offer.discount}
-                            </div>
-                            <div>
-                              <span className="font-semibold text-xs">Services:</span> {offer.services}
-                            </div>
-                            <div>
-                              <span className="font-semibold text-xs">Expiry Date:</span> {offer.expiryDate}
-                            </div>
-                            <div>
-                              <span className="font-semibold text-xs">Status:</span> {offer.status}
-                            </div>
-                            <div className="flex flex-wrap gap-2 pt-2">
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => handleDeactivateOffer(offer._id, offer.title)}
-                                disabled={offer.status !== "Active"}
-                                className="px-2 py-1 text-xs bg-red-500 hover:bg-red-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                              >
-                                Deactivate
-                              </Button>
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => handleDeleteOffer(offer._id, offer.title)}
-                                className="px-2 py-1 text-xs bg-red-500 hover:bg-red-600"
-                              >
-                                Delete
-                              </Button>
-                            </div>
+                  <div className="sm:hidden space-y-4 mt-4">
+                    {filteredOffers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((offer) => (
+                      <div key={offer._id} className="bg-white p-4 rounded-md shadow-sm border border-gray-200">
+                        <div className="space-y-2">
+                          <div>
+                            <span className="font-semibold text-xs">Title:</span> {offer.title}
+                          </div>
+                          <div>
+                            <span className="font-semibold text-xs">Description:</span> {offer.description}
+                          </div>
+                          <div>
+                            <span className="font-semibold text-xs">Discount:</span> {offer.discount}
+                          </div>
+                          <div>
+                            <span className="font-semibold text-xs">Services:</span> {offer.services}
+                          </div>
+                          <div>
+                            <span className="font-semibold text-xs">Expiry Date:</span> {offer.expiryDate}
+                          </div>
+                          <div>
+                            <span className="font-semibold text-xs">Status:</span> {offer.status}
+                          </div>
+                          <div className="flex flex-wrap gap-2 pt-2">
+                            <button
+                              onClick={() => handleDeactivateOffer(offer)}
+                              disabled={!offer.is_Active}
+                              className={`px-2 py-1 rounded-md text-xs text-indigo-600 hover:text-indigo-900 ${
+                                !offer.is_Active ? 'opacity-50 cursor-not-allowed' : ''
+                              }`}
+                            >
+                              Deactivate
+                            </button>
+                            <button
+                              onClick={() => handleDeleteOffer(offer)}
+                              className="px-2 py-1 rounded-md text-xs text-red-600 hover:text-red-900"
+                            >
+                              Delete
+                            </button>
                           </div>
                         </div>
-                      ))}
-                    </div> */}
-                  </div>
-                  <div className="flex flex-wrap justify-center gap-2 mt-4">
-                    <Button
-                      variant="outline"
-                      disabled={currentPage === 1}
-                      onClick={() => handlePageChange(currentPage - 1)}
-                      className="px-2 py-1 text-xs sm:text-sm border-gray-300 hover:bg-gray-50"
-                    >
-                      Previous
-                    </Button>
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                      <Button
-                        key={page}
-                        variant={currentPage === page ? "default" : "outline"}
-                        onClick={() => handlePageChange(page)}
-                        className={`px-2 py-1 text-xs sm:text-sm min-w-[2rem] ${
-                          currentPage === page ? "bg-blue-500 hover:bg-blue-600 text-white" : "border-gray-300 hover:bg-gray-50"
-                        }`}
-                      >
-                        {page}
-                      </Button>
+                      </div>
                     ))}
-                    <Button
-                      variant="outline"
-                      disabled={currentPage === totalPages}
-                      onClick={() => handlePageChange(currentPage + 1)}
-                      className="px-2 py-1 text-xs sm:text-sm border-gray-300 hover:bg-gray-50"
-                    >
-                      Next
-                    </Button>
                   </div>
                 </>
               )}
@@ -467,16 +438,16 @@ const SalonOffers = () => {
               />
             </div>
             <DialogFooter className="flex flex-col sm:flex-row sm:justify-end gap-2">
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => setShowModal(false)}
                 className="w-full sm:w-auto px-4 py-2 text-xs sm:text-sm border-gray-300 hover:bg-gray-50"
               >
                 Cancel
               </Button>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 disabled={modalLoading}
                 className="w-full sm:w-auto px-4 py-2 text-xs sm:text-sm bg-blue-500 hover:bg-blue-600 text-white disabled:opacity-50"
               >

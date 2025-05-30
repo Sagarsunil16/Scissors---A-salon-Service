@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { ISalonDocument } from "../../models/Salon";
 
 export interface Address{
   areaStreet: string | null;
@@ -93,6 +94,23 @@ export interface ISalonService {
   }[];
 }
 
+export interface SalonQueryParamsForUser{
+  longitude?: number;
+  latitude?: number;
+  radius: number;
+  search: string;
+  maxPrice: number;
+  ratings: number[];
+  discount: number;
+  page: number;
+  limit: number;
+}
+
+export interface SalonResult {
+  salons: ISalonDocument[];
+  totalSalons: number;
+  totalPages: number;
+}
 
 
 export interface SalonQueryParams {

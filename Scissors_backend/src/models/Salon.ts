@@ -110,10 +110,11 @@ const salonSchema: Schema = new Schema({
     },
   ],
   timeZone: {
-    type: String,
-    required: true,
-    default: "UTC",
-  },
+  type: String,
+  required: true,
+  default: "Asia/Kolkata", // Changed from UTC
+  enum: ["Asia/Kolkata"] // Only allow India timezone
+},
   rating: {
     type: Number,
     default: 0,

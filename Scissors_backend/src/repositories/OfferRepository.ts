@@ -1,5 +1,5 @@
 import { BaseRepository } from "./BaseRepository";
-import { IOfferDocument } from "../Interfaces/Offers/IOffer";
+import { IOffer, IOfferDocument } from "../Interfaces/Offers/IOffer";
 import IOfferRepository from "../Interfaces/Offers/IOfferRepository";
 import Offer from "../models/Offer";
 import { ISalonDocument } from "../models/Salon";
@@ -29,6 +29,12 @@ class OfferRepository extends BaseRepository<IOfferDocument> implements IOfferRe
       isActive: true,
       expiryDate: { $gte: new Date() },
     });
+  }
+  async updateOffer(offerId: string,updateData:Partial<IOffer>): Promise<IOfferDocument | null> {
+      return await this.updateById(offerId,updateData)
+  }
+  async deleteOffer(offerId: string): Promise<IOfferDocument | null> {
+      return await this.deleteById(offerId)
   }
 }
 

@@ -1,68 +1,107 @@
-import {NextFunction, Request,Response} from 'express'
-import CustomError from '../Utils/cutsomError'
-import { ICategoryService } from '../Interfaces/Category/ICategoryService'
+import { NextFunction, Request, Response } from "express";
+import CustomError from "../Utils/cutsomError";
+import { ICategoryService } from "../Interfaces/Category/ICategoryService";
+import { Messages } from "../constants/Messages";
+import { HttpStatus } from "../constants/HttpStatus";
+
 class CategoryController {
-    private categoryService : ICategoryService
-    constructor(categoryService:ICategoryService){
-        this.categoryService = categoryService
-    }
-    async getAllCategory(req:Request,res:Response,next:NextFunction):Promise<any>{
-       
-        try {
-            // const {page,limit,search} = req.params
-            const categories =  await this.categoryService.getAllCategory()
-            res.status(200).json({message:"Category fetched Successfully",categories})
-        } catch (error:any) {
-            next(new CustomError(error.message || "Failed to fetch categories. Please try again later.", 500));
-        }
-    }
-    async getFilteredCategory(req:Request,res:Response,next:NextFunction):Promise<any>{
-        try {
-            const {page=1,limit=10,search=''} = req.query
-            const pageNumber = parseInt(page.toString(), 10);
-            const limitNumber = parseInt(limit.toString(), 10);
-            const result = await this.categoryService.getFilteredCategory(pageNumber,limitNumber,search as string)
-            res.status(200).json({
-                message: "Category fetched Successfully",
-                categories: result.categories,
-                Pagination: {
-                  totalItems: result.totalItems,
-                  totalPages: Math.ceil(result.totalItems / limitNumber),
-                  currentPage: pageNumber
-                }
-              });
-        } catch (error:any) {
-            next(new CustomError(error.message || "Failed to fetch categories. Please try again later.", 500));
-        }
-    }
+  private _categoryService: ICategoryService;
 
-    async addNewCategory(req:Request,res:Response,next:NextFunction):Promise<void>{
-        try {
-           
-            const result = await this.categoryService.createCategory(req.body)
-            res.status(200).json({message:"Category created successfully",result})
-        } catch (error:any) {
-            next(new CustomError(error.message || "There was an issue while creating the category. Please try again.", 500));
-        }
-    }
+  constructor(categoryService: ICategoryService) {
+    this._categoryService = categoryService;
+  }
 
-    async editCategory(req:Request,res:Response,next:NextFunction):Promise<void>{
-        try {
-            const result = await this.categoryService.updateCategory(req.body)
-            res.status(200).json({message:"Category Updated Successfully",result})
-        } catch (error:any) {
-            next(new CustomError(error.message || "There was an issue updating the category. Please try again.", 500));
-        }
+  async getAllCategory(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const categories = await this._categoryService.getAllCategory();
+      res.status(HttpStatus.OK).json({
+        message: Messages.CATEGORIES_FETCHED,
+        categories,
+      });
+    } catch (error:any) {
+      next(new CustomError(error.message || Messages.FETCH_CATEGORIES_FAILED, HttpStatus.INTERNAL_SERVER_ERROR));
     }
+  }
 
-    async deleteCategory(req:Request,res:Response,next:NextFunction):Promise<void>{
-        try {
-            const result = await this.categoryService.deleteCategory(req.body.id)
-            res.status(200).json({message:"Category deleted Successfully",result})
-        } catch (error:any) {
-            next(new CustomError(error.message || "There was an issue deleting the category. Please try again.", 500));
-        }
+  async getFilteredCategory(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { page = 1, limit = 10, search = "" } = req.query;
+      const pageNumber = parseInt(page.toString(), 10);
+      const limitNumber = parseInt(limit.toString(), 10);
+
+      if (isNaN(pageNumber) || isNaN(limitNumber) || pageNumber < 1 || limitNumber < 1) {
+        throw new CustomError(Messages.INVALID_PAGINATION_PARAMS, HttpStatus.BAD_REQUEST);
+      }
+
+      const result = await this._categoryService.getFilteredCategory(pageNumber, limitNumber, search as string);
+
+      res.status(HttpStatus.OK).json({
+        message: Messages.CATEGORIES_FETCHED,
+        categories: result.categories,
+        Pagination: {
+          totalItems: result.totalItems,
+          totalPages: Math.ceil(result.totalItems / limitNumber),
+          currentPage: pageNumber,
+        },
+      });
+    } catch (error:any) {
+      next(new CustomError(error.message || Messages.FETCH_CATEGORIES_FAILED, HttpStatus.INTERNAL_SERVER_ERROR));
     }
+  }
+
+  async addNewCategory(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const categoryData = req.body;
+      if (!categoryData || Object.keys(categoryData).length === 0) {
+        throw new CustomError(Messages.INVALID_CATEGORY_DATA, HttpStatus.BAD_REQUEST);
+      }
+
+      const result = await this._categoryService.createCategory(categoryData);
+
+      res.status(HttpStatus.OK).json({
+        message: Messages.CATEGORY_CREATED,
+        result,
+      });
+    } catch (error:any) {
+      next(new CustomError(error.message || Messages.CREATE_CATEGORY_FAILED, HttpStatus.INTERNAL_SERVER_ERROR));
+    }
+  }
+
+  async editCategory(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const categoryData = req.body;
+      if (!categoryData || !categoryData.id) {
+        throw new CustomError(Messages.INVALID_CATEGORY_DATA, HttpStatus.BAD_REQUEST);
+      }
+
+      const result = await this._categoryService.updateCategory(categoryData);
+
+      res.status(HttpStatus.OK).json({
+        message: Messages.CATEGORY_UPDATED,
+        result,
+      });
+    } catch (error:any) {
+      next(new CustomError(error.message || Messages.UPDATE_CATEGORY_FAILED, HttpStatus.INTERNAL_SERVER_ERROR));
+    }
+  }
+
+  async deleteCategory(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.body;
+      if (!id) {
+        throw new CustomError(Messages.INVALID_CATEGORY_ID, HttpStatus.BAD_REQUEST);
+      }
+
+      const result = await this._categoryService.deleteCategory(id);
+
+      res.status(HttpStatus.OK).json({
+        message: Messages.CATEGORY_DELETED,
+        result,
+      });
+    } catch (error:any) {
+      next(new CustomError(error.message || Messages.DELETE_CATEGORY_FAILED, HttpStatus.INTERNAL_SERVER_ERROR));
+    }
+  }
 }
 
-export default CategoryController
+export default CategoryController;

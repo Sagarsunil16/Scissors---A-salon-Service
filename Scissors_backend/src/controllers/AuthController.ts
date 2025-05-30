@@ -1,69 +1,75 @@
-import { NextFunction, Request,Response } from "express";
-import jwt from 'jsonwebtoken'
+import { NextFunction, Request, Response } from "express";
+import jwt from "jsonwebtoken";
 import CustomError from "../Utils/cutsomError";
-import SalonService from "../services/SalonService";
-import UserService from "../services/UserService";
 import { ISalonService } from "../Interfaces/Salon/ISalonService";
 import { IUserService } from "../Interfaces/User/IUserService";
+import { Messages } from "../constants/Messages";
+import { HttpStatus } from "../constants/HttpStatus";
 
 export interface TokenPayload {
-    id: string;
-    role: string;
-    refresh?: boolean; 
-  }
-  
-class AuthController{
-    private salonService:ISalonService
-    private userService:IUserService
-    constructor(salonService:ISalonService,userService:IUserService){
-        this.salonService = salonService
-        this.userService = userService
-    }
-    async refreshToken(req:Request,res:Response,next:NextFunction):Promise<any>{
-        try {
-            const refreshToken  = req.cookies.refreshToken
-            console.log(refreshToken,"refreshToken")
-            if(!refreshToken){
-                return next(new CustomError( "No refresh token provided. Please log in again.",401));
-            }
-
-            const decoded =  jwt.verify(refreshToken,process.env.REFRESH_TOKEN_SECRET!) as TokenPayload
-            
-            let entity
-            if (decoded.role === 'User' || decoded.role === 'Admin') {
-                entity = await this.userService.getUserById(decoded.id);
-            }else if (decoded.role === 'Salon') {
-                entity = await this.salonService.findSalon(decoded.id);
-            } else {
-                return next(new CustomError('Invalid role in token.', 401));
-            }
-
-            if (!entity) {
-            return next(new CustomError('User or salon not found.', 401));
-            }  
-           
-            if (
-                entity.refreshToken !== refreshToken ||
-                !entity.refreshTokenExpiresAt ||
-                entity.refreshTokenExpiresAt < new Date()
-              ) {
-                return next(new CustomError('Invalid or expired refresh token. Please log in again.', 401));
-              }
-            const newAccessToken = jwt.sign({
-                id:entity?._id,
-                role:entity?.role
-            },process.env.JWT_SECRET as string,{expiresIn:'15m'})
-        
-            return res.cookie("authToken",newAccessToken,{
-                path:'/',
-                httpOnly:true,
-                maxAge:15*60*1000,
-                secure:process.env.NODE_ENV === 'production',
-            }).json({message:"Token refreshed successfully",accesstoken:newAccessToken})
-        } catch (error:any) {
-            return next(new CustomError(error.message || "An unexpected error occurred while refreshing the token.",500));
-        }
-    }
+  id: string;
+  role: string;
+  refresh?: boolean;
 }
 
-export default AuthController
+class AuthController {
+  private _salonService: ISalonService;
+  private _userService: IUserService;
+
+  constructor(salonService: ISalonService, userService: IUserService) {
+    this._salonService = salonService;
+    this._userService = userService;
+  }
+
+  async refreshToken(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const refreshToken = req.cookies.refreshToken;
+      if (!refreshToken) {
+        throw new CustomError(Messages.MISSING_REFRESH_TOKEN, HttpStatus.UNAUTHORIZED);
+      }
+
+      const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET!) as TokenPayload;
+
+      let entity;
+      if (decoded.role === "User" || decoded.role === "Admin") {
+        entity = await this._userService.getUserById(decoded.id);
+      } else if (decoded.role === "Salon") {
+        entity = await this._salonService.findSalon(decoded.id);
+      } else {
+        throw new CustomError(Messages.INVALID_TOKEN_ROLE, HttpStatus.UNAUTHORIZED);
+      }
+
+      if (!entity) {
+        throw new CustomError(Messages.ENTITY_NOT_FOUND, HttpStatus.UNAUTHORIZED);
+      }
+
+      if (
+        entity.refreshToken !== refreshToken ||
+        !entity.refreshTokenExpiresAt ||
+        entity.refreshTokenExpiresAt < new Date()
+      ) {
+        throw new CustomError(Messages.INVALID_REFRESH_TOKEN, HttpStatus.UNAUTHORIZED);
+      }
+
+      const newAccessToken = jwt.sign(
+        { id: entity._id, role: entity.role },
+        process.env.JWT_SECRET as string,
+        { expiresIn: "15m" }
+      );
+
+      res
+        .cookie("authToken", newAccessToken, {
+          path: "/",
+          httpOnly: true,
+          maxAge: 15 * 60 * 1000,
+          secure: process.env.NODE_ENV === "production",
+        })
+        .status(HttpStatus.OK)
+        .json({ message: Messages.TOKEN_REFRESHED, accessToken: newAccessToken });
+    } catch (error:any) {
+      next(new CustomError(error.message || Messages.TOKEN_REFRESH_FAILED, HttpStatus.INTERNAL_SERVER_ERROR));
+    }
+  }
+}
+
+export default AuthController;

@@ -5,7 +5,7 @@ import SalonService from "../services/SalonService";
 import CategoryRepository from "../repositories/CategoryRepository";
 import CategoryService from "../services/CategoryService";
 import ServiceRepository from "../repositories/ServiceRepository";
-import SerService from "../services/serService";
+import SalonMenuService from "../services/SalonMenuService";
 import StylistRepositry from "../repositories/StylistRepository";
 import StylistService from "../services/StylistService";
 import SlotService from "../services/SlotService";
@@ -47,10 +47,15 @@ import { IMessageService } from "../Interfaces/Messages/IMessageService";
 import { IOfferService } from "../Interfaces/Offers/IOfferService";
 import { IReviewService } from "../Interfaces/Reviews/IReviewService";
 import { ISalonService } from "../Interfaces/Salon/ISalonService";
-import { ISerService } from "../Interfaces/Service/ISerService";
+import { ISalonMenuService } from "../Interfaces/Service/ISerService";
 import { ITimeSlotService } from "../Interfaces/TimeSlot/ITimeSlotService";
 import { IStylistService } from "../Interfaces/Stylist/IStylistService";
 import { IUserService } from "../Interfaces/User/IUserService";
+import { IBookingService } from "../Interfaces/Booking/IBookingService";
+import BookingService from "../services/BookingService";
+import ChatRepository from "../repositories/ChatRepository";
+import { ExpiredReservations } from "../cron/clearExpiredReservations";
+
 
 
 
@@ -65,32 +70,35 @@ const appointmentRepository:IAppointmentRepository =  new AppointmentRepositry()
 const messageRepository:IMessageRepository =  new MessageRepository()
 const reviewRepository:IReviewRepository = new ReviewRepository()
 const offerRepository:IOfferRepository = new OfferRepository()
+const chatRepository = new ChatRepository()
 // Services
 const userService:IUserService = new UserService(userRepository);
 const categoryService:ICategoryService = new CategoryService(categoryRepository);
 const salonService:ISalonService = new SalonService(salonRepository, categoryRepository);
-const serService:ISerService = new SerService(serviceRepository)
+const salonMenuService:ISalonMenuService = new SalonMenuService(serviceRepository)
 const stylistService:IStylistService = new StylistService(stylistRepository,serviceRepository,salonRepository)
-const timeSlotService:ITimeSlotService = new SlotService(salonRepository,timeSlotRepository)
+const timeSlotService:ITimeSlotService = new SlotService(salonRepository,timeSlotRepository,stylistRepository)
 const appointmentService:IAppointmentService = new AppointmentService(appointmentRepository,timeSlotRepository)
-const messageService:IMessageService = new MessageService(messageRepository)
+const messageService:IMessageService = new MessageService(messageRepository,chatRepository)
 const reviewService:IReviewService =  new ReviewService(reviewRepository)
 const offerService:IOfferService = new OfferService(offerRepository)
-
+const bookingService:IBookingService = new BookingService(timeSlotService,salonService,offerService,reviewService)
 
 //controllers
 const adminController = new AdminController(userService,salonService)
 const appointmentController = new AppointmentController(appointmentService)
 const authController = new AuthController(salonService,userService)
-const bookingController = new BookingController(offerService,reviewService,timeSlotService,salonService)
+const bookingController = new BookingController(offerService,reviewService,timeSlotService,salonService,bookingService,stylistService)
 const categoryController = new CategoryController(categoryService)
 const chatController = new ChatController(messageService,salonService)
 const messageController = new MessageController(messageService)
 const offerController = new OfferController(offerService)
 const reviewController = new ReviewController(appointmentService,reviewService)
 const salonController = new SalonController(salonService)
-const serviceController = new ServiceController(serService)
+const serviceController = new ServiceController(salonMenuService)
 const stylistController = new StylistController(stylistService)
 const userController = new UserController(userService)
+const expiredReservations = new ExpiredReservations(timeSlotRepository)
 
-export {messageService,salonService,userService,appointmentController,adminController,authController,bookingController,categoryController,chatController,messageController,offerController,reviewController,salonController,serviceController,stylistController,userController };
+
+export {messageService,salonService,userService,appointmentController,adminController,authController,bookingController,categoryController,chatController,messageController,offerController,reviewController,salonController,serviceController,stylistController,userController,expiredReservations };

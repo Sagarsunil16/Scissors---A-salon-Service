@@ -81,10 +81,10 @@ const AdminCategory = () => {
   const fetchCategories = async (page:number) => {
     try {
       setIsLoading(true)
-      const data = await getAllCategory(page,itemsPerPage,search);
-      console.log(data,"dataa")
-      setCategories(data.data.categories);
-      setTotalItems(data.data.Pagination.totalItems)
+      const response = await getAllCategory(page,itemsPerPage,search);
+      console.log(response.data,"dataa")
+      setCategories(response.data.categories);
+      setTotalItems(response.data.Pagination.totalItems)
     } catch (error: any) {
       toast.error(error.message);
     }finally{

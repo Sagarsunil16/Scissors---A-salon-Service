@@ -1,53 +1,44 @@
-import mongoose from "mongoose";
-import { ITimeSlot, ITimeSlotDocument } from "../Interfaces/TimeSlot/ITimeSlot";
+import mongoose, { Document, Query } from "mongoose";
 import { ITimeSlotRepository } from "../Interfaces/TimeSlot/ITimeSlotRepository";
-import TimeSlot from "../models/TimeSlot";
-import { BaseRepository } from "./BaseRepository";
+import TimeSlotModel from "../models/TimeSlot";
+import { ITimeSlot, ITimeSlotDocument } from "../Interfaces/TimeSlot/ITimeSlot";
+import CustomError from "../Utils/cutsomError";
+import moment from "moment-timezone";
 
-class TimeSlotRepository extends BaseRepository<ITimeSlotDocument> implements ITimeSlotRepository {
-  constructor() {
-    super(TimeSlot);
-  }
+class TimeSlotRepository implements ITimeSlotRepository {
+  async findAllSlots(salonId: string, date: Date, stylistId?: string): Promise<ITimeSlotDocument[]> {
+    const timeZone = 'Asia/Kolkata';
+    const localDate = moment.tz(date, timeZone).startOf('day');
+    const startOfDay = localDate.clone().utc().toDate();
+    const endOfDay = localDate.clone().endOf('day').utc().toDate();
 
-  async bulkCreate(slots: ITimeSlot[]): Promise<ITimeSlotDocument[]> {
-    try {
-      // Additional validation before insertion
-      const validSlots = slots.filter(slot =>
-        slot.startTime &&
-        slot.endTime &&
-        slot.stylist &&
-        slot.service &&
-        slot.service.length > 0 &&
-        slot.salon
-      );
+   console.log(`Querying all slots for salon ${salonId} on ${localDate.format('YYYY-MM-DD')} from ${moment(startOfDay).format('HH:mm')} to ${moment(endOfDay).format('HH:mm')} UTC`);
 
-      if (validSlots.length !== slots.length) {
-        console.error(`Filtered out ${slots.length - validSlots.length} invalid slots`);
-      }
-
-      return await this.model.insertMany(validSlots);
-    } catch (error) {
-      console.error("Error in bulkCreate:", error);
-      throw error;
-    }
-  }
-
-  async exists(filter: Record<string, any>): Promise<boolean> {
-    const count = await this.model.countDocuments(filter);
-    return count > 0;
-  }
-
-  async findavailableSlots(salonId: string, serviceIds: string[], date: Date, stylistId?: string): Promise<ITimeSlotDocument[]> {
-    const startOfDay = new Date(date);
-    startOfDay.setUTCHours(0, 0, 0, 0);
-    const endOfDay = new Date(date);
-    endOfDay.setUTCHours(23, 59, 59, 999);
 
     const query: any = {
       salon: new mongoose.Types.ObjectId(salonId),
-      service: { $in: serviceIds.map(id => new mongoose.Types.ObjectId(id)) },
-      startTime: { $gte: startOfDay },
-      endTime: { $lte: endOfDay },
+      startTime: { $gte: startOfDay, $lte: endOfDay },
+      status: "available",
+      $or: [
+  { reservedUntil: null },
+  { reservedUntil: { $lte: new Date() } }
+]
+    }
+    if (stylistId) {
+      query.stylist = new mongoose.Types.ObjectId(stylistId);
+    }
+    return TimeSlotModel.find(query).exec();
+  }
+
+  async findAvailableSlots(salonId: string, date: Date, stylistId?: string): Promise<ITimeSlotDocument[]> {
+    const timeZone = 'Asia/Kolkata';
+    const localDate = moment.tz(date, timeZone).startOf('day');
+    const startOfDay = localDate.clone().utc().toDate();
+    const endOfDay = localDate.clone().endOf('day').utc().toDate();
+
+    const query: any = {
+      salon: new mongoose.Types.ObjectId(salonId),
+      startTime: { $gte: startOfDay, $lte: endOfDay },
       status: "available",
     };
 
@@ -55,31 +46,52 @@ class TimeSlotRepository extends BaseRepository<ITimeSlotDocument> implements IT
       query.stylist = new mongoose.Types.ObjectId(stylistId);
     }
 
-    return await this.model.find(query).populate("stylist").exec();
+    return await TimeSlotModel.find(query)
+      .sort({ startTime: 1 })
+      .exec();
   }
 
-  async updateSlotStatus(slotId: string, status: ITimeSlot["status"], options: mongoose.QueryOptions = { new: true }): Promise<ITimeSlotDocument | null> {
-    return await this.updateById(slotId, { status }, options);
-  }
-
-  async findAllSlots(salonId: string, serviceIds: string[], date: Date, stylistId?: string): Promise<ITimeSlotDocument[]> {
-    const startOfDay = new Date(date);
-    startOfDay.setUTCHours(0, 0, 0, 0);
-    const endOfDay = new Date(date);
-    endOfDay.setUTCHours(23, 59, 59, 999);
-
-    const query: any = {
-      salon: new mongoose.Types.ObjectId(salonId),
-      service: { $in: serviceIds.map(id => new mongoose.Types.ObjectId(id)) },
-      startTime: { $gte: startOfDay },
-      endTime: { $lte: endOfDay },
-    };
-
-    if (stylistId) {
-      query.stylist = new mongoose.Types.ObjectId(stylistId);
+  async bulkCreate(slots: ITimeSlot[]): Promise<ITimeSlotDocument[]> {
+    try {
+      return await TimeSlotModel.insertMany(slots, { ordered: false });
+    } catch (error: any) {
+      if (error.code === 11000) {
+        console.log('Some slots already exist, continuing with created ones');
+        return error.ops || [];
+      }
+      throw new CustomError("Failed to create slots", 500);
     }
+  }
 
-    return await this.model.find(query).exec();
+  async updateSlotStatus(slotId: string, status: ITimeSlot["status"], version: number, options: mongoose.QueryOptions = {}): Promise<ITimeSlotDocument | null> {
+    return TimeSlotModel.findOneAndUpdate(
+      { _id: slotId, version },
+      { status, $inc: { version: 1 } },
+      { new: true, ...options }
+    ).exec();
+  }
+
+  async findById(slotId: string): Promise<ITimeSlotDocument | null> {
+    return TimeSlotModel.findById(slotId).exec();
+  }
+
+  async findByIds(slotIds: string[]): Promise<ITimeSlotDocument[]> {
+    return TimeSlotModel.find({ _id: { $in: slotIds } }).exec();
+  }
+
+  async updateMany(filter: Record<string, any>, update: Record<string, any>,  options: mongoose.QueryOptions = {}): Promise<mongoose.UpdateWriteOpResult> {
+    return await TimeSlotModel.updateMany(filter, update).exec();
+  }
+
+  async clearExpiredReservations(): Promise<void> {
+    await TimeSlotModel.updateMany(
+      { reservedUntil: { $lte: new Date() } },
+      { status: "available", reservedUntil: null }
+    ).exec();
+  }
+
+  find(query: any): mongoose.Query<ITimeSlotDocument[], ITimeSlotDocument> {
+    return TimeSlotModel.find(query);
   }
 }
 

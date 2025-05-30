@@ -32,7 +32,8 @@ export interface IAppointmentRepository {
 
   updateAppointment(
     appointmentId: string,
-    updates: Partial<IAppointment>
+    updates: Partial<IAppointment>,
+    options?:mongoose.QueryOptions
   ): Promise<IAppointmentDocument>;
   getSalonAppointmentDetails(appointmentId: string, salonId: string): Promise<any>;
   validateAppointmentOwnershipBySalon(appointmentId: string, salonId: string): Promise<boolean>;

@@ -11,27 +11,27 @@ import { TokenPayload } from "../controllers/AuthController";
 import { IUserService } from "../Interfaces/User/IUserService";
 
 class UserService implements IUserService {
-  private repository: IUserRepository;
+  private _repository: IUserRepository;
 
   constructor(repository: IUserRepository) {
-    this.repository = repository;
+    this._repository = repository;
   }
 
   async createUser(userData: IUser): Promise<IUserDocument> {
     userData.password = await bcrypt.hash(userData.password, 10);
-    return await this.repository.createUser(userData);
+    return await this._repository.createUser(userData);
   }
 
   async getUserById(id: string): Promise<IUserDocument | null> {
-    return await this.repository.getUserById(id);
+    return await this._repository.getUserById(id);
   }
 
   async getUserByEmail(email: string): Promise<IUserDocument | null> {
-    return await this.repository.getUserByEmail(email);
+    return await this._repository.getUserByEmail(email);
   }
 
   async deleteUser(id: string): Promise<IUserDocument | null> {
-    return await this.repository.deleteUser(id);
+    return await this._repository.deleteUser(id);
   }
 
   async loginUser(
@@ -42,7 +42,7 @@ class UserService implements IUserService {
     accessToken: string;
     refreshToken: string;
   } | null> {
-    const user = await this.repository.getUserByEmail(email);
+    const user = await this._repository.getUserByEmail(email);
     if (!user) {
       throw new CustomError(
         "The email address you entered is not associated with any account. Please check your email or sign up.",
@@ -91,7 +91,7 @@ class UserService implements IUserService {
       }
     );
 
-    await this.repository.updateUser(user._id as string, {
+    await this._repository.updateUser(user._id as string, {
       refreshToken,
       refreshTokenExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     });
@@ -108,7 +108,7 @@ class UserService implements IUserService {
     }
 
     const username = name.split(" ");
-    let user = await this.repository.getUserByEmail(email);
+    let user = await this._repository.getUserByEmail(email);
     if (user && !user.is_Active) {
       throw new CustomError(
         "Your account has been blocked. Please contact support for further assistance.",
@@ -119,7 +119,7 @@ class UserService implements IUserService {
     const tempPassword = crypto.randomBytes(16).toString("hex");
 
     if (!user) {
-      user = await this.repository.createUser({
+      user = await this._repository.createUser({
         firstname: username[0],
         lastname: username[1] ? username[1] : " ",
         email: email,
@@ -141,7 +141,7 @@ class UserService implements IUserService {
       process.env.REFRESH_TOKEN_SECRET as string,
       { expiresIn: "7d" }
     );
-    await this.repository.updateUser(user._id as string, {
+    await this._repository.updateUser(user._id as string, {
       refreshToken,
       refreshTokenExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Store as Date
     });
@@ -156,9 +156,9 @@ class UserService implements IUserService {
           process.env.REFRESH_TOKEN_SECRET as string
         ) as TokenPayload;
         if (decoded.role == "User" || decoded.role == "Admin") {
-          const user = await this.repository.getUserById(decoded.id);
+          const user = await this._repository.getUserById(decoded.id);
           if (user) {
-            return await this.repository.updateUser(user._id as string, {
+            return await this._repository.updateUser(user._id as string, {
               refreshToken: null,
               refreshTokenExpiresAt: null,
             });
@@ -171,13 +171,13 @@ class UserService implements IUserService {
   }
 
   async sendOtp(email: string): Promise<string> {
-    const user = await this.repository.getUserByEmail(email);
+    const user = await this._repository.getUserByEmail(email);
     if (!user) {
       throw new Error("User not found");
     }
     const otp = generateOtp();
     const otpExpiry = new Date(Date.now() + 1 * 60 * 1000); // 1minutes
-    await this.repository.updateUserOtp(email, otp, otpExpiry);
+    await this._repository.updateUserOtp(email, otp, otpExpiry);
     await sendOtpEmail(email, otp);
     return "An OTP has been sent to your email. Please check your inbox.";
   }
@@ -195,11 +195,11 @@ class UserService implements IUserService {
         { email: { $regex: search, $options: "i" } },
       ];
     }
-    return await this.repository.getAllUsers(page, limit, query);
+    return await this._repository.getAllUsers(page, limit, query);
   }
 
   async verifyOTP(email: string, otp: string): Promise<string> {
-    const user = await this.repository.getUserByEmail(email);
+    const user = await this._repository.getUserByEmail(email);
     if (!user) {
       throw new CustomError(
         "We couldn't find an account associated with this email address.",
@@ -218,16 +218,16 @@ class UserService implements IUserService {
         400
       );
     }
-    await this.repository.verifyOtpAndUpdate(email);
+    await this._repository.verifyOtpAndUpdate(email);
     return "Verification Successfull";
   }
   async resetPassword(email: string, newPassword: string): Promise<string> {
-    const user = this.repository.getUserByEmail(email);
+    const user = this._repository.getUserByEmail(email);
     if (!user) {
       throw new Error("User not Found");
     }
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-    await this.repository.resetPassword(email, hashedPassword);
+    await this._repository.resetPassword(email, hashedPassword);
     return "Your password has been reset successfully!";
   }
 
@@ -258,7 +258,7 @@ class UserService implements IUserService {
       }
     }
 
-    return this.repository.updateUser(id, updatedData);
+    return this._repository.updateUser(id, updatedData);
   }
 
   async changePassword(
@@ -266,7 +266,7 @@ class UserService implements IUserService {
     currentPassword: string,
     newPassword: string
   ): Promise<string> {
-    const user = await this.repository.getUserById(id);
+    const user = await this._repository.getUserById(id);
     if (!user) {
       throw new Error("User not found");
     }
@@ -279,17 +279,17 @@ class UserService implements IUserService {
       throw new Error("Current password is incorrect");
     }
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-    await this.repository.changePassword(id, hashedPassword);
+    await this._repository.changePassword(id, hashedPassword);
 
     return "Password updated Successfully";
   }
 
   async updateUserStatus(id: string, isActive: boolean): Promise<any> {
-    return await this.repository.updateUserStatus(id, isActive);
+    return await this._repository.updateUserStatus(id, isActive);
   }
 
   async updateRefreshToken(id: string, refreshToken: string): Promise<any> {
-    return await this.repository.updateRefreshToken(id, refreshToken);
+    return await this._repository.updateRefreshToken(id, refreshToken);
   }
 }
 
