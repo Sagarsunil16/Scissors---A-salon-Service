@@ -153,7 +153,10 @@ class SlotService implements ITimeSlotService {
           endTime: slotEndUTC,
           status: "available",
           version: 0,
-          reservedUntil: null
+          reservedUntil: null,
+          userId:null,
+          bookingId:null
+
         });
 
         currentTime = slotEnd.clone().add(coolOffPeriod, 'minutes');
@@ -336,11 +339,17 @@ class SlotService implements ITimeSlotService {
     return slots.filter((slot) => slot.status === "available" && !slot.reservedUntil);
   }
 
-  async reserveSlotGroup(slotIds: string[], reservedUntil: Date): Promise<void> {
-    const session = await mongoose.startSession();
-    session.startTransaction();
+  async reserveSlotGroup(
+    slotIds: string[],
+    reservedUntil: Date,
+    bookingId: string,
+    userId: string,
+    session?: mongoose.ClientSession
+  ): Promise<void> {
+    const dbSession = session || (await mongoose.startSession());
+    if (!session) dbSession.startTransaction();
     try {
-      const slots = await this._timeSlotRepository.findByIds(slotIds);
+      const slots = await this._timeSlotRepository.findByIds(slotIds, session);
       if (slots.length !== slotIds.length) {
         throw new CustomError("One or more slots not found", HttpStatus.NOT_FOUND);
       }
@@ -349,6 +358,8 @@ class SlotService implements ITimeSlotService {
         _id: s._id.toString(),
         status: s.status,
         reservedUntil: s.reservedUntil?.toISOString(),
+        bookingId: s.bookingId,
+        userId: s.userId?.toString(),
         version: s.version
       })));
 
@@ -357,10 +368,14 @@ class SlotService implements ITimeSlotService {
         if (slot.status === "booked") {
           throw new CustomError("One or more slots are booked", HttpStatus.CONFLICT);
         }
-        if (slot.status === "reserved" && slot.reservedUntil && slot.reservedUntil > now) {
-          console.log(`Slot ${slot._id} already reserved until ${slot.reservedUntil}`);
-        } else if (slot.status !== "available" && !(slot.status === "reserved" && slot.reservedUntil && slot.reservedUntil <= now)) {
-          throw new CustomError("One or more slots are not available", HttpStatus.CONFLICT);
+        if (
+          slot.status === "reserved" &&
+          slot.reservedUntil &&
+          slot.reservedUntil > now &&
+          (slot.bookingId !== bookingId || slot.userId?.toString() !== userId)
+        ) {
+          console.log(`Slot ${slot._id} already reserved by another user until ${slot.reservedUntil}`);
+          throw new CustomError("One or more slots are already reserved", HttpStatus.CONFLICT);
         }
       }
 
@@ -370,11 +385,11 @@ class SlotService implements ITimeSlotService {
           $or: [
             { status: "available", reservedUntil: null },
             { status: "reserved", reservedUntil: { $lte: now } },
-            { status: "reserved", reservedUntil: { $gt: now } }
+            { status: "reserved", bookingId, userId }
           ]
         },
-        { $set: { reservedUntil, status: "reserved" }, $inc: { version: 1 } },
-        { session }
+        { $set: { reservedUntil, status: "reserved", bookingId, userId }, $inc: { version: 1 } },
+        { session: dbSession }
       );
 
       console.log(`Reserve slot result: matched=${result.matchedCount}, modified=${result.modifiedCount}, slotIds=${slotIds.length}`);
@@ -383,14 +398,40 @@ class SlotService implements ITimeSlotService {
         throw new CustomError("Failed to reserve one or more slots", HttpStatus.CONFLICT);
       }
 
-      await session.commitTransaction();
-      console.log(`Reserved slots ${slotIds} until ${reservedUntil.toISOString()}`);
+      if (!session) await dbSession.commitTransaction();
+      console.log(`Reserved slots ${slotIds} until ${reservedUntil.toISOString()} for booking ${bookingId}`);
     } catch (error: any) {
-      await session.abortTransaction();
-      console.error("Error in reserveSlotGroup:", { slotIds, reservedUntil: reservedUntil.toISOString(), error });
+      if (!session) await dbSession.abortTransaction();
+      console.error("Error in reserveSlotGroup:", { slotIds, reservedUntil: reservedUntil.toISOString(), bookingId, userId, error });
       throw error;
     } finally {
-      session.endSession();
+      if (!session) dbSession.endSession();
+    }
+  }
+
+  async releaseSlots(slotIds: string[], session?: mongoose.ClientSession): Promise<void> {
+    const dbSession = session || (await mongoose.startSession());
+    if (!session) dbSession.startTransaction();
+    try {
+      const result = await this._timeSlotRepository.updateMany(
+        { _id: { $in: slotIds }, status: "reserved" },
+        { $set: { status: "available", reservedUntil: null, bookingId: null, userId: null }, $inc: { version: 1 } },
+        { session: dbSession }
+      );
+
+      console.log(`Release slot result: matched=${result.matchedCount}, modified=${result.modifiedCount}, slotIds=${slotIds.length}`);
+
+      if (result.matchedCount !== slotIds.length) {
+        console.warn("Some slots were not released, possibly not reserved");
+      }
+
+      if (!session) await dbSession.commitTransaction();
+    } catch (error: any) {
+      if (!session) await dbSession.abortTransaction();
+      console.error("Error in releaseSlots:", { slotIds, error });
+      throw error;
+    } finally {
+      if (!session) dbSession.endSession();
     }
   }
 

@@ -55,6 +55,11 @@ import { IBookingService } from "../Interfaces/Booking/IBookingService";
 import BookingService from "../services/BookingService";
 import ChatRepository from "../repositories/ChatRepository";
 import { ExpiredReservations } from "../cron/clearExpiredReservations";
+import WalletRepository from "../repositories/WalletRepository";
+import WalletTransactionRepository from "../repositories/WalletTransactionRepository";
+import { IWalletService } from "../Interfaces/Wallet/IWalletService";
+import WalletService from "../services/WalletService";
+import WalletController from "../controllers/WalletController";
 
 
 
@@ -71,24 +76,28 @@ const messageRepository:IMessageRepository =  new MessageRepository()
 const reviewRepository:IReviewRepository = new ReviewRepository()
 const offerRepository:IOfferRepository = new OfferRepository()
 const chatRepository = new ChatRepository()
+const walletRepository = new WalletRepository()
+const walletTransactionRepository = new WalletTransactionRepository()
 // Services
 const userService:IUserService = new UserService(userRepository);
 const categoryService:ICategoryService = new CategoryService(categoryRepository);
 const salonService:ISalonService = new SalonService(salonRepository, categoryRepository);
 const salonMenuService:ISalonMenuService = new SalonMenuService(serviceRepository)
+const walletService:IWalletService = new WalletService(walletRepository,walletTransactionRepository)
 const stylistService:IStylistService = new StylistService(stylistRepository,serviceRepository,salonRepository)
 const timeSlotService:ITimeSlotService = new SlotService(salonRepository,timeSlotRepository,stylistRepository)
-const appointmentService:IAppointmentService = new AppointmentService(appointmentRepository,timeSlotRepository)
+const appointmentService:IAppointmentService = new AppointmentService(appointmentRepository,timeSlotRepository,walletService)
 const messageService:IMessageService = new MessageService(messageRepository,chatRepository)
 const reviewService:IReviewService =  new ReviewService(reviewRepository)
 const offerService:IOfferService = new OfferService(offerRepository)
 const bookingService:IBookingService = new BookingService(timeSlotService,salonService,offerService,reviewService)
 
+
 //controllers
 const adminController = new AdminController(userService,salonService)
 const appointmentController = new AppointmentController(appointmentService)
 const authController = new AuthController(salonService,userService)
-const bookingController = new BookingController(offerService,reviewService,timeSlotService,salonService,bookingService,stylistService)
+const bookingController = new BookingController(offerService,reviewService,timeSlotService,salonService,bookingService,stylistService,appointmentService,walletService)
 const categoryController = new CategoryController(categoryService)
 const chatController = new ChatController(messageService,salonService)
 const messageController = new MessageController(messageService)
@@ -99,6 +108,7 @@ const serviceController = new ServiceController(salonMenuService)
 const stylistController = new StylistController(stylistService)
 const userController = new UserController(userService)
 const expiredReservations = new ExpiredReservations(timeSlotRepository)
+const walletController = new WalletController(walletService)
 
 
-export {messageService,salonService,userService,appointmentController,adminController,authController,bookingController,categoryController,chatController,messageController,offerController,reviewController,salonController,serviceController,stylistController,userController,expiredReservations };
+export {messageService,salonService,userService,appointmentController,adminController,authController,bookingController,categoryController,chatController,messageController,offerController,reviewController,salonController,serviceController,stylistController,userController,expiredReservations,walletController };

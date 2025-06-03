@@ -125,8 +125,12 @@ class AppointmentController {
         throw new CustomError(Messages.APPOINTMENT_CANCEL_FAILED, HttpStatus.NOT_FOUND);
       }
 
+      const message = updatedAppointment.refundToWallet
+        ? `${Messages.APPOINTMENT_CANCELLED} ₹${updatedAppointment.totalPrice.toFixed(2)} refunded to wallet.`
+        : Messages.APPOINTMENT_CANCELLED;
+
       res.status(HttpStatus.OK).json({
-        message: Messages.APPOINTMENT_CANCELLED,
+        message,
         data: updatedAppointment,
       });
     } catch (error) {
@@ -178,9 +182,12 @@ class AppointmentController {
       if (!updatedAppointment) {
         throw new CustomError(Messages.APPOINTMENT_CANCEL_FAILED, HttpStatus.NOT_FOUND);
       }
+      const message = updatedAppointment.refundToWallet
+        ? `${Messages.APPOINTMENT_CANCELLED} ₹${updatedAppointment.totalPrice.toFixed(2)} refunded to your wallet.`
+        : Messages.APPOINTMENT_CANCELLED;
 
       res.status(HttpStatus.OK).json({
-        message: Messages.APPOINTMENT_CANCELLED,
+        message,
         data: updatedAppointment,
       });
     } catch (error) {

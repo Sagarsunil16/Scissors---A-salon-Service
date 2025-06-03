@@ -6,6 +6,7 @@ export class ExpiredReservations{
     constructor(private timeSlotRepository:ITimeSlotRepository){
         this._task = cron.schedule("*/5 * * * *", async()=>{
     try {
+         console.log("Running cron at:", new Date().toISOString());
         await this.timeSlotRepository.clearExpiredReservations()
         console.log("Cleared Expired Slot reservations")
     } catch (error) {

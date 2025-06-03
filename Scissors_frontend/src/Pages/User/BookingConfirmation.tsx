@@ -7,6 +7,7 @@ import { paymentIntentResponse, getSalonDetails } from "../../Services/UserAPI";
 import { useNavigate } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
 import moment from 'moment-timezone';
+import { toast } from 'react-toastify';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
@@ -22,48 +23,51 @@ const CheckoutForm = () => {
   const location = useLocation();
   const {
     user,
-    salon,
-    selectedServices,
-    slotIds,
+    salonId,
+    selectedServices = [],
+    slotIds = [],
     startTime,
     endTime,
     selectedStylist,
     stylistName,
-    serviceNames,
+    serviceNames = [],
     serviceOption,
     totalPrice,
     totalDuration,
     reservedUntil,
     timeZone,
     selectedAddress,
+    bookingId,
+    appointmentId,
+    paymentMethod,
   } = location.state || {};
-  const [selectedMethod] = useState<"Online">("Online");
   const [error, setError] = useState<string | null>(null);
   const [services, setServices] = useState<Service[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const fetchServices = async () => {
-      if (salon) {
+      if (salonId) {
         try {
-          const response = await getSalonDetails(salon);
+          const response = await getSalonDetails(salonId);
           setServices(response.data.salonData.services);
-        } catch (err) {
-          console.error("Failed to fetch services:", err);
+        } catch (err: any) {
+          console.error("Failed to fetch services:", err.message);
         }
       }
     };
     fetchServices();
-  }, [salon]);
+  }, [salonId]);
 
   useEffect(() => {
     if (reservedUntil && moment(reservedUntil).isBefore(moment())) {
       setError("Slot reservation has expired. Please select a new slot.");
-      setTimeout(() => navigate(`/salons/${salon}/salon-details`), 3000);
+      setTimeout(() => navigate(`/salons/${salonId}`), 3000);
     }
-  }, [reservedUntil, salon, navigate]);
+  }, [reservedUntil, salonId, navigate]);
 
   const calculateFinalAmount = () => {
-    let finalAmount = totalPrice;
+    let finalAmount = totalPrice || 0;
     if (serviceOption === 'home') {
       finalAmount += 99;
     }
@@ -71,30 +75,54 @@ const CheckoutForm = () => {
   };
 
   const handleConfirmAndPay = async () => {
-    if (!stripe) {
+    if (isLoading) return;
+    if (!stripe && paymentMethod !== 'cash') {
       setError("Stripe is not initialized.");
       return;
     }
 
+    setIsLoading(true);
     try {
       const finalAmount = calculateFinalAmount();
 
-      const metadata = {
-        user,
-        salon,
-        stylist: selectedStylist,
-        services: selectedServices.join(","),
-        slotIds: slotIds,
-        serviceOption,
-        address: serviceOption === 'home' ? JSON.stringify(selectedAddress) : undefined,
-      };
+      // Convert selectedServices to a string
+      const servicesString = selectedServices
+        .map((serviceId: string) => {
+          const service = services.find(s => s._id === serviceId);
+          return service?.name || serviceId;
+        })
+        .join(", ");
 
-      const response = await paymentIntentResponse({
+      const payload = {
         amount: finalAmount,
         currency: "inr",
-        metadata,
-        reservedUntil
-      });
+        metadata: {
+          userId: user,
+          salonId,
+          slotIds,
+          services: servicesString,
+          bookingId,
+          appointmentId,
+          stylistId: selectedStylist,
+          paymentMethod,
+          serviceOption,
+          serviceIds: selectedServices,
+          address: serviceOption === 'home' ? JSON.stringify(selectedAddress) : undefined,
+        },
+        reservedUntil,
+        bookingId,
+      };
+
+      console.log("PaymentIntentResponse payload:", payload);
+
+      const response = await paymentIntentResponse(payload);
+
+      if (paymentMethod === 'cash') {
+        toast.success("Booking confirmed!");
+        navigate('/appointments');
+        return;
+      }
+
       const { id: sessionId } = response.data;
 
       const { error: stripeError } = await stripe.redirectToCheckout({
@@ -106,7 +134,14 @@ const CheckoutForm = () => {
       }
     } catch (error: any) {
       console.error("Error in handleConfirmAndPay:", error);
-      setError(error.response?.data?.message || "Payment failed. Please try again.");
+      const message = error.response?.data?.message || "Payment failed. Please try again.";
+      setError(message);
+      toast.error(message);
+      if (message.includes('slot')) {
+        setTimeout(() => navigate(`/salons/${salonId}`), 3000);
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -117,7 +152,7 @@ const CheckoutForm = () => {
         {error ? (
           <div className="text-center">
             <p className="text-red-600 text-lg">{error}</p>
-            <Link to={`/salons/${salon}/salon-details`} className="text-blue-600 mt-4 inline-block">
+            <Link to={`/salons/${salonId}`} className="text-blue-600 mt-4 inline-block">
               Back to Salon
             </Link>
           </div>
@@ -126,15 +161,17 @@ const CheckoutForm = () => {
             <div className="bg-white p-6 rounded-lg shadow-md">
               <h2 className="text-2xl font-semibold mb-4">Payment Method</h2>
               <div className="p-4 border rounded-lg bg-gray-100">
-                <h3 className="font-medium text-lg">Online Payment</h3>
-                <p className="text-gray-500">Pay securely using UPI, Credit/Debit Card, or Net Banking</p>
+                <h3 className="font-medium text-lg">{paymentMethod === 'cash' ? 'Cash' : 'Online Payment'}</h3>
+                <p className="text-gray-500">
+                  {paymentMethod === 'cash' ? 'Pay at the salon after service completion' : 'Pay securely using UPI, Credit/Debit Card, or Net Banking'}
+                </p>
               </div>
               <button
                 onClick={handleConfirmAndPay}
-                disabled={!stripe}
-                className="w-full mt-6 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                disabled={!stripe && paymentMethod !== 'cash' || isLoading}
+                className="w-full mt-6 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400"
               >
-                Confirm and Pay ₹{calculateFinalAmount().toFixed(2)}
+                {isLoading ? 'Processing...' : `Confirm and ${paymentMethod === 'cash' ? 'Book' : 'Pay'} ₹${calculateFinalAmount().toFixed(2)}`}
               </button>
             </div>
             <div className="bg-white p-6 rounded-lg shadow-md">
@@ -147,7 +184,7 @@ const CheckoutForm = () => {
                       const service = services.find(s => s._id === serviceId);
                       return (
                         <li key={index}>
-                          {service?.name || serviceNames[index]} ({service?.duration || 30} min)
+                          {service?.name || serviceNames[index] || serviceId} ({service?.duration || 30} min)
                         </li>
                       );
                     })}
@@ -155,11 +192,11 @@ const CheckoutForm = () => {
                 </div>
                 <div>
                   <h3 className="font-medium text-lg">Stylist</h3>
-                  <p className="text-gray-600">{stylistName}</p>
+                  <p className="text-gray-600">{stylistName || 'Not selected'}</p>
                 </div>
                 <div>
                   <h3 className="font-medium text-lg">Total Duration</h3>
-                  <p className="text-gray-600">{totalDuration} minutes</p>
+                  <p className="text-gray-600">{totalDuration || 0} minutes</p>
                 </div>
                 {serviceOption === "home" && (
                   <div>
@@ -174,9 +211,9 @@ const CheckoutForm = () => {
                 <div>
                   <h3 className="font-medium text-lg">Selected Time</h3>
                   <p className="text-gray-600">
-                    {moment(startTime).tz(timeZone).format("MMMM D, YYYY")} -{" "}
-                    {moment(startTime).tz(timeZone).format("h:mm A")} -{" "}
-                    {moment(endTime).tz(timeZone).format("h:mm A")}
+                    {startTime && timeZone
+                      ? `${moment(startTime).tz(timeZone).format("MMMM D, YYYY")} - ${moment(startTime).tz(timeZone).format("h:mm A")} - ${moment(endTime).tz(timeZone).format("h:mm A")}`
+                      : 'Not selected'}
                   </p>
                 </div>
                 {serviceOption === "home" && selectedAddress && (

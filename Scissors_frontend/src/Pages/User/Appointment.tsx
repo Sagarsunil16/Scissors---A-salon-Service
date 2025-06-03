@@ -13,6 +13,10 @@ import {
   submitReview,
 } from "../../Services/UserAPI";
 import Swal from "sweetalert2";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../../Components/ui/dialog";
+import { Input } from "../../Components/ui/input";
+import { Textarea } from "../../Components/ui/textarea";
+import { Label } from "../../Components/ui/label";
 
 interface Address {
   areaStreet: string;
@@ -32,7 +36,7 @@ interface SalonService extends Service {
   description?: string;
   stylists?: string[];
   timeZone?: string;
-  service?: string
+  service?: string;
 }
 
 interface Slot {
@@ -56,7 +60,7 @@ interface Appointment {
     _id: string;
     name: string;
   };
-  services: string[] | Service[]; // Allow ObjectIds or full objects
+  services: string[] | Service[];
   slots: Slot[];
   status: string;
   totalPrice: number;
@@ -66,6 +70,8 @@ interface Appointment {
   address?: Address;
   isExpanded: boolean;
   isReviewed: boolean;
+  refundToWallet: boolean;
+  walletTransaction?: string;
 }
 
 const Appointments: React.FC = () => {
@@ -90,14 +96,11 @@ const Appointments: React.FC = () => {
         setLoading(true);
         const data = { page: currentPage, limit: appointmentsPerPage };
         const response = await getUserAppointments(data);
-        console.log("API Response:", response);
-
+        console.log("Appointments API Response:", response);
         const formattedAppointments = response.data.data.appointments.map((appt: any) => ({
           ...appt,
           isExpanded: false,
         }));
-
-        console.log("Formatted Appointments:", formattedAppointments);
         setAppointments(formattedAppointments);
         setTotalPages(response.data.data.pages || 1);
       } catch (err: any) {
@@ -133,10 +136,12 @@ const Appointments: React.FC = () => {
       console.log("Appointment Cancelled:", response);
       setAppointments((prev) =>
         prev.map((appt) =>
-          appt._id === appointmentId ? { ...appt, status: "cancelled" } : appt
+          appt._id === appointmentId
+            ? { ...appt, status: "cancelled", refundToWallet: response.data.data.refundToWallet }
+            : appt
         )
       );
-      toast.success("Appointment cancelled successfully");
+      toast.success(response.data.message);
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Failed to cancel appointment");
     } finally {
@@ -156,9 +161,6 @@ const Appointments: React.FC = () => {
 
     if (result.isConfirmed) {
       await handleCancelAppointment(id);
-      console.log("Confirmed cancellation");
-    } else {
-      console.log("Cancellation aborted");
     }
   };
 
@@ -190,7 +192,6 @@ const Appointments: React.FC = () => {
     }
   };
 
-  // Map service ObjectIds to full service objects from salon.services
   const getServiceDetails = (serviceId: string | Service, salonServices: SalonService[]): Service => {
     if (typeof serviceId === "string") {
       const service = salonServices.find((s) => s._id === serviceId || s.service === serviceId);
@@ -198,7 +199,7 @@ const Appointments: React.FC = () => {
         ? { _id: service._id, name: service.name, price: service.price, duration: service.duration }
         : { _id: serviceId, name: "Unknown Service", price: 0, duration: 0 };
     }
-    return serviceId; // Already a Service object
+    return serviceId;
   };
 
   const handleReviewSubmit = async (e: React.FormEvent) => {
@@ -239,6 +240,12 @@ const Appointments: React.FC = () => {
     setStylistRating("");
     setStylistComment("");
     setSelectedAppointment(null);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
   };
 
   return (
@@ -344,6 +351,11 @@ const Appointments: React.FC = () => {
                         </p>
                         <p>Payment Method: {appointment.paymentMethod || "N/A"}</p>
                         <p>Payment Status: {appointment.paymentStatus}</p>
+                        {appointment.refundToWallet && (
+                          <p className="text-green-600">
+                            Refunded ₹{appointment.totalPrice.toFixed(2)} to wallet
+                          </p>
+                        )}
                       </div>
                       {["pending", "confirmed"].includes(appointment.status.toLowerCase()) && (
                         <div className="mt-4">
@@ -356,7 +368,7 @@ const Appointments: React.FC = () => {
                             {loading ? "Processing..." : "Cancel Appointment"}
                           </Button>
                           <p className="text-xs text-gray-500 mt-1">
-                            You can only cancel pending or confirmed appointments
+                            You can only cancel pending or confirmed appointments. Refunds to wallet if cancelled 48 hours in advance.
                           </p>
                         </div>
                       )}
@@ -370,99 +382,87 @@ const Appointments: React.FC = () => {
                 </CardContent>
               </Card>
             ))}
-            <div className="flex justify-center mt-6 space-x-4">
+            <div className="flex justify-between items-center mt-6">
               <Button
                 variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
+                disabled={currentPage === 1 || loading}
+                onClick={() => handlePageChange(currentPage - 1)}
               >
                 Previous
               </Button>
-              <span className="px-4 text-sm">
+              <span className="text-sm text-gray-600">
                 Page {currentPage} of {totalPages}
               </span>
               <Button
                 variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((prev) => (prev < totalPages ? prev + 1 : prev))}
-                disabled={currentPage === totalPages}
+                disabled={currentPage === totalPages || loading}
+                onClick={() => handlePageChange(currentPage + 1)}
               >
                 Next
               </Button>
             </div>
           </>
         )}
-        {showReviewModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg w-full max-w-md">
-              <h3 className="text-lg font-semibold mb-4">Submit Review</h3>
-              <form onSubmit={handleReviewSubmit}>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1">
-                    Salon Rating (1-5)
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="5"
-                    value={salonRating}
-                    onChange={(e) => setSalonRating(e.target.value)}
-                    className="w-full border rounded p-2"
-                    required
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1">
-                    Salon Comment
-                  </label>
-                  <textarea
-                    value={salonComment}
-                    onChange={(e) => setSalonComment(e.target.value)}
-                    className="w-full border rounded p-2"
-                    rows={3}
-                    required
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1">
-                    Stylist Rating (1-5)
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="5"
-                    value={stylistRating}
-                    onChange={(e) => setStylistRating(e.target.value)}
-                    className="w-full border rounded p-2"
-                    required
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium mb-1">
-                    Stylist Comment
-                  </label>
-                  <textarea
-                    value={stylistComment}
-                    onChange={(e) => setStylistComment(e.target.value)}
-                    className="w-full border rounded p-2"
-                    rows={3}
-                    required
-                  />
-                </div>
-                <div className="flex justify-end space-x-2">
-                  <Button type="button" variant="outline" onClick={closeReviewModal}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" variant="default">
-                    Submit
-                  </Button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
       </div>
+
+      <Dialog open={showReviewModal} onOpenChange={closeReviewModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Submit Review</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleReviewSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="salonRating">Salon Rating (1-5)</Label>
+              <Input
+                id="salonRating"
+                type="number"
+                min="1"
+                max="5"
+                value={salonRating}
+                onChange={(e) => setSalonRating(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="salonComment">Salon Comment</Label>
+              <Textarea
+                id="salonComment"
+                value={salonComment}
+                onChange={(e) => setSalonComment(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="stylistRating">Stylist Rating (1-5)</Label>
+              <Input
+                id="stylistRating"
+                type="number"
+                min="1"
+                max="5"
+                value={stylistRating}
+                onChange={(e) => setStylistRating(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="stylistComment">Stylist Comment</Label>
+              <Textarea
+                id="stylistComment"
+                value={stylistComment}
+                onChange={(e) => setStylistComment(e.target.value)}
+                required
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={closeReviewModal}>
+                Cancel
+              </Button>
+              <Button type="submit">Submit Review</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       <Footer />
     </div>
   );

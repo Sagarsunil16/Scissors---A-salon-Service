@@ -75,8 +75,12 @@ class TimeSlotRepository implements ITimeSlotRepository {
     return TimeSlotModel.findById(slotId).exec();
   }
 
-  async findByIds(slotIds: string[]): Promise<ITimeSlotDocument[]> {
-    return TimeSlotModel.find({ _id: { $in: slotIds } }).exec();
+  async findByIds(slotIds: string[],session?:mongoose.ClientSession): Promise<ITimeSlotDocument[]> {
+    const query = TimeSlotModel.find({ _id: { $in: slotIds } });
+  if (session) {
+    query.session(session);
+  }
+  return query.exec();
   }
 
   async updateMany(filter: Record<string, any>, update: Record<string, any>,  options: mongoose.QueryOptions = {}): Promise<mongoose.UpdateWriteOpResult> {

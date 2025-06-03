@@ -8,6 +8,8 @@ export interface ITimeSlot {
   status: "available" | "booked" | "cancelled" | "reserved";
   version: number;
   reservedUntil: Date | null;
+  bookingId:string | null,
+  userId:string | null
 }
 
 export interface ITimeSlotDocument extends ITimeSlot, Document {

@@ -24,5 +24,6 @@ adminRouter.get('/service', auth(['Admin']), serviceController.getAllServices.bi
 adminRouter.post('/add-service', auth(['Admin']), serviceController.createService.bind(serviceController));
 adminRouter.delete('/delete-service', auth(['Admin']), serviceController.deleteService.bind(serviceController));
 adminRouter.put('/edit-service', auth(['Admin']), serviceController.updateService.bind(serviceController));
+adminRouter.get('/dashboard',auth(["Admin"]),)
 
 export default adminRouter;

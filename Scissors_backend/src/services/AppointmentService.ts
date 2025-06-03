@@ -1,23 +1,37 @@
-import { AppointmentStatus, IAppointment, IAppointmentDocument } from "../Interfaces/Appointment/IAppointment";
+import { AppointmentStatus, IAppointment, IAppointmentDocument, PaymentStatus } from "../Interfaces/Appointment/IAppointment";
 import { IAppointmentRepository } from "../Interfaces/Appointment/IAppointmentRepository";
 import { IAppointmentService } from "../Interfaces/Appointment/IAppointmentService";
 import { ITimeSlotRepository } from "../Interfaces/TimeSlot/ITimeSlotRepository";
 import CustomError from "../Utils/cutsomError";
-import mongoose from "mongoose";
+import mongoose, { ObjectId } from "mongoose";
 import { HttpStatus } from "../constants/HttpStatus";
 import { Messages } from "../constants/Messages";
+import moment from "moment-timezone";
+import { IWalletRepository } from "../Interfaces/Wallet/IWalletRepository";
+import { IWalletService } from "../Interfaces/Wallet/IWalletService";
+import WalletRepository from "../repositories/WalletRepository";
 
 class AppointmentService implements IAppointmentService {
   private _repository: IAppointmentRepository;
   private _slotRepository: ITimeSlotRepository;
+  private _walletService: IWalletService
 
-  constructor(repository: IAppointmentRepository, slotRepository: ITimeSlotRepository) {
+  constructor(repository: IAppointmentRepository, slotRepository: ITimeSlotRepository, walletService:IWalletService) {
     this._repository = repository;
     this._slotRepository = slotRepository;
+    this._walletService = walletService
   }
 
-  async createAppointment(appointment: IAppointment): Promise<IAppointmentDocument> {
-    return this._repository.createAppointment(appointment);
+    async createAppointment(appointment: Partial<IAppointment>, session?: mongoose.ClientSession | null): Promise<IAppointmentDocument> {
+      return this._repository.createAppointment(appointment, session ?? undefined);
+    }
+
+  async updateAppointmentByBookingId(bookingId: string, update: Partial<IAppointment>, session?: mongoose.ClientSession): Promise<IAppointmentDocument> {
+    const appointment = await this._repository.findByBookingId(bookingId, session);
+    if (!appointment) {
+      throw new CustomError("Appointment not found", HttpStatus.NOT_FOUND);
+    }
+    return this._repository.updateAppointment((appointment._id as mongoose.Types.ObjectId).toString(), update, { session });
   }
 
   async getAppointmentDetails(appointmentId: string, userId: string): Promise<any> {
@@ -147,6 +161,16 @@ class AppointmentService implements IAppointmentService {
         );
       }
 
+      // Determine refund eligibility (48 hours before earliest slot)
+      const earliestSlot = appointment.slots.reduce((earliest: any, slot: any) => {
+        const start = moment.utc(slot.startTime);
+        return !earliest || start.isBefore(moment.utc(earliest.startTime)) ? slot : earliest;
+      }, null);
+      const slotStartTime = moment.utc(earliestSlot.startTime);
+      const now = moment.utc();
+      const hoursUntilSlot = slotStartTime.diff(now, "hours");
+      const isRefundable = hoursUntilSlot >= 48 && appointment.paymentStatus === PaymentStatus.Paid;
+
       // Update all slots to 'available'
       for (const slot of appointment.slots) {
         const slotDoc = await this._slotRepository.findById(slot._id.toString());
@@ -167,13 +191,36 @@ class AppointmentService implements IAppointmentService {
         }
       }
 
-      // Update appointment status to 'cancelled'
-      const updatedAppointment = await this._repository.updateAppointment(
-        appointmentId,
-        { status: AppointmentStatus.Cancelled },
-        { session: dbSession }
-      );
+      let updatedAppointment: IAppointmentDocument;
 
+      if (isRefundable) {
+        // Credit refund to wallet
+        const refundAmount = appointment.totalPrice;
+        const transaction = await this._walletService.creditWallet(
+          appointment.user._id.toString(),
+          refundAmount,
+          appointmentId,
+          `Refund for cancelled appointment ${appointmentId}`
+        );
+
+        // Update appointment
+        updatedAppointment = await this._repository.updateAppointment(
+          appointmentId,
+          {
+            status: AppointmentStatus.Cancelled,
+            refundToWallet: true,
+            walletTransaction: transaction._id as mongoose.Types.ObjectId,
+          },
+          { session: dbSession }
+        );
+      }else {
+        // No refund
+        updatedAppointment = await this._repository.updateAppointment(
+          appointmentId,
+          { status: AppointmentStatus.Cancelled },
+          { session: dbSession }
+        );
+      }
       await dbSession.commitTransaction();
       return updatedAppointment;
     } catch (error: any) {
@@ -255,6 +302,16 @@ class AppointmentService implements IAppointmentService {
         );
       }
 
+      // Determine refund eligibility
+      const earliestSlot = appointment.slots.reduce((earliest: any, slot: any) => {
+        const start = moment.utc(slot.startTime);
+        return !earliest || start.isBefore(moment.utc(earliest.startTime)) ? slot : earliest;
+      }, null);
+      const slotStartTime = moment.utc(earliestSlot.startTime);
+      const now = moment.utc();
+      const hoursUntilSlot = slotStartTime.diff(now, "hours");
+      const isRefundable = hoursUntilSlot >= 48 && appointment.paymentStatus === PaymentStatus.Paid;
+
       // Update all slots to 'available'
       for (const slot of appointment.slots) {
         const slotDoc = await this._slotRepository.findById(slot._id.toString());
@@ -275,13 +332,35 @@ class AppointmentService implements IAppointmentService {
         }
       }
 
-      // Update appointment status to 'cancelled'
-      const updatedAppointment = await this._repository.updateAppointment(
-        appointmentId,
-        { status: AppointmentStatus.Cancelled },
-        { session: dbSession }
-      );
+      let updatedAppointment: IAppointmentDocument;
+      if (isRefundable) {
+        // Credit refund to wallet
+        const refundAmount = appointment.totalPrice;
+        const transaction = await this._walletService.creditWallet(
+          userId,
+          refundAmount,
+          appointmentId,
+          `Refund for cancelled appointment ${appointmentId}`
+        );
 
+        // Update appointment
+        updatedAppointment = await this._repository.updateAppointment(
+          appointmentId,
+          {
+            status: AppointmentStatus.Cancelled,
+            refundToWallet: true,
+            walletTransaction: transaction._id as mongoose.Types.ObjectId,
+          },
+          { session: dbSession }
+        );
+      } else {
+        // No refund
+        updatedAppointment = await this._repository.updateAppointment(
+          appointmentId,
+          { status: AppointmentStatus.Cancelled },
+          { session: dbSession }
+        );
+      }
       await dbSession.commitTransaction();
       return updatedAppointment;
     } catch (error: any) {

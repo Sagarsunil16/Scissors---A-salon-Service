@@ -18,6 +18,7 @@ import BookingSuccess from "../Pages/User/BookingSuccess"
 import MessagesPage from "../Pages/User/Messages"
 import { AppointmentDetails } from "../Pages/User/AppointmentDetails"
 import Appointments from "../Pages/User/Appointment"
+import Wallet from "../Pages/User/Wallet"
 
 
 const UserRoutes = () => {
@@ -85,6 +86,14 @@ const UserRoutes = () => {
           element={
             <PrivateRoute adminOnly={false}>
               <MessagesPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/wallet"
+          element={
+            <PrivateRoute adminOnly={false}>
+              <Wallet />
             </PrivateRoute>
           }
         />

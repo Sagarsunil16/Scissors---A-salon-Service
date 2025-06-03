@@ -1,7 +1,8 @@
+import mongoose from "mongoose";
 import { IAppointment,AppointmentStatus,IAppointmentDocument } from "./IAppointment";
 
 export interface IAppointmentService {
-    createAppointment(appointment: IAppointment): Promise<IAppointmentDocument>;
+    createAppointment(appointment: Partial<IAppointment>, session?:mongoose.ClientSession): Promise<IAppointmentDocument>;
   getAppointmentDetails(appointmentId: string, userId: string): Promise<any>;
   getUserAppointments(
     userId: string,
@@ -31,4 +32,5 @@ export interface IAppointmentService {
   completeAppointment(appointmentId: string, salonId: string): Promise<IAppointmentDocument>;
   cancelAppointmentByUser(appointmentId: string, userId: string): Promise<IAppointmentDocument>;
   updatedAppointmentReview(appointmentId: string): Promise<IAppointmentDocument>;
+  updateAppointmentByBookingId(bookingId: string, update: Partial<IAppointment>, session?: mongoose.ClientSession): Promise<IAppointmentDocument>
 }

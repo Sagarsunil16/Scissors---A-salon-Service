@@ -9,17 +9,18 @@ export enum AppointmentStatus {
 
 export enum PaymentStatus {
     Pending = "pending",
-    paid = "paid",
+    Paid = "paid",
     Failed = "failed"
 }
 
 export enum PaymentMethod {
     Cash  = 'cash',
-    Online = 'online'
+    Online = 'online',
+    Wallet = "wallet"
 }
 
 
-export interface IAppointment extends Document {
+export interface IAppointment {
     user:mongoose.Types.ObjectId,
     salon:mongoose.Types.ObjectId,
     stylist:mongoose.Types.ObjectId,
@@ -29,13 +30,15 @@ export interface IAppointment extends Document {
     stripeSessionId:string
     totalPrice: number; // Total price of the appointment
     paymentStatus: PaymentStatus // Payment status
-    paymentMethod: "cash" | "online"; // Payment method
+    paymentMethod: "cash" | "online" | "wallet"; // Payment method
     serviceOption: "home" | "store"; // Service option (home or store)
     address?:string,
     createdAt?: Date;
     updatedAt?: Date;
     isReviewed:boolean
-
+    refundToWallet:boolean;
+    walletTransaction?:mongoose.Types.ObjectId
+    bookingId:string
 }
 
 

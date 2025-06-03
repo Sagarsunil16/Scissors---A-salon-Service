@@ -143,3 +143,6 @@ export const editService =  async(data:{id:string,name:string,description:string
     return await API.put('/edit-service',data)
 }
 
+export const getAdminDashboardData = async()=>{
+    return await API.get('/dashboard')
+}

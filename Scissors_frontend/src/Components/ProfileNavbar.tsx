@@ -22,10 +22,10 @@ const ProfileNavbar = () => {
           </li>
           <li className="p-2 w-full sm:w-auto">
             <Link
-              to="/favorites"
+              to="/wallet"
               className="block  text-white hover:text-blue-600 transition"
             >
-              Favorites
+              Wallet
             </Link>
           </li>
           <li className="p-2 w-full sm:w-auto">

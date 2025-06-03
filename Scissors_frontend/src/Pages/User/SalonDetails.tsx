@@ -1,20 +1,23 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import moment from "moment-timezone";
 import Navbar from "../../Components/Navbar";
 import Footer from "../../Components/Footer";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   getAvailableSlot,
   fetchServiceStylist,
   getSalonDetails,
   getSalonReviews,
   createBooking,
+  getWalletBalance,
 } from "../../Services/UserAPI";
 import { FiCheck, FiPlus } from "react-icons/fi";
 import { useSelector } from "react-redux";
 import { Card, CardContent } from "../../Components/ui/card";
 import { Star } from "lucide-react";
 import { Button } from "../../Components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../Components/ui/select";
+import { toast } from "react-toastify";
 
 interface Service {
   _id: string;
@@ -95,7 +98,7 @@ const formatTimeInSalon = (utcTime: string, timezone: string) => {
   return moment.utc(utcTime).tz(timezone).format("h:mm A");
 };
 
-const SalonDetails = () => {
+const SalonDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { currentUser } = useSelector((state: any) => state.user);
   const [salon, setSalon] = useState<SalonData | null>(null);
@@ -106,8 +109,9 @@ const SalonDetails = () => {
   const [error, setError] = useState<string | null>(null);
   const [slotLoading, setSlotLoading] = useState(false);
   const [serviceOption, setServiceOption] = useState<"home" | "store">("store");
+  const [paymentMethod, setPaymentMethod] = useState<"online" | "cash" | "wallet">("online");
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [offers, setOffers] = useState<Offer[]>([]);
-
   const [stylists, setStylists] = useState<any[]>([]);
   const [selectedStylist, setSelectedStylist] = useState<string | null>(null);
   const [slotGroups, setSlotGroups] = useState<SlotGroup[]>([]);
@@ -116,6 +120,7 @@ const SalonDetails = () => {
     new Date().toISOString().split("T")[0]
   );
   const [totalDuration, setTotalDuration] = useState<number>(0);
+  const [bookingLoading, setBookingLoading] = useState(false);
 
   const navigate = useNavigate();
 
@@ -136,6 +141,21 @@ const SalonDetails = () => {
     };
     fetchSalonData();
   }, [id]);
+
+  useEffect(() => {
+    const fetchWalletBalance = async () => {
+      try {
+        const response = await getWalletBalance();
+        setWalletBalance(response.data.data.balance);
+      } catch (error) {
+        console.error("Failed to fetch wallet balance:", error);
+        setWalletBalance(0);
+      }
+    };
+    if (selectedServices.length > 0) {
+      fetchWalletBalance();
+    }
+  }, [selectedServices]);
 
   useEffect(() => {
     const fetchStylists = async () => {
@@ -189,8 +209,7 @@ const SalonDetails = () => {
   }, [id, selectedStylist, selectedServices, selectedDate]);
 
   if (loading) return <div className="text-center py-8">Loading...</div>;
-  if (error)
-    return <div className="text-center py-8 text-red-500">{error}</div>;
+  if (error) return <div className="text-center py-8 text-red-500">{error}</div>;
   if (!salon) return <div className="text-center py-8">Salon not found</div>;
 
   const toggleService = (serviceId: string) => {
@@ -208,18 +227,19 @@ const SalonDetails = () => {
   };
 
   const calculateTotal = () => {
-    return selectedServices.reduce((total, serviceId) => {
+    let total = selectedServices.reduce((sum, serviceId) => {
       const service = salon?.services.find((s) => s._id === serviceId);
-      if (!service) return total;
+      if (!service) return sum;
       const offers = getServiceOffers(serviceId);
       const maxDiscount =
         offers.length > 0 ? Math.max(...offers.map((o) => o.discount), 0) : 0;
       const discountedPrice = service.price * (1 - maxDiscount / 100);
-      console.log(
-        `Service: ${service.name}, Original: ₹${service.price}, Discount: ${maxDiscount}%, Final: ₹${discountedPrice}`
-      );
-      return total + discountedPrice;
+      return sum + discountedPrice;
     }, 0);
+    if (serviceOption === "home") {
+      total += 99;
+    }
+    return total;
   };
 
   const getMinDate = () => {
@@ -264,17 +284,51 @@ const SalonDetails = () => {
   };
 
   const handleBookNow = async () => {
+    if (bookingLoading) return;
     if (!selectedStylist) {
-      alert("Please select a stylist");
+      toast.error("Please select a stylist");
       return;
     }
     if (!selectedSlotGroup) {
-      alert("Please select a time slot");
+      toast.error("Please select a time slot");
       return;
     }
-    if (serviceOption === 'home' && !isAddressValid()) {
-      alert("Please add your address to proceed with home service");
+    if (serviceOption === "home" && !isAddressValid()) {
+      toast.error("Please add your address to proceed with home service");
       navigate("/profile");
+      return;
+    }
+
+    setBookingLoading(true);
+    const finalAmount = calculateTotal();
+
+    if (paymentMethod === "wallet") {
+      if (walletBalance === null || walletBalance < finalAmount) {
+        toast.error("Insufficient wallet balance");
+        setBookingLoading(false);
+        return;
+      }
+
+      try {
+        const response = await createBooking({
+          salonId: id!,
+          stylistId: selectedStylist,
+          serviceIds: selectedServices,
+          slotIds: selectedSlotGroup.slotIds,
+          startTime: selectedSlotGroup.startTime,
+          endTime: selectedSlotGroup.endTime,
+          paymentMethod: "wallet",
+          serviceOption,
+          address: serviceOption === "home" ? currentUser.address : undefined,
+        });
+        toast.success("Booking confirmed successfully!");
+        navigate("/appointments");
+      } catch (error: any) {
+        toast.error(error.response?.data?.message || "Failed to book appointment");
+        setError(error.response?.data?.message || "Failed to book appointment");
+      } finally {
+        setBookingLoading(false);
+      }
       return;
     }
 
@@ -286,6 +340,9 @@ const SalonDetails = () => {
         slotIds: selectedSlotGroup.slotIds,
         startTime: selectedSlotGroup.startTime,
         endTime: selectedSlotGroup.endTime,
+        paymentMethod,
+        serviceOption,
+        address: serviceOption === "home" ? currentUser.address : undefined,
       });
 
       const { reservation } = bookingResponse.data;
@@ -295,10 +352,10 @@ const SalonDetails = () => {
         .map((serviceId) => salon?.services.find((s) => s._id === serviceId)?.name)
         .filter(Boolean);
 
-      navigate(`/salons/${salon.salonName}/book`, {
+      navigate(`/salons/${salon._id}/book`, {
         state: {
           user: currentUser._id,
-          salon: salon._id,
+          salonId: salon._id,
           selectedServices,
           slotIds: selectedSlotGroup.slotIds,
           startTime: selectedSlotGroup.startTime,
@@ -307,22 +364,32 @@ const SalonDetails = () => {
           stylistName,
           serviceNames,
           serviceOption,
-          totalPrice: calculateTotal(),
+          totalPrice: finalAmount,
           totalDuration,
           reservedUntil: reservation.reservedUntil,
+          bookingId: reservation.bookingId,
+          appointmentId: reservation.appointmentId,
           timeZone: salon.timeZone,
-          selectedAddress: serviceOption === 'home' ? currentUser.address : null,
+          paymentMethod,
+          selectedAddress: serviceOption === "home" ? currentUser.address : null,
         },
       });
     } catch (error: any) {
       setError(error.response?.data?.message || "Failed to reserve slots");
+      toast.error(error.response?.data?.message || "Failed to reserve slots");
+      if (error.response?.data?.message.includes("slot")) {
+        setSelectedSlotGroup(null);
+        setSlotGroups([]);
+      }
+    } finally {
+      setBookingLoading(false);
     }
   };
 
   return (
     <div className="bg-gray-50">
       <Navbar />
-      <main className="min-h-screen max-w-7xl mx-auto px-4 sm:px-6 lg-px-8 py-8">
+      <main className="min-h-screen max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white rounded-lg shadow-md p-6 mb-8 py-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2 pt-12">
             {salon.salonName}
@@ -468,6 +535,9 @@ const SalonDetails = () => {
                           {formatTimeInSalon(selectedSlotGroup.endTime, salon.timeZone)}
                         </p>
                       )}
+                      {serviceOption === "home" && (
+                        <p>Home Service Charge: ₹99</p>
+                      )}
                       <p className="mt-1 font-semibold">Total: ₹{calculateTotal().toFixed(2)}</p>
                     </div>
                   </div>
@@ -476,21 +546,50 @@ const SalonDetails = () => {
                       <label className="block text-sm font-medium text-gray-700">
                         Service Option
                       </label>
-                      <select
+                      <Select
                         value={serviceOption}
-                        onChange={(e) => setServiceOption(e.target.value as 'home' | 'store')}
-                        className="mt-1 p-2 border rounded-lg w-full"
+                        onValueChange={(value) => setServiceOption(value as "home" | "store")}
                       >
-                        <option value="store">Store</option>
-                        <option value="home">Home</option>
-                      </select>
+                        <SelectTrigger className="w-[120px]">
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="store">Store</SelectItem>
+                          <SelectItem value="home">Home</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-                    <button
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Payment Method
+                      </label>
+                      <Select
+                        value={paymentMethod}
+                        onValueChange={(value) => setPaymentMethod(value as "online" | "cash" | "wallet")}
+                        disabled={selectedServices.length === 0}
+                      >
+                        <SelectTrigger className="w-[120px]">
+                          <SelectValue placeholder="Select" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="online">Online</SelectItem>
+                          <SelectItem value="cash">Cash</SelectItem>
+                          <SelectItem
+                            value="wallet"
+                            disabled={walletBalance !== null && walletBalance < calculateTotal()}
+                          >
+                            Wallet (₹{walletBalance !== null ? walletBalance.toFixed(2) : "Loading"})
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button
                       onClick={handleBookNow}
-                      className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors mt-4"
+                      className="bg-blue-600 hover:bg-blue-700 mt-4"
+                      disabled={loading || slotLoading}
                     >
                       Book Now
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -533,7 +632,7 @@ const SalonDetails = () => {
                   >
                     <p className="font-medium">{stylist.name}</p>
                     <p className="text-sm text-yellow-500">
-                      {stylist.rating === 0 ? 'No ratings yet' : `${stylist.rating}/5 stars`}
+                      {stylist.rating === 0 ? "No ratings yet" : `${stylist.rating}/5 stars`}
                     </p>
                   </button>
                 ))}

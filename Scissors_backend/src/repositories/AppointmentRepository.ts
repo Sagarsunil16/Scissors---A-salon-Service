@@ -13,12 +13,17 @@ class AppointmentRepository extends BaseRepository<IAppointmentDocument> impleme
     super(Appointment);
   }
 
-  async createAppointment(data: Partial<IAppointment>): Promise<IAppointmentDocument> {
-    return await this.create(data);
+  async createAppointment(data: Partial<IAppointment>, session?:mongoose.ClientSession): Promise<IAppointmentDocument> {
+   const appointment = new this.model(data);
+  return await appointment.save({ session });
   }
 
   async findBySessionId(sessionId: string): Promise<IAppointmentDocument | null> {
     return this.model.findOne({ stripeSessionId: sessionId });
+  }
+
+  async findByBookingId(bookingId: string, session?: mongoose.ClientSession): Promise<IAppointmentDocument | null> {
+       return this.model.findOne({ bookingId }).session(session ?? null).exec();
   }
 
   async getAppointmentDetails(appointmentId: string, userId: string): Promise<any> {

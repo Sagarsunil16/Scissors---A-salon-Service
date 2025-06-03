@@ -33,6 +33,15 @@ const timeSlotSchema: Schema = new Schema({
     type: Date,
     default: null,
   },
+  bookingId:{
+    type:String,
+    default:null
+  },
+  userId:{
+    type:mongoose.Types.ObjectId,
+    ref:"User",
+    default:null
+  }
 });
 
 timeSlotSchema.index({ salon: 1, stylist: 1, startTime: 1, status: 1 });

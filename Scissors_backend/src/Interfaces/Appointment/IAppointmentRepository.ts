@@ -2,9 +2,7 @@ import mongoose from "mongoose";
 import { IAppointment, IAppointmentDocument } from "./IAppointment";
 
 export interface IAppointmentRepository {
-  createAppointment(
-    appointment: Partial<IAppointment>
-  ): Promise<IAppointmentDocument>;
+  createAppointment(appointment: Partial<IAppointment>,session?:mongoose.ClientSession): Promise<IAppointmentDocument>;
   getAppointmentDetails(appointmentId: string, userId: string): Promise<any>;
   getUserAppointments(
     userId: string,
@@ -38,6 +36,7 @@ export interface IAppointmentRepository {
   getSalonAppointmentDetails(appointmentId: string, salonId: string): Promise<any>;
   validateAppointmentOwnershipBySalon(appointmentId: string, salonId: string): Promise<boolean>;
   findBySessionId(sessionId:string):Promise<IAppointmentDocument | null>
+  findByBookingId(bookingId:string,session?:mongoose.ClientSession):Promise<IAppointmentDocument | null>
   // findById(id: string): Promise<IAppointmentDocument | null>;
   // findByUser(userId: string): Promise<IAppointmentDocument[]>;
   // updateStatus(id: string, status: string): Promise<IAppointmentDocument | null>;

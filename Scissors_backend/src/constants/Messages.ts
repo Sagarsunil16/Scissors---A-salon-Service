@@ -159,4 +159,8 @@ export const Messages = {
   UNAUTHORIZED: "Unauthorized access", // Added
   APPOINTMENT_ALREADY_CANCELLED: "Appointment is already cancelled", // Added
   APPOINTMENT_ALREADY_COMPLETED: "Appointment is already completed", // Added
+  WALLET_NOT_FOUND: "Wallet not found",
+  INSUFFICIENT_WALLET_BALANCE: "Insufficient wallet balance",
+  WALLET_BALANCE_FETCHED: "Wallet balance fetched successfully",
+  WALLET_HISTORY_FETCHED: "Wallet transaction history fetched successfully",  
 };

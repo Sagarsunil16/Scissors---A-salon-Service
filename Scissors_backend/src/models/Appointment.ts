@@ -48,7 +48,7 @@ const appointmentSchema: Schema<IAppointmentDocument> = new Schema(
     },
     paymentMethod: {
       type: String,
-      enum: ["cash", "online"],
+      enum: ["cash", "online", "wallet"],
       required: true,
     },
     stripeSessionId:{
@@ -75,6 +75,19 @@ const appointmentSchema: Schema<IAppointmentDocument> = new Schema(
         return this.serviceOption === "home";
       },
     },
+    refundToWallet:{
+      type:Boolean,
+      default:false
+    },
+    walletTransaction:{
+      type:mongoose.Schema.Types.ObjectId,
+      ref:'WalletTransaction',
+      default:null
+    },
+    bookingId:{
+      type:String,
+      default:null
+    }
   },
   { timestamps: true }
 );

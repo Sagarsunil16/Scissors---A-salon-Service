@@ -142,6 +142,14 @@ export const createBooking = async(data:{
   slotIds:string[];
   startTime:string;
   endTime:string;
+  paymentMethod?: "online" | "cash" | "wallet";
+  serviceOption: string;
+  address?: {
+    areaStreet: string;
+    city: string;
+    state: string;
+    pincode: string;
+  }
 })=>{
   return await API.post('/bookings',data)
 }
@@ -151,6 +159,7 @@ export const paymentIntentResponse = async (data: {
   currency: string;
   metadata: Record<string, any>
   reservedUntil: Record<string,any>;
+   bookingId:string
 }) => {
   return await API.post("/create-checkout-session", data);
 };
@@ -165,6 +174,7 @@ export const createAppointment = async (data: {
   paymentStatus: string;
   serviceOption: string;
   address?: {areaStreet:string,city:string,state:string,pincode:string};
+ 
 }) => {
   return await API.post("/appointments", data);
 };
@@ -226,4 +236,13 @@ export const markMessagesAsRead = async (salonId: string) => {
 
 export const addReaction = async (messageId: string, emoji: string) => {
   return await API.post(`/messages/${messageId}/reaction`, { emoji });
+};
+
+// Wallet-related functions
+export const getWalletBalance = async () => {
+  return await API.get("/wallet/balance");
+};
+
+export const getWalletTransactions = async (data: { page: number; limit: number }) => {
+  return await API.get("/wallet/transactions", { params: data });
 };

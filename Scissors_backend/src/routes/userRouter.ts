@@ -2,8 +2,9 @@ import { Router } from 'express';
 import auth from '../middleware/auth';
 import { ROLES } from '../constants';
 import upload from '../config/multer';
-import { appointmentController, bookingController, chatController, messageController, reviewController, salonController, userController } from '../container/di';
+import { appointmentController, bookingController, chatController, messageController, reviewController, salonController, userController, walletController } from '../container/di';
 import BookingController from '../controllers/BookingController';
+import WalletRepository from '../repositories/WalletRepository';
 
 const userRouter = Router();
 
@@ -34,6 +35,8 @@ userRouter.post('/create-checkout-session', auth([ROLES.USER]), bookingControlle
 userRouter.post('/webhook', bookingController.webHooks.bind(bookingController));
 userRouter.get('/appointments', auth([ROLES.USER]), appointmentController.getUserAppointments.bind(appointmentController));
 userRouter.put('/appointment/cancel/:id', auth([ROLES.USER]), appointmentController.cancelAppointmentByUser.bind(appointmentController));
+userRouter.get('/wallet/balance',auth([ROLES.USER]),walletController.getBalance.bind(walletController))
+userRouter.get('/wallet/transactions',auth([ROLES.USER]),walletController.getTransactionHistory.bind(walletController))
 
 // Chat-related routes
 userRouter.get('/chats', auth([ROLES.USER]), chatController.getUserChats.bind(chatController));
@@ -45,6 +48,8 @@ userRouter.post('/messages/:messageId/reaction', auth([ROLES.USER]), messageCont
 
 // Reviews
 userRouter.post('/reviews', auth([ROLES.USER]), upload.single('file'), reviewController.createReview.bind(reviewController));
+
+
 
 export default userRouter;
 

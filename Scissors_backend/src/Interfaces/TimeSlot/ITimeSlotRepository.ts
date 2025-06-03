@@ -7,7 +7,7 @@ export interface ITimeSlotRepository {
   bulkCreate(slots: ITimeSlot[]): Promise<ITimeSlotDocument[]>;
   updateSlotStatus(slotId: string, status: ITimeSlot["status"], version: number, options?: mongoose.QueryOptions): Promise<ITimeSlotDocument | null>;
   findById(slotId: string): Promise<ITimeSlotDocument | null>;
-  findByIds(slotIds: string[]): Promise<ITimeSlotDocument[]>;
+  findByIds(slotIds: string[], session?:mongoose.ClientSession): Promise<ITimeSlotDocument[]>;
   updateMany(filter: Record<string, any>, update: Record<string, any>,options: QueryOptions): Promise<mongoose.UpdateWriteOpResult>;
   clearExpiredReservations(): Promise<void>;
   find(query: any): Query<ITimeSlotDocument[], ITimeSlotDocument>;
