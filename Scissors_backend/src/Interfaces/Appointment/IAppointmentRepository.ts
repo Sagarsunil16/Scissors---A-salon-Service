@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { IAppointment, IAppointmentDocument } from "./IAppointment";
+import { IAppointment, IAppointmentDocument, PopulatedAppointment } from "./IAppointment";
 
 export interface IAppointmentRepository {
   createAppointment(appointment: Partial<IAppointment>,session?:mongoose.ClientSession): Promise<IAppointmentDocument>;
@@ -52,5 +52,5 @@ export interface IAppointmentRepository {
   getStatusCounts(): Promise<any[]>;
   getStatusCountsBySalon(salonId: string): Promise<any[]>;
   getRecentAppointments(limit: number): Promise<IAppointmentDocument[]>;
-  getRecentAppointmentsBySalon(salonId: string, limit: number): Promise<IAppointmentDocument[]>;
+  getRecentAppointmentsBySalon(salonId: string, limit: number): Promise<PopulatedAppointment[]>;
 }

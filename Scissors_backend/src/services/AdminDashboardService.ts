@@ -19,7 +19,7 @@ class AdminDashboardService implements IAdminDashboardService {
     this._appointmentRepository = appointmentRepository;
   }
 
-  async getDashboardData(): Promise<DashboardResponse> {
+  async getAdminDashboardData(): Promise<DashboardResponse> {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - 30); //last 30 days
     const endDate = new Date();

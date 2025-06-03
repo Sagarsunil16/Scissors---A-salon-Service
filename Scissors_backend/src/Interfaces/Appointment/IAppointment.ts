@@ -45,3 +45,15 @@ export interface IAppointment {
 export interface IAppointmentDocument extends IAppointment, Document{
    
 }
+
+export interface PopulatedAppointment {
+  _id: mongoose.Types.ObjectId;
+  user: { firstname: string; lastname: string };
+  salon: mongoose.Types.ObjectId;
+  services: mongoose.Types.ObjectId[];
+  totalPrice: number;
+  paymentStatus: string;
+  status: "Accepted" | "Pending" | "Rejected";
+  createdAt: Date;
+  updatedAt: Date;
+}

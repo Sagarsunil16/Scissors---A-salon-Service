@@ -2,7 +2,7 @@ import { Router } from 'express';
 import auth from '../middleware/auth';
 import upload from '../config/multer';
 import { ROLES } from '../constants';
-import { appointmentController, chatController, messageController, offerController, salonController, serviceController, stylistController } from '../container/di';
+import { appointmentController, chatController, messageController, offerController, salonController, salonDashboardController, serviceController, stylistController } from '../container/di';
 
 const salonRouter = Router();
 
@@ -15,6 +15,7 @@ salonRouter.post('/login', salonController.loginSalon.bind(salonController));
 salonRouter.post('/signout', salonController.signOutSalon.bind(salonController));
 
 // Protected routes
+salonRouter.get('/dashboard',auth([ROLES.SALON]),salonDashboardController.getDashboardData.bind(salonDashboardController))
 salonRouter.post('/upload-image', auth([ROLES.SALON]), upload.single('image'), salonController.uploadImage.bind(salonController));
 salonRouter.put('/delete-image', auth([ROLES.SALON]), salonController.deleteImage.bind(salonController));
 salonRouter.get('/salon-service', auth([ROLES.SALON], true), salonController.getSalonData.bind(salonController));

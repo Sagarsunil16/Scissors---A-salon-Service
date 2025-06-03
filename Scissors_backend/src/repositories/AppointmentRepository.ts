@@ -1,5 +1,5 @@
 import moment from "moment-timezone";
-import { IAppointment, IAppointmentDocument } from "../Interfaces/Appointment/IAppointment";
+import { IAppointment, IAppointmentDocument, PopulatedAppointment } from "../Interfaces/Appointment/IAppointment";
 import { IAppointmentRepository } from "../Interfaces/Appointment/IAppointmentRepository";
 import Appointment from "../models/Appointment";
 import { BaseRepository } from "./BaseRepository";
@@ -498,7 +498,7 @@ class AppointmentRepository extends BaseRepository<IAppointmentDocument> impleme
       return await this.model.countDocuments({salon:salonId});
   }
   async countPendingBySalon(salonId: string): Promise<number> {
-      return await this.model.countDocuments({salon:salonId,status:"pending"})
+      return await this.model.countDocuments({salon:salonId,status:{$in:["confirmed","pending"]}});
   }
 
   async sumRevenue(): Promise<number> {
@@ -511,7 +511,7 @@ class AppointmentRepository extends BaseRepository<IAppointmentDocument> impleme
 
   async sumRevenueBySalon(salonId: string): Promise<number> {
       const result  = await this.model.aggregate([
-        {$match:{salon:salonId,paymentStatus:"paid"}},
+        {$match:{salon:new mongoose.Types.ObjectId(salonId),paymentStatus:"paid"}},
         {$group:{_id:null,total:{$sum:"$totalPrice"}}}
       ])
       return result[0]?.total || 0
@@ -527,10 +527,10 @@ class AppointmentRepository extends BaseRepository<IAppointmentDocument> impleme
   }
 
    async getRevenueTrendBySalon(salonId: string, startDate: Date, endDate: Date): Promise<any[]> {
-    return Appointment.aggregate([
+    return this.model.aggregate([
       {
         $match: {
-          salon: salonId,
+          salon: new mongoose.Types.ObjectId(salonId),
           paymentStatus: "paid",
           createdAt: { $gte: startDate, $lte: endDate },
         },
@@ -547,32 +547,33 @@ class AppointmentRepository extends BaseRepository<IAppointmentDocument> impleme
   }
 
   async getStatusCounts(): Promise<any[]> {
-    return Appointment.aggregate([
+    return this.model.aggregate([
       { $group: { _id: "$status", value: { $sum: 1 } } },
       { $project: { name: "$_id", value: 1, _id: 0 } },
     ]);
   }
 
   async getStatusCountsBySalon(salonId: string): Promise<any[]> {
-    return Appointment.aggregate([
-      { $match: { salon: salonId } },
+    return this.model.aggregate([
+      { $match: { salon: new mongoose.Types.ObjectId(salonId) } },
       { $group: { _id: "$status", value: { $sum: 1 } } },
       { $project: { name: "$_id", value: 1, _id: 0 } },
     ]);
   }
   
   async getRecentAppointments(limit: number): Promise<IAppointmentDocument[]> {
-    return Appointment.find()
+    return this.model.find()
       .sort({ createdAt: -1 })
       .limit(limit)
       .populate("salon", "salonName");
   }
 
-  async getRecentAppointmentsBySalon(salonId: string, limit: number): Promise<IAppointmentDocument[]> {
-    return Appointment.find({ salon: salonId })
+  async getRecentAppointmentsBySalon(salonId: string, limit: number): Promise<PopulatedAppointment[]> {
+    return this.model.find({ salon: salonId })
       .sort({ createdAt: -1 })
       .limit(limit)
-      .populate("user", "firstname lastname");
+      .populate("user", "firstname lastname")
+      .lean() as unknown as PopulatedAppointment[];
   }
     
 }

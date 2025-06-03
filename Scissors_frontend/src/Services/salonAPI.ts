@@ -217,3 +217,7 @@ export const markMessagesAsRead = async (userId: string) => {
 export const addReaction = async (messageId: string, emoji: string) => {
   return await API.post(`/messages/${messageId}/reaction`, { emoji });
 };
+
+export const getSalonDashboardData = async()=>{
+  return await API.get('/dashboard')
+}

@@ -63,6 +63,8 @@ import WalletController from "../controllers/WalletController";
 import { IAdminDashboardService } from "../Interfaces/AdminDashboard/IAdminDashboardService";
 import AdminDashboardService from "../services/AdminDashboardService";
 import AdminDashboardController from "../controllers/AdminDashboardController";
+import SalonDashboardService from "../services/SalonDashboardService";
+import SalonDashboardController from "../controllers/SalonDashboardController";
 
 
 
@@ -95,6 +97,7 @@ const reviewService:IReviewService =  new ReviewService(reviewRepository)
 const offerService:IOfferService = new OfferService(offerRepository)
 const bookingService:IBookingService = new BookingService(timeSlotService,salonService,offerService,reviewService)
 const adminDashboardService:IAdminDashboardService = new AdminDashboardService(userRepository,salonRepository,appointmentRepository)
+const salonDashboardService = new SalonDashboardService(salonRepository,appointmentRepository)
 
 
 //controllers
@@ -114,6 +117,7 @@ const userController = new UserController(userService)
 const expiredReservations = new ExpiredReservations(timeSlotRepository)
 const walletController = new WalletController(walletService)
 const adminDashboardController = new AdminDashboardController(adminDashboardService)
+const salonDashboardController = new SalonDashboardController(salonDashboardService)
 
 
-export {messageService,salonService,userService,appointmentController,adminController,authController,bookingController,categoryController,chatController,messageController,offerController,reviewController,salonController,serviceController,stylistController,userController,expiredReservations,walletController,adminDashboardController };
+export {messageService,salonService,userService,appointmentController,adminController,authController,bookingController,categoryController,chatController,messageController,offerController,reviewController,salonController,serviceController,stylistController,userController,expiredReservations,walletController,adminDashboardController,salonDashboardController };

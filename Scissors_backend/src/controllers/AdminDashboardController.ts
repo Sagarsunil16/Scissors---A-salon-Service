@@ -9,7 +9,7 @@ class AdminDashboardController{
 
     async getDashboardData(req:Request,res:Response,next:NextFunction):Promise<void>{
         try {
-            const data = await this._adminDashboardService.getDashboardData()
+            const data = await this._adminDashboardService.getAdminDashboardData()
             console.log(data)
             res.status(200).json(data)
         } catch (error) {

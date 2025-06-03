@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../Components/ui/card";
 import SalonSidebar from "../../Components/SalonSidebar";
 import SalonHeader from "../../Components/SalonHeader";
 import moment from "moment-timezone";
+import { getSalonDashboardData } from "@/Services/salonAPI";
 import {
   LineChart,
   Line,
@@ -18,41 +19,19 @@ import {
 } from "recharts";
 import { Calendar, IndianRupee, Scissors, Clock } from "lucide-react";
 
-// Dummy data for the salon dashboard
-const dummySalonData = {
-  totalAppointments: 120,
-  totalRevenue: 15000,
-  totalServices: 10,
-  pendingAppointments: 20,
-  recentAppointments: [
-    {
-      _id: "1",
-      userName: "John Doe",
-      createdAt: "2025-06-01T10:00:00Z",
-      status: "Accepted",
-    },
-    {
-      _id: "2",
-      userName: "Jane Smith",
-      createdAt: "2025-06-02T12:00:00Z",
-      status: "Pending",
-    },
-  ],
-  revenueTrend: [
-    { date: "May 01", revenue: 500 },
-    { date: "May 08", revenue: 700 },
-    { date: "May 15", revenue: 600 },
-    { date: "May 22", revenue: 800 },
-    { date: "May 29", revenue: 900 },
-  ],
-  appointmentStatus: [
-    { name: "Accepted", value: 80 },
-    { name: "Pending", value: 20 },
-    { name: "Rejected", value: 20 },
-  ],
-};
+interface DashboardResponse {
+  metrics: {
+    totalAppointments: number;
+    totalRevenue: number;
+    totalServices: number;
+    pendingAppointments: number;
+  };
+  revenueTrend: { date: string; revenue: number }[];
+  appointmentStatus: { name: string; value: number }[];
+  recentAppointments: { _id: string; userName: string; createdAt: string; status: string }[];
+}
 
-// Colors for pie chart
+
 const COLORS = ["#1e40af", "#f59e0b", "#dc2626"];
 
 const CustomTooltip: React.FC<TooltipProps<number, string>> = ({ active, payload, label }) => {
@@ -79,11 +58,44 @@ const PieTooltip: React.FC<TooltipProps<number, string>> = ({ active, payload })
 };
 
 const SalonDashboard: React.FC = () => {
-  const [salonData] = useState(dummySalonData);
+  const [salonData, setSalonData] = useState<DashboardResponse | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchSalonDashboardData = async () => {
+      try {
+        const response = await getSalonDashboardData();
+        setSalonData(response.data);
+        setLoading(false);
+      } catch (err: any) {
+        setError(err.message || "Failed to fetch dashboard data");
+        setLoading(false);
+      }
+    };
+
+    fetchSalonDashboardData();
+  }, []);
 
   const formatDate = (date: string) => {
     return moment.utc(date).tz("Asia/Kolkata").format("Do MMM, YY");
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex items-center justify-center">
+        <p className="text-gray-600">Loading...</p>
+      </div>
+    );
+  }
+
+  if (error || !salonData) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex items-center justify-center">
+        <p className="text-red-600">{error || "No data available"}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex">
@@ -93,7 +105,6 @@ const SalonDashboard: React.FC = () => {
         <main className="flex-1 p-3 sm:p-4">
           <h1 className="text-2xl font-extrabold text-gray-900 mb-3 tracking-tight">Salon Dashboard</h1>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-            {/* Left Column: Metrics and Charts */}
             <div className="space-y-2">
               <Card className="shadow-xl rounded-lg bg-white overflow-hidden transform transition-all hover:scale-[1.01]">
                 <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-400 rounded-t-lg p-2">
@@ -104,28 +115,28 @@ const SalonDashboard: React.FC = () => {
                     <div className="flex items-center space-x-1 bg-gray-50 p-1 rounded-md">
                       <Calendar className="h-4 w-4 text-blue-600" />
                       <div>
-                        <p className="text-base font-bold text-gray-900">{salonData.totalAppointments}</p>
+                        <p className="text-base font-bold text-gray-900">{salonData.metrics.totalAppointments}</p>
                         <p className="text-xs text-gray-600">Appointments</p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-1 bg-gray-50 p-1 rounded-md">
                       <IndianRupee className="h-4 w-4 text-blue-600" />
                       <div>
-                        <p className="text-base font-bold text-gray-900">₹{salonData.totalRevenue.toFixed(0)}</p>
+                        <p className="text-base font-bold text-gray-900">₹{salonData.metrics.totalRevenue.toFixed(0)}</p>
                         <p className="text-xs text-gray-600">Revenue</p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-1 bg-gray-50 p-1 rounded-md">
                       <Scissors className="h-4 w-4 text-blue-600" />
                       <div>
-                        <p className="text-base font-bold text-gray-900">{salonData.totalServices}</p>
+                        <p className="text-base font-bold text-gray-900">{salonData.metrics.totalServices}</p>
                         <p className="text-xs text-gray-600">Services</p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-1 bg-gray-50 p-1 rounded-md">
                       <Clock className="h-4 w-4 text-blue-600" />
                       <div>
-                        <p className="text-base font-bold text-gray-900">{salonData.pendingAppointments}</p>
+                        <p className="text-base font-bold text-gray-900">{salonData.metrics.pendingAppointments}</p>
                         <p className="text-xs text-gray-600">Pending</p>
                       </div>
                     </div>
@@ -177,7 +188,6 @@ const SalonDashboard: React.FC = () => {
               </Card>
             </div>
 
-            {/* Right Column: Recent Appointments */}
             <div className="space-y-2">
               <Card className="shadow-xl rounded-lg bg-white overflow-hidden transform transition-all hover:scale-[1.01]">
                 <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-400 rounded-t-lg p-2">
@@ -188,7 +198,7 @@ const SalonDashboard: React.FC = () => {
                     <p className="text-center text-gray-500 text-xs py-1">No recent appointments</p>
                   ) : (
                     <div className="space-y-1">
-                      {salonData.recentAppointments.slice(0, 2).map((appointment) => (
+                      {salonData.recentAppointments.map((appointment) => (
                         <div
                           key={appointment._id}
                           className="flex justify-between items-center py-1 border-b border-gray-200 last:border-b-0 hover:bg-gray-50 transition-colors"
