@@ -41,4 +41,16 @@ export interface IAppointmentRepository {
   // findByUser(userId: string): Promise<IAppointmentDocument[]>;
   // updateStatus(id: string, status: string): Promise<IAppointmentDocument | null>;
   // delete(id: string): Promise<void>;
+
+  countAll(): Promise<number>;
+  countBySalon(salonId: string): Promise<number>;
+  countPendingBySalon(salonId: string): Promise<number>;
+  sumRevenue(): Promise<number>;
+  sumRevenueBySalon(salonId: string): Promise<number>;
+  getRevenueTrend(startDate: Date, endDate: Date): Promise<any[]>;
+  getRevenueTrendBySalon(salonId: string, startDate: Date, endDate: Date): Promise<any[]>;
+  getStatusCounts(): Promise<any[]>;
+  getStatusCountsBySalon(salonId: string): Promise<any[]>;
+  getRecentAppointments(limit: number): Promise<IAppointmentDocument[]>;
+  getRecentAppointmentsBySalon(salonId: string, limit: number): Promise<IAppointmentDocument[]>;
 }

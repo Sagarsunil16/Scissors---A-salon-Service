@@ -27,4 +27,7 @@ export interface ISalonRepository{
     countNearbySalons(longitude:number,latitude:number,radius:number,query:any):Promise<number>
     getAllSalons(query: any, skip: number, limit: number): Promise<ISalonDocument[]> 
     countAllSalons(query: any): Promise<number>
+    countActiveSalons():Promise<number>
+    countUniqueServices():Promise<number>
+    countServicesBySalon(salonId:string):Promise<number>
 }

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import auth from '../middleware/auth';
-import { adminController, categoryController, serviceController } from '../container/di';
+import { adminController, adminDashboardController, categoryController, serviceController } from '../container/di';
 
 const adminRouter = Router();
 
@@ -24,6 +24,6 @@ adminRouter.get('/service', auth(['Admin']), serviceController.getAllServices.bi
 adminRouter.post('/add-service', auth(['Admin']), serviceController.createService.bind(serviceController));
 adminRouter.delete('/delete-service', auth(['Admin']), serviceController.deleteService.bind(serviceController));
 adminRouter.put('/edit-service', auth(['Admin']), serviceController.updateService.bind(serviceController));
-adminRouter.get('/dashboard',auth(["Admin"]),)
+adminRouter.get('/dashboard',auth(["Admin"]),adminDashboardController.getDashboardData.bind(adminDashboardController))
 
 export default adminRouter;

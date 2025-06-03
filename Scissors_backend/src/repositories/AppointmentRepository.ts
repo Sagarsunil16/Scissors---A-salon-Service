@@ -7,6 +7,7 @@ import CustomError from "../Utils/cutsomError";
 import { Messages } from "../constants/Messages";
 import { HttpStatus } from "../constants/HttpStatus";
 import mongoose from "mongoose";
+import { format } from "path";
 
 class AppointmentRepository extends BaseRepository<IAppointmentDocument> implements IAppointmentRepository {
   constructor() {
@@ -488,6 +489,93 @@ class AppointmentRepository extends BaseRepository<IAppointmentDocument> impleme
     }
     return appointment;
   }
+
+  async countAll(): Promise<number> {
+      return await this.model.countDocuments()
+  }
+
+  async countBySalon(salonId: string): Promise<number> {
+      return await this.model.countDocuments({salon:salonId});
+  }
+  async countPendingBySalon(salonId: string): Promise<number> {
+      return await this.model.countDocuments({salon:salonId,status:"pending"})
+  }
+
+  async sumRevenue(): Promise<number> {
+      const result =  await this.model.aggregate([
+        {$match:{paymentStatus:"paid"}},
+        {$group:{_id:null,total:{$sum:"$totalPrice"}}}
+      ]);
+      return result[0]?.total || 0;
+  }
+
+  async sumRevenueBySalon(salonId: string): Promise<number> {
+      const result  = await this.model.aggregate([
+        {$match:{salon:salonId,paymentStatus:"paid"}},
+        {$group:{_id:null,total:{$sum:"$totalPrice"}}}
+      ])
+      return result[0]?.total || 0
+  }
+
+  async getRevenueTrend(startDate: Date, endDate: Date): Promise<any[]> {
+      return await this.model.aggregate([
+        {$match:{paymentStatus:"paid",createdAt:{$gte:startDate,$lte:endDate}}},
+        {$group:{_id:{$dateToString:{format:"%Y-%m-%d",date:"$createdAt"}},revenue:{$sum:"$totalPrice"}}},
+        {$sort:{_id:1}},
+        {$project:{date:"$_id",revenue:1,_id:0}}
+      ])
+  }
+
+   async getRevenueTrendBySalon(salonId: string, startDate: Date, endDate: Date): Promise<any[]> {
+    return Appointment.aggregate([
+      {
+        $match: {
+          salon: salonId,
+          paymentStatus: "paid",
+          createdAt: { $gte: startDate, $lte: endDate },
+        },
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          revenue: { $sum: "$totalPrice" },
+        },
+      },
+      { $sort: { _id: 1 } },
+      { $project: { date: "$_id", revenue: 1, _id: 0 } },
+    ]);
+  }
+
+  async getStatusCounts(): Promise<any[]> {
+    return Appointment.aggregate([
+      { $group: { _id: "$status", value: { $sum: 1 } } },
+      { $project: { name: "$_id", value: 1, _id: 0 } },
+    ]);
+  }
+
+  async getStatusCountsBySalon(salonId: string): Promise<any[]> {
+    return Appointment.aggregate([
+      { $match: { salon: salonId } },
+      { $group: { _id: "$status", value: { $sum: 1 } } },
+      { $project: { name: "$_id", value: 1, _id: 0 } },
+    ]);
+  }
+  
+  async getRecentAppointments(limit: number): Promise<IAppointmentDocument[]> {
+    return Appointment.find()
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .populate("salon", "salonName");
+  }
+
+  async getRecentAppointmentsBySalon(salonId: string, limit: number): Promise<IAppointmentDocument[]> {
+    return Appointment.find({ salon: salonId })
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .populate("user", "firstname lastname");
+  }
+    
 }
+
 
 export default AppointmentRepository;

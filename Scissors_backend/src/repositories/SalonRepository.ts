@@ -231,6 +231,26 @@ class SalonRepository extends BaseRepository<ISalonDocument> implements ISalonRe
   async allSalonListForChat(): Promise<Partial<ISalonDocument>[]> {
     return await this.model.find({}, "_id salonName email images").exec();
   }
+
+  async countActiveSalons(): Promise<number> {
+      return await this.model.countDocuments({is_Active:true})
+  }
+
+  async countUniqueServices(): Promise<number> {
+      const result = await this.model.aggregate([
+        {$unwind:"$services"},
+        {$group:{_id:"$services"}},
+        {$count:"total"}
+      ])
+
+      return result[0]?.total || 0
+  }
+
+  async countServicesBySalon(salonId: string): Promise<number> {
+      const salon = await this.model.findById(salonId).select('services')
+      return salon?.services.length || 0
+  }
+  
 }
 
 export default SalonRepository;

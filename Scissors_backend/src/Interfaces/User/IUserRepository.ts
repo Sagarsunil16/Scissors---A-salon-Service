@@ -15,4 +15,5 @@ export interface IUserRepository {
     updateUserStatus(id:string,isActive:boolean):Promise<IUserDocument | null>
     verifyOtpAndUpdate(email:string):Promise<IUserDocument | null>
     updateRefreshToken(id:string,refreshToken:string):Promise<IUserDocument | null>
+    countActiveUsers():Promise<number>
 }

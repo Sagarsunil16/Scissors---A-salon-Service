@@ -60,6 +60,9 @@ import WalletTransactionRepository from "../repositories/WalletTransactionReposi
 import { IWalletService } from "../Interfaces/Wallet/IWalletService";
 import WalletService from "../services/WalletService";
 import WalletController from "../controllers/WalletController";
+import { IAdminDashboardService } from "../Interfaces/AdminDashboard/IAdminDashboardService";
+import AdminDashboardService from "../services/AdminDashboardService";
+import AdminDashboardController from "../controllers/AdminDashboardController";
 
 
 
@@ -91,6 +94,7 @@ const messageService:IMessageService = new MessageService(messageRepository,chat
 const reviewService:IReviewService =  new ReviewService(reviewRepository)
 const offerService:IOfferService = new OfferService(offerRepository)
 const bookingService:IBookingService = new BookingService(timeSlotService,salonService,offerService,reviewService)
+const adminDashboardService:IAdminDashboardService = new AdminDashboardService(userRepository,salonRepository,appointmentRepository)
 
 
 //controllers
@@ -109,6 +113,7 @@ const stylistController = new StylistController(stylistService)
 const userController = new UserController(userService)
 const expiredReservations = new ExpiredReservations(timeSlotRepository)
 const walletController = new WalletController(walletService)
+const adminDashboardController = new AdminDashboardController(adminDashboardService)
 
 
-export {messageService,salonService,userService,appointmentController,adminController,authController,bookingController,categoryController,chatController,messageController,offerController,reviewController,salonController,serviceController,stylistController,userController,expiredReservations,walletController };
+export {messageService,salonService,userService,appointmentController,adminController,authController,bookingController,categoryController,chatController,messageController,offerController,reviewController,salonController,serviceController,stylistController,userController,expiredReservations,walletController,adminDashboardController };

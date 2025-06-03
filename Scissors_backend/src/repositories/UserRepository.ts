@@ -62,6 +62,10 @@ class UserRepository extends BaseRepository<IUserDocument> implements IUserRepos
   async updateRefreshToken(id: string, refreshToken: string | null): Promise<IUserDocument | null> {
     return await this.updateById(id, { refreshToken });
   }
+
+  async countActiveUsers(): Promise<number> {
+      return await this.model.countDocuments({role:"User",is_Active:true})
+  }
 }
 
 export default UserRepository

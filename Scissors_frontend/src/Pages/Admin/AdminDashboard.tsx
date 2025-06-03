@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../Components/ui/card";
 import Sidebar from "../../Components/Sidebar";
 import AdminHeader from "../../Components/AdminHeader";
@@ -17,32 +17,21 @@ import {
   TooltipProps,
 } from "recharts";
 import { Users, Store, Calendar, IndianRupee, Scissors } from "lucide-react";
+import { getAdminDashboardData } from "@/Services/adminAPI";
 
-// Dummy data for the dashboard
-const dummyDashboardData = {
-  totalUsers: 1500,
-  totalSalons: 75,
-  totalAppointments: 4500,
-  totalRevenue: 225000.50,
-  totalServices: 250,
-  recentAppointments: [
-    { _id: "1", salonName: "Style Haven", createdAt: "2025-06-01T10:00:00Z", status: "Accepted" },
-    { _id: "2", salonName: "Chic Cuts", createdAt: "2025-06-02T12:00:00Z", status: "Pending" },
-    { _id: "3", salonName: "Glam Studio", createdAt: "2025-06-02T15:30:00Z", status: "Rejected" },
-  ],
-  revenueTrend: [
-    { date: "May 01", revenue: 5000 },
-    { date: "May 08", revenue: 7000 },
-    { date: "May 15", revenue: 6000 },
-    { date: "May 22", revenue: 8000 },
-    { date: "May 29", revenue: 9000 },
-  ],
-  appointmentStatus: [
-    { name: "Accepted", value: 3000 },
-    { name: "Pending", value: 1000 },
-    { name: "Rejected", value: 500 },
-  ],
-};
+// Define dashboard data type
+interface DashboardResponse {
+  metrics: {
+    totalUsers: number;
+    totalSalons: number;
+    totalAppointments: number;
+    totalRevenue: number;
+    totalServices: number;
+  };
+  revenueTrend: { date: string; revenue: number }[];
+  appointmentStatus: { name: string; value: number }[];
+  recentAppointments: { _id: string; salonName: string; createdAt: Date; status: string }[];
+}
 
 // Colors for pie chart
 const COLORS = ["#1e40af", "#f59e0b", "#dc2626"];
@@ -71,11 +60,46 @@ const PieTooltip: React.FC<TooltipProps<number, string>> = ({ active, payload })
 };
 
 const AdminDashboard: React.FC = () => {
-  const [dashboardData] = useState(dummyDashboardData);
+  const [dashboardData, setDashboardData] = useState<DashboardResponse | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+       
+
+        const response = await getAdminDashboardData()
+        setDashboardData(response.data);
+        setLoading(false);
+      } catch (err) {
+        setError("Failed to fetch dashboard data");
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
 
   const formatDate = (date: string) => {
     return moment.utc(date).tz("Asia/Kolkata").format("Do MMM, YYYY");
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex items-center justify-center">
+        <p className="text-gray-600">Loading...</p>
+      </div>
+    );
+  }
+
+  if (error || !dashboardData) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex items-center justify-center">
+        <p className="text-red-600">{error || "No data available"}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 flex">
@@ -96,35 +120,35 @@ const AdminDashboard: React.FC = () => {
                     <div className="flex items-center space-x-2 bg-gray-50 p-2 rounded-md">
                       <Users className="h-5 w-5 text-blue-600" />
                       <div>
-                        <p className="text-lg font-bold text-gray-900">{dashboardData.totalUsers}</p>
+                        <p className="text-lg font-bold text-gray-900">{dashboardData.metrics.totalUsers}</p>
                         <p className="text-xs text-gray-600">Users</p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2 bg-gray-50 p-2 rounded-md">
                       <Store className="h-5 w-5 text-blue-600" />
                       <div>
-                        <p className="text-lg font-bold text-gray-900">{dashboardData.totalSalons}</p>
+                        <p className="text-lg font-bold text-gray-900">{dashboardData.metrics.totalSalons}</p>
                         <p className="text-xs text-gray-600">Salons</p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2 bg-gray-50 p-2 rounded-md">
                       <Calendar className="h-5 w-5 text-blue-600" />
                       <div>
-                        <p className="text-lg font-bold text-gray-900">{dashboardData.totalAppointments}</p>
+                        <p className="text-lg font-bold text-gray-900">{dashboardData.metrics.totalAppointments}</p>
                         <p className="text-xs text-gray-600">Appointments</p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2 bg-gray-50 p-2 rounded-md">
                       <IndianRupee className="h-5 w-5 text-blue-600" />
                       <div>
-                        <p className="text-lg font-bold text-gray-900">₹{dashboardData.totalRevenue.toFixed(0)}</p>
+                        <p className="text-lg font-bold text-gray-900">₹{dashboardData.metrics.totalRevenue.toFixed(0)}</p>
                         <p className="text-xs text-gray-600">Revenue</p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2 bg-gray-50 p-2 rounded-md">
                       <Scissors className="h-5 w-5 text-blue-600" />
                       <div>
-                        <p className="text-lg font-bold text-gray-900">{dashboardData.totalServices}</p>
+                        <p className="text-lg font-bold text-gray-900">{dashboardData.metrics.totalServices}</p>
                         <p className="text-xs text-gray-600">Services</p>
                       </div>
                     </div>
@@ -157,7 +181,7 @@ const AdminDashboard: React.FC = () => {
                   <ResponsiveContainer width="100%" height={150}>
                     <PieChart>
                       <Pie
-                        data={dummyDashboardData.appointmentStatus}
+                        data={dashboardData.appointmentStatus}
                         dataKey="value"
                         nameKey="name"
                         cx="50%"
@@ -165,7 +189,7 @@ const AdminDashboard: React.FC = () => {
                         outerRadius={60}
                         label={false}
                       >
-                        {dummyDashboardData.appointmentStatus.map((entry, index) => (
+                        {dashboardData.appointmentStatus.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
@@ -183,11 +207,11 @@ const AdminDashboard: React.FC = () => {
                   <CardTitle className="text-base font-semibold text-white">Recent Appointments</CardTitle>
                 </CardHeader>
                 <CardContent className="p-3">
-                  {dummyDashboardData.recentAppointments.length === 0 ? (
+                  {dashboardData.recentAppointments.length === 0 ? (
                     <p className="text-center text-gray-500 text-xs py-2">No recent appointments</p>
                   ) : (
                     <div className="space-y-2">
-                      {dummyDashboardData.recentAppointments.map((appointment) => (
+                      {dashboardData.recentAppointments.map((appointment) => (
                         <div
                           key={appointment._id}
                           className="flex justify-between items-center py-1 border-b border-gray-200 last:border-b-0 hover:bg-gray-50 transition-colors"
