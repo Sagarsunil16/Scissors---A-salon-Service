@@ -1,6 +1,7 @@
 export const Messages = {
   // Success Messages
   SALON_DATA_FETCHED: "Salon data fetched successfully",
+  SALON_APPOINTMENTS_SUCCESS : "Appointments fetched successfully",
   STYLISTS_FETCHED: "Stylists fetched successfully",
   LOGIN_SUCCESS: "Login successful",
   PROFILE_UPDATED: "Profile updated successfully",
@@ -55,7 +56,9 @@ export const Messages = {
   GOOGLE_LOGIN_SUCCESS: "You have successfully logged in with Google",
   PASSWORD_RESET: "Your password has been reset successfully",
   ALL_SALONS_FETCHED: "All salons fetched successfully",
-
+  USER_APPOINTMENTS_SUCCESS:"Appointments fetched successfully",
+  WALLET_BALANCE_FETCHED: "Wallet balance fetched successfully",
+  WALLET_HISTORY_FETCHED: "Wallet transaction history fetched successfully", 
   // Error Messages
   LOGIN_ERROR: "Invalid email or password",
   SALON_ID_REQUIRED: "Salon ID is required to fetch the salon data",
@@ -161,6 +164,5 @@ export const Messages = {
   APPOINTMENT_ALREADY_COMPLETED: "Appointment is already completed", // Added
   WALLET_NOT_FOUND: "Wallet not found",
   INSUFFICIENT_WALLET_BALANCE: "Insufficient wallet balance",
-  WALLET_BALANCE_FETCHED: "Wallet balance fetched successfully",
-  WALLET_HISTORY_FETCHED: "Wallet transaction history fetched successfully",  
+ 
 };

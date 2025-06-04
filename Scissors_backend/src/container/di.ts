@@ -65,6 +65,8 @@ import AdminDashboardService from "../services/AdminDashboardService";
 import AdminDashboardController from "../controllers/AdminDashboardController";
 import SalonDashboardService from "../services/SalonDashboardService";
 import SalonDashboardController from "../controllers/SalonDashboardController";
+import { IAuthService } from "../Interfaces/Auth/IAuthService";
+import AuthService from "../services/AuthService";
 
 
 
@@ -98,12 +100,13 @@ const offerService:IOfferService = new OfferService(offerRepository)
 const bookingService:IBookingService = new BookingService(timeSlotService,salonService,offerService,reviewService)
 const adminDashboardService:IAdminDashboardService = new AdminDashboardService(userRepository,salonRepository,appointmentRepository)
 const salonDashboardService = new SalonDashboardService(salonRepository,appointmentRepository)
+const authService:IAuthService = new AuthService(salonService,userService)
 
 
 //controllers
 const adminController = new AdminController(userService,salonService)
 const appointmentController = new AppointmentController(appointmentService)
-const authController = new AuthController(salonService,userService)
+const authController = new AuthController(authService)
 const bookingController = new BookingController(offerService,reviewService,timeSlotService,salonService,bookingService,stylistService,appointmentService,walletService)
 const categoryController = new CategoryController(categoryService)
 const chatController = new ChatController(messageService,salonService)

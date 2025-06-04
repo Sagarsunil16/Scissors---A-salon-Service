@@ -1,6 +1,4 @@
 import { NextFunction, Request, Response } from "express";
-import jwt from "jsonwebtoken";
-import bcrypt from "bcryptjs";
 import CustomError from "../Utils/cutsomError";
 import { ISalonService } from "../Interfaces/Salon/ISalonService";
 import { IUserService } from "../Interfaces/User/IUserService";
@@ -19,37 +17,7 @@ class AdminController {
   async adminLogin(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { email, password } = req.body;
-      if (!email || !password) {
-        throw new CustomError(Messages.MISSING_LOGIN_CREDENTIALS, HttpStatus.BAD_REQUEST);
-      }
-
-      const user = await this._userService.getUserByEmail(email);
-      if (!user) {
-        throw new CustomError(Messages.LOGIN_ERROR, HttpStatus.UNAUTHORIZED);
-      }
-
-      const isPasswordValid = await bcrypt.compare(password, user.password);
-      if (!isPasswordValid) {
-        throw new CustomError(Messages.LOGIN_ERROR, HttpStatus.UNAUTHORIZED);
-      }
-
-      if (user.role !== "Admin") {
-        throw new CustomError(Messages.UNAUTHORIZED_ADMIN, HttpStatus.UNAUTHORIZED);
-      }
-
-      const token = jwt.sign(
-        { id: user._id, role: user.role, active: user.is_Active },
-        process.env.JWT_SECRET as string,
-        { expiresIn: "15m" }
-      );
-
-      const refreshToken = jwt.sign(
-        { id: user._id, role: user.role, active: user.is_Active },
-        process.env.REFRESH_TOKEN_SECRET as string,
-        { expiresIn: "7d" }
-      );
-
-      await this._userService.updateRefreshToken(user._id as string, refreshToken);
+      const { user, accessToken, refreshToken } = await this._userService.adminLogin(email, password);
 
       const cookieOptions = {
         path: "/",
@@ -59,7 +27,7 @@ class AdminController {
       };
 
       res
-        .cookie("authToken", token, { ...cookieOptions, maxAge: 15 * 60 * 1000 })
+        .cookie("authToken", accessToken, { ...cookieOptions, maxAge: 15 * 60 * 1000 })
         .cookie("refreshToken", refreshToken, { ...cookieOptions, maxAge: 7 * 24 * 60 * 60 * 1000 })
         .status(HttpStatus.OK)
         .json({
@@ -144,19 +112,7 @@ class AdminController {
       const pageNumber = Number(page);
       const limitNumber = Number(limit);
 
-      if (isNaN(pageNumber) || isNaN(limitNumber) || pageNumber < 1 || limitNumber < 1) {
-        throw new CustomError(Messages.INVALID_PAGINATION_PARAMS, HttpStatus.BAD_REQUEST);
-      }
-
-      const { data: userData, totalCount: totalUsers } = await this._userService.getAllUsers(
-        pageNumber,
-        limitNumber,
-        search as string
-      );
-      const totalUserPages = Math.ceil(totalUsers / limitNumber);
-      if (!userData.length) {
-        throw new CustomError(Messages.NO_USER_DATA_FOUND, HttpStatus.NOT_FOUND);
-      }
+      const { userData, totalUserPages } = await this._userService.getAllUsers(pageNumber, limitNumber, search as string);
       res.status(HttpStatus.OK).json({
         message: Messages.USER_DATA_FETCHED,
         userData: { userData, totalUserPages },
@@ -171,17 +127,11 @@ class AdminController {
       const { page = "1", search = "" } = req.query;
       const pageNumber = Number(page);
 
-      if (isNaN(pageNumber) || pageNumber < 1) {
-        throw new CustomError(Messages.INVALID_PAGINATION_PARAMS, HttpStatus.BAD_REQUEST);
-      }
-
-      const salonData = await this._salonService.getAllSalons(pageNumber, search as string);
-      const totalSalonPages = Math.ceil(salonData.totalCount / 10);
-
+      const { salonData, totalPages } = await this._salonService.getAllSalons(pageNumber, search as string);
       res.status(HttpStatus.OK).json({
         message: Messages.SALON_DATA_FETCHED_ADMIN,
         salonData,
-        totalPages: totalSalonPages,
+        totalPages,
       });
     } catch (error) {
       next(error);

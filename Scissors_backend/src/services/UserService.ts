@@ -7,8 +7,10 @@ import { sendOtpEmail, generateOtp } from "../Utils/otp";
 import admin from "../config/firebase";
 import crypto from "crypto";
 import CustomError from "../Utils/cutsomError";
-import { TokenPayload } from "../controllers/AuthController";
+import { TokenPayload } from "../Interfaces/Auth/IAuthService";
 import { IUserService } from "../Interfaces/User/IUserService";
+import { Messages } from "../constants/Messages";
+import { HttpStatus } from "../constants/HttpStatus";
 
 class UserService implements IUserService {
   private _repository: IUserRepository;
@@ -98,6 +100,52 @@ class UserService implements IUserService {
     return { user, accessToken, refreshToken };
   }
 
+  async adminLogin(
+    email: string,
+    password: string
+  ): Promise<{
+    user: IUserDocument;
+    accessToken: string;
+    refreshToken: string;
+  }> {
+    if (!email || !password) {
+      throw new CustomError(Messages.MISSING_LOGIN_CREDENTIALS, HttpStatus.BAD_REQUEST);
+    }
+
+    const user = await this._repository.getUserByEmail(email);
+    if (!user) {
+      throw new CustomError(Messages.LOGIN_ERROR, HttpStatus.UNAUTHORIZED);
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      throw new CustomError(Messages.LOGIN_ERROR, HttpStatus.UNAUTHORIZED);
+    }
+
+    if (user.role !== "Admin") {
+      throw new CustomError(Messages.UNAUTHORIZED_ADMIN, HttpStatus.UNAUTHORIZED);
+    }
+
+    const accessToken = jwt.sign(
+      { id: user._id, role: user.role, active: user.is_Active },
+      process.env.JWT_SECRET as string,
+      { expiresIn: "15m" }
+    );
+
+    const refreshToken = jwt.sign(
+      { id: user._id, role: user.role, active: user.is_Active },
+      process.env.REFRESH_TOKEN_SECRET as string,
+      { expiresIn: "7d" }
+    );
+
+    await this._repository.updateUser(user._id as string, {
+      refreshToken,
+      refreshTokenExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    });
+
+    return { user, accessToken, refreshToken };
+  }
+
   async googleLogin(
     idToken: string
   ): Promise<{ user: IUserDocument; token: string; refreshToken: string }> {
@@ -134,7 +182,7 @@ class UserService implements IUserService {
     const token = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET as string,
-      { expiresIn: "15m" } // Align with loginUser
+      { expiresIn: "15m" }
     );
     const refreshToken = jwt.sign(
       { id: user._id, role: user.role },
@@ -143,7 +191,7 @@ class UserService implements IUserService {
     );
     await this._repository.updateUser(user._id as string, {
       refreshToken,
-      refreshTokenExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Store as Date
+      refreshTokenExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     });
     return { user, token, refreshToken };
   }
@@ -176,7 +224,7 @@ class UserService implements IUserService {
       throw new Error("User not found");
     }
     const otp = generateOtp();
-    const otpExpiry = new Date(Date.now() + 1 * 60 * 1000); // 1minutes
+    const otpExpiry = new Date(Date.now() + 1 * 60 * 1000);
     await this._repository.updateUserOtp(email, otp, otpExpiry);
     await sendOtpEmail(email, otp);
     return "An OTP has been sent to your email. Please check your inbox.";
@@ -186,7 +234,11 @@ class UserService implements IUserService {
     page: number,
     limit: number,
     search: string
-  ): Promise<{ data: IUserDocument[]; totalCount: number }> {
+  ): Promise<{ userData: IUserDocument[]; totalUserPages: number }> {
+    if (isNaN(page) || isNaN(limit) || page < 1 || limit < 1) {
+      throw new CustomError(Messages.INVALID_PAGINATION_PARAMS, HttpStatus.BAD_REQUEST);
+    }
+
     let query: any = {};
     if (search) {
       query.$or = [
@@ -195,7 +247,14 @@ class UserService implements IUserService {
         { email: { $regex: search, $options: "i" } },
       ];
     }
-    return await this._repository.getAllUsers(page, limit, query);
+
+    const { data: users, totalCount: totalUsers } = await this._repository.getAllUsers(page, limit, query);
+    if (!users.length) {
+      throw new CustomError(Messages.NO_USER_DATA_FOUND, HttpStatus.NOT_FOUND);
+    }
+
+    const totalUserPages = Math.ceil(totalUsers / limit);
+    return { userData: users, totalUserPages };
   }
 
   async verifyOTP(email: string, otp: string): Promise<string> {
@@ -221,8 +280,9 @@ class UserService implements IUserService {
     await this._repository.verifyOtpAndUpdate(email);
     return "Verification Successfull";
   }
+
   async resetPassword(email: string, newPassword: string): Promise<string> {
-    const user = this._repository.getUserByEmail(email);
+    const user = await this._repository.getUserByEmail(email);
     if (!user) {
       throw new Error("User not Found");
     }

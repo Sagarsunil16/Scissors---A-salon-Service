@@ -24,7 +24,7 @@ const Salons = () => {
     try {
       const data = { page: page, search: search };
       const response = await fetchSalons(data);
-      setSalonData(response.data.salonData.data);
+      setSalonData(response.data.salonData);
       setTotalPages(response.data.totalPages);
       console.log("Fetched successfully");
     } catch (error: any) {
