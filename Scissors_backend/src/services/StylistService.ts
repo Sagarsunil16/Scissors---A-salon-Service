@@ -3,92 +3,125 @@ import { IServiceRepository } from "../Interfaces/Service/IServiceRepository";
 import { IStylist, IStylistDocument, PaginationOptions } from "../Interfaces/Stylist/IStylist";
 import { IStylistRepository } from "../Interfaces/Stylist/IStylistRepository";
 import { IStylistService } from "../Interfaces/Stylist/IStylistService";
-import CustomError
- from "../Utils/cutsomError";
+import CustomError from "../Utils/cutsomError";
+import { Messages } from "../constants/Messages";
+import { HttpStatus } from "../constants/HttpStatus";
+import mongoose from "mongoose";
 
-class StylistService implements IStylistService{
-    private _stylistRepository:IStylistRepository
-    private _serviceRepository:IServiceRepository
-    private _salonRepository:ISalonRepository
-    constructor(stylistRepository:IStylistRepository,serviceRepository:IServiceRepository,salonRepository:ISalonRepository){
-        this._stylistRepository = stylistRepository,
-        this._serviceRepository = serviceRepository,
-        this._salonRepository = salonRepository
+class StylistService implements IStylistService {
+  private _stylistRepository: IStylistRepository;
+  private _serviceRepository: IServiceRepository;
+  private _salonRepository: ISalonRepository;
+
+  constructor(
+    stylistRepository: IStylistRepository,
+    serviceRepository: IServiceRepository,
+    salonRepository: ISalonRepository
+  ) {
+    this._stylistRepository = stylistRepository;
+    this._serviceRepository = serviceRepository;
+    this._salonRepository = salonRepository;
+  }
+
+  async createStylist(stylistData: IStylist): Promise<IStylistDocument> {
+    console.log(stylistData, "stylistData");
+    const { name, salon, services } = stylistData;
+    if (!name || !salon || !services || !mongoose.Types.ObjectId.isValid(salon.toString())) {
+      throw new CustomError(Messages.INVALID_STYLIST_DATA, HttpStatus.BAD_REQUEST);
     }
 
-    async createStylist(stylistData:IStylist):Promise<any>{
-        try {
-             console.log(stylistData,"stylistData")
-        const salon = await this._salonRepository.getSalonById(stylistData.salon.toString())
-        if(!salon){
-            throw new CustomError("Salon not found",404)
-        }
-        const service =  await Promise.all(
-            stylistData.services.map((serviceId)=>this._serviceRepository.findServiceById(serviceId))
-        );
-
-        if(service.some(service=>!service)){
-            throw new CustomError("One or more services are not found. Please check the service details.", 404)
-        }
-        return this._stylistRepository.createStylist(stylistData)
-        } catch (error) {
-            console.log(error)
-            return
-        }
-       
+    const salonExists = await this._salonRepository.getSalonById(salon.toString());
+    if (!salonExists) {
+      throw new CustomError(Messages.SALON_NOT_FOUND, HttpStatus.NOT_FOUND);
     }
 
-
-    async findStylist(salonId:string,options:PaginationOptions,searchTerm?:string):Promise<{ stylists: IStylistDocument[]; totalCount:number}>{
-        if (!salonId) throw new Error('Salon ID is required');
-        if (options.page < 1) throw new Error('Invalid page number');
-        if (options.limit < 1) throw new Error('Invalid limit value');
-        const salon  = this._salonRepository.getSalonById(salonId)
-        if(!salon){
-            throw new CustomError("No Salon Found. Please check the salon ID.", 404);
-        }
-        return this._stylistRepository.findStylists(salonId,options,searchTerm)
+    const serviceChecks = await Promise.all(
+      services.map((serviceId) => this._serviceRepository.findServiceById(serviceId.toString()))
+    );
+    if (serviceChecks.some((service) => !service)) {
+      throw new CustomError(Messages.SERVICE_NOT_FOUND, HttpStatus.NOT_FOUND);
     }
 
-    async updateStylist(id:string,updateData:Partial<IStylist>):Promise<IStylistDocument | null>{
-        const existingStylist =  await this._stylistRepository.findStylistById(id)
-        if(!existingStylist){
-            throw new CustomError("Stylist not found. Please check the stylist ID.", 404);
-        }
-        if(updateData.services){
-            const services = await Promise.all(
-                updateData.services.map((serviceId)=> this._serviceRepository.findServiceById(serviceId.toString()))
-            );
-            if(services.some(service=>!service)){
-                throw new CustomError("One or more services are not found. Please check the service details.", 404);
-            }
-        }
+    return await this._stylistRepository.createStylist(stylistData);
+  }
 
-        return this._stylistRepository.updateStylist(id, updateData);
+  async findStylist(
+    salonId: string,
+    options: PaginationOptions,
+    searchTerm?: string
+  ): Promise<{ stylists: IStylistDocument[]; totalCount: number }> {
+    if (!salonId || !mongoose.Types.ObjectId.isValid(salonId)) {
+      throw new CustomError(Messages.INVALID_SALON_ID, HttpStatus.BAD_REQUEST);
+    }
+    if (options.page < 1 || options.limit < 1) {
+      throw new CustomError(Messages.INVALID_PAGINATION_PARAMS, HttpStatus.BAD_REQUEST);
     }
 
-    async findStylistById(id:string):Promise<IStylistDocument | null>{
-        if(!id){
-            throw new CustomError("ID is required to fetch stylist details.", 400);
-        }
-        const stylist = await this._stylistRepository.findStylistById(id);
-        if (!stylist) {
-          throw new CustomError("Stylist not found. Please check the stylist ID.", 404);
-        }
-        return stylist;
+    const salon = await this._salonRepository.getSalonById(salonId);
+    if (!salon) {
+      throw new CustomError(Messages.SALON_NOT_FOUND, HttpStatus.NOT_FOUND);
     }
 
-    async deleteStylist(id:string):Promise<boolean>{
-        if(!id){
-            throw new CustomError("ID is required to delete stylist.", 400);
-        }
-        const existingStylist = this.findStylistById(id)
-        if(!existingStylist){
-            throw new CustomError("Stylist not found. Please check the stylist ID.", 404);
-        }
-        return this._stylistRepository.deleteStylist(id)
+    return await this._stylistRepository.findStylists(salonId, options, searchTerm);
+  }
+
+  async updateStylist(id: string, updateData: Partial<IStylist>): Promise<IStylistDocument | null> {
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      throw new CustomError(Messages.INVALID_STYLIST_ID, HttpStatus.BAD_REQUEST);
     }
+
+    const existingStylist = await this._stylistRepository.findStylistById(id);
+    if (!existingStylist) {
+      throw new CustomError(Messages.STYLIST_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+
+    if (updateData.services) {
+      const services = await Promise.all(
+        updateData.services.map((serviceId) => this._serviceRepository.findServiceById(serviceId.toString()))
+      );
+      if (services.some((service) => !service)) {
+        throw new CustomError(Messages.SERVICE_NOT_FOUND, HttpStatus.NOT_FOUND);
+      }
+    }
+
+    const updatedStylist = await this._stylistRepository.updateStylist(id, updateData);
+    if (!updatedStylist) {
+      throw new CustomError(Messages.STYLIST_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+
+    return updatedStylist;
+  }
+
+  async findStylistById(id: string): Promise<IStylistDocument | null> {
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      throw new CustomError(Messages.INVALID_STYLIST_ID, HttpStatus.BAD_REQUEST);
+    }
+
+    const stylist = await this._stylistRepository.findStylistById(id);
+    if (!stylist) {
+      throw new CustomError(Messages.STYLIST_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+
+    return stylist;
+  }
+
+  async deleteStylist(id: string): Promise<boolean> {
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      throw new CustomError(Messages.INVALID_STYLIST_ID, HttpStatus.BAD_REQUEST);
+    }
+
+    const existingStylist = await this._stylistRepository.findStylistById(id);
+    if (!existingStylist) {
+      throw new CustomError(Messages.STYLIST_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+
+    const result = await this._stylistRepository.deleteStylist(id);
+    if (!result) {
+      throw new CustomError(Messages.STYLIST_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+
+    return result;
+  }
 }
 
-
-export default StylistService
+export default StylistService;

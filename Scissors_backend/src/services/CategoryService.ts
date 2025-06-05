@@ -1,3 +1,5 @@
+import { HttpStatus } from "../constants/HttpStatus";
+import { Messages } from "../constants/Messages";
 import { ICategory, ICategoryDocument } from "../Interfaces/Category/ICategory";
 import { ICategoryRepository } from "../Interfaces/Category/ICategoryRepository";
 import { ICategoryService } from "../Interfaces/Category/ICategoryService";
@@ -5,37 +7,59 @@ import CustomError from "../Utils/cutsomError";
 
 class CategoryService implements ICategoryService {
   private _repository: ICategoryRepository;
+
   constructor(repository: ICategoryRepository) {
     this._repository = repository;
   }
+
   async getAllCategory(): Promise<ICategoryDocument[]> {
     const result = await this._repository.getAllCategory();
     if (!result || result.length === 0) {
-      throw new CustomError("No categories found. Please add some categories first.", 404);
+      throw new CustomError(Messages.NO_CATEGORIES_FOUND, HttpStatus.NOT_FOUND);
     }
     return result;
   }
 
-  async getFilteredCategory(page:number,limit:number,search:string):Promise<{categories:ICategoryDocument[];totalItems:number}>{
-   const skip = (page-1) * limit
-   const query:any = {}
-   if(search){
-    query.$or = [
-      {name:{$regex:search,$options:'i'}},
-      {description:{$regex:search,$options:'i'}}
-    ]
-   }
-   const [categories,totalItems] = await Promise.all([
-    await this._repository.getCategoriesPaginated(query,skip,limit),
-    await this._repository.countCategories(query)
-   ])
+  async getFilteredCategory(page: number | string, limit: number | string, search: string): Promise<{
+    categories: ICategoryDocument[];
+    totalItems: number;
+    totalPages: number;
+    currentPage: number;
+  }> {
+    const pageNumber = parseInt(page.toString(), 10);
+    const limitNumber = parseInt(limit.toString(), 10);
 
-   return {categories,totalItems}
+    if (isNaN(pageNumber) || isNaN(limitNumber) || pageNumber < 1 || limitNumber < 1) {
+      throw new CustomError(Messages.INVALID_PAGINATION_PARAMS, HttpStatus.BAD_REQUEST);
+    }
+
+    const skip = (pageNumber - 1) * limitNumber;
+    const query: any = {};
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const [categories, totalItems] = await Promise.all([
+      this._repository.getCategoriesPaginated(query, skip, limitNumber),
+      this._repository.countCategories(query),
+    ]);
+
+    const totalPages = Math.ceil(totalItems / limitNumber);
+
+    return {
+      categories,
+      totalItems,
+      totalPages,
+      currentPage: pageNumber,
+    };
   }
+
   async createCategory(categoryData: ICategory): Promise<ICategoryDocument> {
-    const { name, description } = categoryData;
-    if (!name || !description) {
-      throw new CustomError("Both category name and description are required to create a new category.", 400);
+    if (!categoryData || Object.keys(categoryData).length === 0 || !categoryData.name || !categoryData.description) {
+      throw new CustomError(Messages.INVALID_CATEGORY_DATA, HttpStatus.BAD_REQUEST);
     }
     const result = await this._repository.createCategory(categoryData);
     return result;
@@ -46,24 +70,23 @@ class CategoryService implements ICategoryService {
     name: string;
     description: string;
   }): Promise<ICategoryDocument | null> {
-    const { id, ...data } = updatedData;
-    const category = this._repository.findByIdCategory(id);
+    const { id, name, description } = updatedData;
+    if (!id || !name || !description) {
+      throw new CustomError(Messages.INVALID_CATEGORY_DATA, HttpStatus.BAD_REQUEST);
+    }
+    const category = await this._repository.findByIdCategory(id);
     if (!category) {
-      throw new CustomError("Category not found. Please verify the category ID and try again.", 404);
+      throw new CustomError(Messages.CATEGORY_NOT_FOUND, HttpStatus.NOT_FOUND);
     }
-    if (!data.name || !data.description) {
-      throw new CustomError("Both category name and description are required to update the category.", 400);
-    }
-    const result = await this._repository.updateCategory(id, data);
+    const result = await this._repository.updateCategory(id, { name, description });
     return result;
   }
 
   async deleteCategory(id: string): Promise<string> {
     if (!id) {
-      throw new CustomError("Category ID is required to delete a category.", 400);
+      throw new CustomError(Messages.INVALID_CATEGORY_ID, HttpStatus.BAD_REQUEST);
     }
     const result = await this._repository.deleteCategory(id);
-    console.log(result);
     return result;
   }
 }

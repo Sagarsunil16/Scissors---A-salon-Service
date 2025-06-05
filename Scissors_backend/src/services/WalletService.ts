@@ -8,18 +8,17 @@ import { IWalletTransactionDocument, TransactionType } from "../Interfaces/Walle
 import { IWalletRepository } from "../Interfaces/Wallet/IWalletRepository";
 import { IWalletTransactionRepository } from "../Interfaces/Wallet/IWalletTransactionRepository";
 
-class WalletService implements IWalletService{
+class WalletService implements IWalletService {
+  private _walletRepository: IWalletRepository;
+  private _walletTransactionReposiotry: IWalletTransactionRepository;
 
-    private _walletRepository: IWalletRepository
-    private _walletTransactionReposiotry: IWalletTransactionRepository
-    constructor(walletRepository:IWalletRepository, walletTransactionRepository:IWalletTransactionRepository){
-        this._walletRepository = walletRepository
-        this._walletTransactionReposiotry =  walletTransactionRepository
-    }
+  constructor(walletRepository: IWalletRepository, walletTransactionRepository: IWalletTransactionRepository) {
+    this._walletRepository = walletRepository;
+    this._walletTransactionReposiotry = walletTransactionRepository;
+  }
 
-
-    async getOrCreateWallet(userId: string): Promise<IWalletDocument> {
-         if (!mongoose.Types.ObjectId.isValid(userId)) {
+  async getOrCreateWallet(userId: string): Promise<IWalletDocument> {
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
       throw new CustomError(Messages.INVALID_USER_ID, HttpStatus.BAD_REQUEST);
     }
     let wallet = await this._walletRepository.findByUserId(userId);
@@ -27,16 +26,16 @@ class WalletService implements IWalletService{
       wallet = await this._walletRepository.createWallet(userId);
     }
     return wallet;
-    }
+  }
 
-    async creditWallet(
+  async creditWallet(
     userId: string,
     amount: number,
     appointmentId?: string,
     description: string = "Wallet credit"
   ): Promise<IWalletTransactionDocument> {
     if (amount <= 0) {
-      throw new CustomError("Amount must be positive", HttpStatus.BAD_REQUEST);
+      throw new CustomError(Messages.INVALID_AMOUNT, HttpStatus.BAD_REQUEST);
     }
     const session = await mongoose.startSession();
     session.startTransaction();
@@ -49,7 +48,7 @@ class WalletService implements IWalletService{
         session
       );
       const transaction = await this._walletTransactionReposiotry.createTransaction(
-       (updatedWallet._id as mongoose.Types.ObjectId).toString(),
+        (updatedWallet._id as mongoose.Types.ObjectId).toString(),
         TransactionType.CREDIT,
         amount,
         appointmentId,
@@ -73,7 +72,7 @@ class WalletService implements IWalletService{
     description: string = "Wallet debit"
   ): Promise<IWalletTransactionDocument> {
     if (amount <= 0) {
-      throw new CustomError("Amount must be positive", HttpStatus.BAD_REQUEST);
+      throw new CustomError(Messages.INVALID_AMOUNT, HttpStatus.BAD_REQUEST);
     }
     const session = await mongoose.startSession();
     session.startTransaction();
@@ -107,6 +106,10 @@ class WalletService implements IWalletService{
   }
 
   async getBalance(userId: string): Promise<number> {
+    if (!userId) {
+      throw new CustomError(Messages.AUTHENTICATION_REQUIRED, HttpStatus.UNAUTHORIZED);
+    }
+    console.log(userId, "userid");
     const wallet = await this.getOrCreateWallet(userId);
     return wallet.balance;
   }
@@ -117,12 +120,15 @@ class WalletService implements IWalletService{
     page: number;
     pages: number;
   }> {
-    if (page < 1 || limit < 1) {
+    if (!userId) {
+      throw new CustomError(Messages.AUTHENTICATION_REQUIRED, HttpStatus.UNAUTHORIZED);
+    }
+    if (isNaN(page) || isNaN(limit) || page < 1 || limit < 1) {
       throw new CustomError(Messages.INVALID_PAGINATION_PARAMS, HttpStatus.BAD_REQUEST);
     }
     const wallet = await this.getOrCreateWallet(userId);
     const { transactions, total } = await this._walletTransactionReposiotry.getTransactions(
-     (wallet._id as mongoose.Types.ObjectId).toString(),
+      (wallet._id as mongoose.Types.ObjectId).toString(),
       page,
       limit
     );
@@ -135,5 +141,4 @@ class WalletService implements IWalletService{
   }
 }
 
-
-export default WalletService
+export default WalletService;

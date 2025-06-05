@@ -1,31 +1,24 @@
 import { Request, Response, NextFunction } from "express";
-import CustomError from "../Utils/cutsomError";
 import { ISalonMenuService } from "../Interfaces/Service/ISerService";
 import { Messages } from "../constants/Messages";
 import { HttpStatus } from "../constants/HttpStatus";
-import mongoose from "mongoose";
 
 class ServiceController {
-  private _serService: ISalonMenuService;
+  private _salonMenuService: ISalonMenuService;
 
   constructor(serService: ISalonMenuService) {
-    this._serService = serService;
+    this._salonMenuService = serService;
   }
 
   async createService(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { name, description, price, duration } = req.body;
-      if (!name || !price || !duration) {
-        throw new CustomError(Messages.INVALID_SERVICE_DATA, HttpStatus.BAD_REQUEST);
-      }
-
-      const result = await this._serService.createService(req.body);
+      const result = await this._salonMenuService.createService(req.body);
       res.status(HttpStatus.OK).json({
         message: Messages.SERVICE_CREATED,
         result,
       });
-    } catch (error:any) {
-      next(new CustomError(error.message || Messages.CREATE_SERVICE_FAILED, HttpStatus.INTERNAL_SERVER_ERROR));
+    } catch (error) {
+      next(error);
     }
   }
 
@@ -33,58 +26,39 @@ class ServiceController {
     try {
       const { page = "1", search = "" } = req.query;
       const pageNumber = parseInt(page as string, 10) || 1;
-
-      if (pageNumber < 1) {
-        throw new CustomError(Messages.INVALID_PAGINATION_PARAMS, HttpStatus.BAD_REQUEST);
-      }
-
-      const result = await this._serService.getAllServices(pageNumber, search as string);
-      if (!result || result.services.length === 0) {
-        throw new CustomError(Messages.NO_SERVICES_FOUND, HttpStatus.NOT_FOUND);
-      }
-
-      const totalServicePages = Math.ceil(result.totalCount / 10);
+      const result = await this._salonMenuService.getAllServices(pageNumber, search as string);
       res.status(HttpStatus.OK).json({
         message: Messages.SERVICES_FETCHED,
-        services: result.services,
-        totalPages: totalServicePages,
+          services: result.services,
+          totalPages: Math.ceil(result.totalCount / 10),
       });
-    } catch (error:any) {
-      next(new CustomError(error.message || Messages.FETCH_SERVICES_FAILED, HttpStatus.INTERNAL_SERVER_ERROR));
+    } catch (error) {
+      next(error);
     }
   }
 
   async updateService(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { id } = req.body;
-      if (!id || !mongoose.Types.ObjectId.isValid(id)) {
-        throw new CustomError(Messages.INVALID_SERVICE_ID, HttpStatus.BAD_REQUEST);
-      }
-
-      const result = await this._serService.updateService(req.body);
+      const result = await this._salonMenuService.updateService(req.body);
       res.status(HttpStatus.OK).json({
         message: Messages.SERVICE_UPDATED,
         result,
       });
-    } catch (error:any) {
-      next(new CustomError(error.message || Messages.UPDATE_SERVICE_FAILED, HttpStatus.INTERNAL_SERVER_ERROR));
+    } catch (error) {
+      next(error);
     }
   }
 
   async deleteService(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const id = req.query.id as string;
-      if (!id || !mongoose.Types.ObjectId.isValid(id)) {
-        throw new CustomError(Messages.INVALID_SERVICE_ID, HttpStatus.BAD_REQUEST);
-      }
-
-      const result = await this._serService.deleteService(id);
+      const result = await this._salonMenuService.deleteService(id);
       res.status(HttpStatus.OK).json({
         message: Messages.SERVICE_DELETED,
         result,
       });
-    } catch (error:any) {
-      next(new CustomError(error.message || Messages.DELETE_SERVICE_FAILED, HttpStatus.INTERNAL_SERVER_ERROR));
+    } catch (error) {
+      next(error);
     }
   }
 }

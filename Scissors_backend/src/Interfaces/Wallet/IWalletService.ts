@@ -2,7 +2,7 @@ import { IWalletDocument } from "./IWallet";
 import { IWalletTransactionDocument } from "./IWalletTransactions";
 
 export interface IWalletService {
-getOrCreateWallet(userId: string): Promise<IWalletDocument>;
+  getOrCreateWallet(userId: string): Promise<IWalletDocument>;
   creditWallet(
     userId: string,
     amount: number,

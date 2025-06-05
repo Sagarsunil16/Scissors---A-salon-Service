@@ -59,6 +59,9 @@ export const Messages = {
   USER_APPOINTMENTS_SUCCESS:"Appointments fetched successfully",
   WALLET_BALANCE_FETCHED: "Wallet balance fetched successfully",
   WALLET_HISTORY_FETCHED: "Wallet transaction history fetched successfully", 
+  OFFER_UPDATED: "Offer updated successfully",
+  MESSAGES_MARKED_READ: "Messages marked as read",
+  REACTION_ADDED: "Reaction added successfully",
   // Error Messages
   LOGIN_ERROR: "Invalid email or password",
   SALON_ID_REQUIRED: "Salon ID is required to fetch the salon data",
@@ -164,5 +167,39 @@ export const Messages = {
   APPOINTMENT_ALREADY_COMPLETED: "Appointment is already completed", // Added
   WALLET_NOT_FOUND: "Wallet not found",
   INSUFFICIENT_WALLET_BALANCE: "Insufficient wallet balance",
+  NO_CATEGORIES_FOUND: "No categories found",
+  CATEGORY_NOT_FOUND: "Category not found",
+  OFFER_NOT_FOUND: "Offer not found",
+  MAX_OFFERS_REACHED: "Maximum offers reached",
+  INVALID_EXPIRY_DATE: "Invalid expiry date",
+  INVALID_SERVICE_IDS: " Invalid services ids",
+  INVALID_REACTION_DATA: "Invalid reaction data",
+  MESSAGE_NOT_FOUND: "Message not found",
+  CHAT_NOT_FOUND: "Chat not found",
+  INVALID_ROLE: "Invalid role",
+  INVALID_CHAT_DATA: "Invalid chat data",
+  INVALID_MESSAGE_ID:"Invalid Message Id",
+  INVALID_MESSAGE_DATA:"Invalid message data",
+  INVALID_ID: "Invalid Id",
+  REVIEW_ALREADY_SUBMITTED:"Review already submitted",
+  UNAUTHORIZED_REVIEW:"Unauthorized review",
+  REVIEW_NOT_ALLOWED:"Review not allowed",
+  INVALID_RATING_RANGE:"Rating is beyond the range",
+  SERVICE_NOT_FOUND:"Service not found",
+  INVALID_PRICE: "Invalid price",
+  INVALID_DURATION: "Invalid duration",
+  INVALID_AMOUNT: "Invalid amount",
+  INVALID_CURRENT_PASSWORD:"Invalid current password",
+  INVALID_ADDRESS:"Invalid address",
+  OTP_EXPIRED:"Otp has been expired",
+  INVALID_GOOGLE_TOKEN:"Invalid google token",
+  ACCOUNT_BLOCKED:"The account is blocked",
+  EMAIL_NOT_FOUND:"Email not found",
+  ACCOUNT_NOT_VERIFIED:"Account not verified"
+
+
+
+
+  
  
 };

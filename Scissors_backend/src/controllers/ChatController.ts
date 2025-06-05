@@ -44,9 +44,7 @@ class ChatController {
       if (!salonId) {
         throw new CustomError(Messages.AUTHENTICATION_REQUIRED, HttpStatus.UNAUTHORIZED);
       }
-
       const chats = await this._messageService.getSalonChats(salonId);
-      console.log(chats,"chatsss")
       res.status(HttpStatus.OK).json({
         message: Messages.SALON_CHATS_FETCHED,
         chats,

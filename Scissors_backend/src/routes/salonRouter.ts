@@ -35,7 +35,7 @@ salonRouter.get('/chats', auth([ROLES.SALON]), chatController.getSalonChats.bind
 salonRouter.get('/messages/:userId', auth([ROLES.SALON]), messageController.getSalonMessages.bind(messageController));
 salonRouter.post('/messages/upload', auth([ROLES.SALON]), upload.single('file'), messageController.uploadAttachment.bind(messageController));
 salonRouter.delete('/chats/:userId', auth([ROLES.SALON]), chatController.deleteSalonChat.bind(chatController)); // New: Delete chat
-salonRouter.post('/messages/:userId/read', auth([ROLES.SALON]), messageController.markSalonMessagesAsRead.bind(messageController)); // New: Mark messages as read
+salonRouter.post('/messages/:userId/read', auth([ROLES.SALON]), messageController.markMessagesAsRead.bind(messageController)); // New: Mark messages as read
 salonRouter.post('/messages/:messageId/reaction', auth([ROLES.SALON]), messageController.addReaction.bind(messageController)); // New: Add reaction to message
 // Appointments
 salonRouter.get('/appointments', auth([ROLES.SALON]), appointmentController.getSalonAppointments.bind(appointmentController));

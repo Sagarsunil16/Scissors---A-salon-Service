@@ -17,7 +17,6 @@ class SalonDashboardController{
         try {
             const salonId = req.user?.id
             const data = await this._salonDashboardService.getSalonDashboardData(salonId as string)
-            console.log(data)
             res.status(200).json(data)
         } catch (error) {
             next(error)

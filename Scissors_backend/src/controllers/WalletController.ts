@@ -2,33 +2,30 @@ import { NextFunction, Request, Response } from "express";
 import { HttpStatus } from "../constants/HttpStatus";
 import { Messages } from "../constants/Messages";
 import { IWalletService } from "../Interfaces/Wallet/IWalletService";
-import CustomError from "../Utils/cutsomError";
+
 
 interface AuthenticatedRequest extends Request {
   user?: { id: string };
 }
 
-class WalletController{
-    private _walletService:IWalletService
-    constructor(walletService:IWalletService){
-        this._walletService = walletService
-    }
+class WalletController {
+  private _walletService: IWalletService;
 
-    async getBalance(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+  constructor(walletService: IWalletService) {
+    this._walletService = walletService;
+  }
+
+  async getBalance(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = req.user?.id;
-      if (!userId) {
-        throw new CustomError(Messages.AUTHENTICATION_REQUIRED, HttpStatus.UNAUTHORIZED);
-      }
-
-      console.log(userId,"userid")
-      const balance = await this._walletService.getBalance(userId);
+      console.log(userId, "userid");
+      const balance = await this._walletService.getBalance(userId as string);
       res.status(HttpStatus.OK).json({
         message: Messages.WALLET_BALANCE_FETCHED,
         data: { balance },
       });
     } catch (error) {
-      console.log(error)
+      console.log(error);
       next(error);
     }
   }
@@ -36,16 +33,10 @@ class WalletController{
   async getTransactionHistory(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = req.user?.id;
-      if (!userId) {
-        throw new CustomError(Messages.AUTHENTICATION_REQUIRED, HttpStatus.UNAUTHORIZED);
-      }
       const { page = "1", limit = "10" } = req.query;
       const pageNumber = parseInt(page as string, 10);
       const limitNumber = parseInt(limit as string, 10);
-      if (isNaN(pageNumber) || isNaN(limitNumber) || pageNumber < 1 || limitNumber < 1) {
-        throw new CustomError(Messages.INVALID_PAGINATION_PARAMS, HttpStatus.BAD_REQUEST);
-      }
-      const history = await this._walletService.getTransactionHistory(userId, pageNumber, limitNumber);
+      const history = await this._walletService.getTransactionHistory(userId as string, pageNumber, limitNumber);
       res.status(HttpStatus.OK).json({
         message: Messages.WALLET_HISTORY_FETCHED,
         data: history,
@@ -54,7 +45,6 @@ class WalletController{
       next(error);
     }
   }
-    
 }
 
-export default WalletController
+export default WalletController;

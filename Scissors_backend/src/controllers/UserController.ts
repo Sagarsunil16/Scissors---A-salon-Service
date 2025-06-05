@@ -3,7 +3,6 @@ import CustomError from "../Utils/cutsomError";
 import { Messages } from "../constants/Messages";
 import { HttpStatus } from "../constants/HttpStatus";
 import { IUserService } from "../Interfaces/User/IUserService";
-import mongoose from "mongoose";
 
 class UserController {
   private _userService: IUserService;
@@ -14,17 +13,12 @@ class UserController {
 
   async createUser(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { email, password, firstname, lastname } = req.body;
-      if (!email || !password || !firstname || !lastname) {
-        throw new CustomError(Messages.INVALID_USER_DATA, HttpStatus.BAD_REQUEST);
-      }
-
       const newUser = await this._userService.createUser(req.body);
       res.status(HttpStatus.CREATED).json({
         message: Messages.USER_CREATED,
         user: newUser,
       });
-    } catch (error:any) {
+    } catch (error: any) {
       next(new CustomError(error.message || Messages.CREATE_USER_FAILED, HttpStatus.INTERNAL_SERVER_ERROR));
     }
   }
@@ -32,10 +26,6 @@ class UserController {
   async userLogin(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { email, password } = req.body;
-      if (!email || !password) {
-        throw new CustomError(Messages.INVALID_CREDENTIALS, HttpStatus.BAD_REQUEST);
-      }
-
       const result = await this._userService.loginUser(email, password);
       const cookieOptions = {
         path: "/",
@@ -57,7 +47,7 @@ class UserController {
           message: Messages.USER_LOGGED_IN,
           user: result?.user,
         });
-    } catch (error:any) {
+    } catch (error: any) {
       next(new CustomError(error.message || Messages.USER_LOGIN_FAILED, HttpStatus.UNAUTHORIZED));
     }
   }
@@ -65,10 +55,6 @@ class UserController {
   async googleLogin(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { token } = req.body;
-      if (!token) {
-        throw new CustomError(Messages.INVALID_TOKEN, HttpStatus.BAD_REQUEST);
-      }
-
       const result = await this._userService.googleLogin(token);
       const cookieOptions = {
         path: "/",
@@ -90,7 +76,7 @@ class UserController {
           message: Messages.GOOGLE_LOGIN_SUCCESS,
           user: result?.user,
         });
-    } catch (error:any) {
+    } catch (error: any) {
       next(new CustomError(error.message || Messages.GOOGLE_LOGIN_FAILED, HttpStatus.UNAUTHORIZED));
     }
   }
@@ -107,7 +93,7 @@ class UserController {
         .clearCookie("refreshToken", { path: "/", httpOnly: true, secure: process.env.NODE_ENV === "production" })
         .status(HttpStatus.OK)
         .json({ message: Messages.LOGGED_OUT });
-    } catch (error:any) {
+    } catch (error: any) {
       next(new CustomError(error.message || Messages.SIGN_OUT_FAILED, HttpStatus.INTERNAL_SERVER_ERROR));
     }
   }
@@ -115,13 +101,9 @@ class UserController {
   async sentOtp(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { email } = req.body;
-      if (!email) {
-        throw new CustomError(Messages.INVALID_EMAIL, HttpStatus.BAD_REQUEST);
-      }
-
       const message = await this._userService.sendOtp(email);
       res.status(HttpStatus.OK).json({ message });
-    } catch (error:any) {
+    } catch (error: any) {
       next(new CustomError(error.message || Messages.SEND_OTP_FAILED, HttpStatus.BAD_REQUEST));
     }
   }
@@ -129,16 +111,12 @@ class UserController {
   async verifyOtp(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { email, otp } = req.body;
-      if (!email || !otp) {
-        throw new CustomError(Messages.INVALID_OTP, HttpStatus.BAD_REQUEST);
-      }
-
       const isValid = await this._userService.verifyOTP(email, otp);
       res.status(HttpStatus.OK).json({
         message: Messages.OTP_VERIFIED,
         isValid,
       });
-    } catch (error:any) {
+    } catch (error: any) {
       next(new CustomError(error.message || Messages.VERIFY_OTP_FAILED, HttpStatus.BAD_REQUEST));
     }
   }
@@ -146,13 +124,9 @@ class UserController {
   async resetPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { email, password } = req.body;
-      if (!email || !password) {
-        throw new CustomError(Messages.INVALID_USER_DATA, HttpStatus.BAD_REQUEST);
-      }
-
       const message = await this._userService.resetPassword(email, password);
       res.status(HttpStatus.OK).json({ message: Messages.PASSWORD_RESET });
-    } catch (error:any) {
+    } catch (error: any) {
       next(new CustomError(error.message || Messages.RESET_PASSWORD_FAILED, HttpStatus.BAD_REQUEST));
     }
   }
@@ -160,21 +134,13 @@ class UserController {
   async updateUser(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id, firstname, lastname, phone, address } = req.body;
-      if (!id || !mongoose.Types.ObjectId.isValid(id) || !firstname || !lastname || !phone) {
-        throw new CustomError(Messages.INVALID_USER_DATA, HttpStatus.BAD_REQUEST);
-      }
-
       const updatedData = { firstname, lastname, phone, address };
       const updatedUser = await this._userService.updateUser(id, updatedData, false);
-      if (!updatedUser) {
-        throw new CustomError(Messages.USER_NOT_FOUND, HttpStatus.NOT_FOUND);
-      }
-
       res.status(HttpStatus.OK).json({
         message: Messages.PROFILE_UPDATED,
-        user: updatedUser._doc,
+        user: updatedUser?._doc,
       });
-    } catch (error:any) {
+    } catch (error: any) {
       next(new CustomError(error.message || Messages.UPDATE_USER_FAILED, HttpStatus.INTERNAL_SERVER_ERROR));
     }
   }
@@ -182,13 +148,9 @@ class UserController {
   async changePassword(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id, currentPassword, newPassword } = req.body;
-      if (!id || !mongoose.Types.ObjectId.isValid(id) || !currentPassword || !newPassword) {
-        throw new CustomError(Messages.MISSING_PASSWORD_FIELDS, HttpStatus.BAD_REQUEST);
-      }
-
       await this._userService.changePassword(id, currentPassword, newPassword);
       res.status(HttpStatus.OK).json({ message: Messages.PASSWORD_UPDATED });
-    } catch (error:any) {
+    } catch (error: any) {
       next(new CustomError(error.message || Messages.CHANGE_PASSWORD_FAILED, HttpStatus.INTERNAL_SERVER_ERROR));
     }
   }

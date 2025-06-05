@@ -2,16 +2,16 @@ import { IUserDocument } from "../../models/User";
 import { IUser } from "./IUser";
 
 interface IAddress {
-    areaStreet: string;
-    city: string;
-    state: string;
-    pincode: string;
-  }
-  
-  export interface IUserService {
+  areaStreet: string;
+  city: string;
+  state: string;
+  pincode: string;
+}
+
+export interface IUserService {
   createUser(userData: IUser): Promise<IUserDocument>;
   getUserById(id: string): Promise<IUserDocument | null>;
-  getUserByEmail(email: string): Promise<IUserDocument | null>;
+  getUserByEmail(id: string): Promise<IUserDocument | null>;
   deleteUser(id: string): Promise<IUserDocument | null>;
   loginUser(
     email: string,
@@ -43,5 +43,4 @@ interface IAddress {
     limit: number,
     search: string
   ): Promise<{ userData: IUserDocument[]; totalUserPages: number }>;
-
 }

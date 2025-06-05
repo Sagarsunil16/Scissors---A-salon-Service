@@ -11,6 +11,7 @@ import { TokenPayload } from "../Interfaces/Auth/IAuthService";
 import { IUserService } from "../Interfaces/User/IUserService";
 import { Messages } from "../constants/Messages";
 import { HttpStatus } from "../constants/HttpStatus";
+import mongoose from "mongoose";
 
 class UserService implements IUserService {
   private _repository: IUserRepository;
@@ -20,6 +21,10 @@ class UserService implements IUserService {
   }
 
   async createUser(userData: IUser): Promise<IUserDocument> {
+    const { email, password, firstname, lastname } = userData;
+    if (!email || !password || !firstname || !lastname) {
+      throw new CustomError(Messages.INVALID_USER_DATA, HttpStatus.BAD_REQUEST);
+    }
     userData.password = await bcrypt.hash(userData.password, 10);
     return await this._repository.createUser(userData);
   }
@@ -44,53 +49,52 @@ class UserService implements IUserService {
     accessToken: string;
     refreshToken: string;
   } | null> {
+    if (!email || !password) {
+      throw new CustomError(Messages.INVALID_CREDENTIALS, HttpStatus.BAD_REQUEST);
+    }
     const user = await this._repository.getUserByEmail(email);
     if (!user) {
       throw new CustomError(
-        "The email address you entered is not associated with any account. Please check your email or sign up.",
-        401
+        Messages.EMAIL_NOT_FOUND,
+        HttpStatus.UNAUTHORIZED
       );
     }
     if (!user.is_Active) {
       throw new CustomError(
-        "Your account has been blocked. Please contact support for further assistance.",
-        403
+        Messages.ACCOUNT_BLOCKED,
+        HttpStatus.FORBIDDEN
       );
     }
     if (!user.verified) {
       throw new CustomError(
-        "Please verify your account before logging in. A verification email has been sent.",
-        401
+        Messages.ACCOUNT_NOT_VERIFIED,
+        HttpStatus.UNAUTHORIZED
       );
     }
     if (user.role === "Admin") {
       throw new CustomError(
-        "Unauthorized access. Admin privileges required.",
-        401
+        Messages.UNAUTHORIZED_ADMIN,
+        HttpStatus.UNAUTHORIZED
       );
     }
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       throw new CustomError(
-        "The credentials you entered are incorrect. Please try again.",
-        401
+        Messages.INVALID_CREDENTIALS,
+        HttpStatus.UNAUTHORIZED
       );
     }
 
     const accessToken = jwt.sign(
       { id: user._id, role: user.role, active: user.is_Active },
       process.env.JWT_SECRET as string,
-      {
-        expiresIn: "15m",
-      }
+      { expiresIn: "15m" }
     );
 
     const refreshToken = jwt.sign(
       { id: user._id, role: user.role, active: user.is_Active },
       process.env.REFRESH_TOKEN_SECRET as string,
-      {
-        expiresIn: "7d",
-      }
+      { expiresIn: "7d" }
     );
 
     await this._repository.updateUser(user._id as string, {
@@ -149,18 +153,21 @@ class UserService implements IUserService {
   async googleLogin(
     idToken: string
   ): Promise<{ user: IUserDocument; token: string; refreshToken: string }> {
+    if (!idToken) {
+      throw new CustomError(Messages.INVALID_TOKEN, HttpStatus.BAD_REQUEST);
+    }
     const decodedToken = await admin.auth().verifyIdToken(idToken);
     const { email, name } = decodedToken;
     if (!email) {
-      throw new CustomError("Invalid Google Token: Email is missing", 401);
+      throw new CustomError(Messages.INVALID_GOOGLE_TOKEN, HttpStatus.UNAUTHORIZED);
     }
 
     const username = name.split(" ");
     let user = await this._repository.getUserByEmail(email);
     if (user && !user.is_Active) {
       throw new CustomError(
-        "Your account has been blocked. Please contact support for further assistance.",
-        403
+        Messages.ACCOUNT_BLOCKED,
+        HttpStatus.FORBIDDEN
       );
     }
 
@@ -219,15 +226,18 @@ class UserService implements IUserService {
   }
 
   async sendOtp(email: string): Promise<string> {
+    if (!email) {
+      throw new CustomError(Messages.INVALID_EMAIL, HttpStatus.BAD_REQUEST);
+    }
     const user = await this._repository.getUserByEmail(email);
     if (!user) {
-      throw new Error("User not found");
+      throw new CustomError(Messages.USER_NOT_FOUND, HttpStatus.NOT_FOUND);
     }
     const otp = generateOtp();
     const otpExpiry = new Date(Date.now() + 1 * 60 * 1000);
     await this._repository.updateUserOtp(email, otp, otpExpiry);
     await sendOtpEmail(email, otp);
-    return "An OTP has been sent to your email. Please check your inbox.";
+    return Messages.OTP_SENT;
   }
 
   async getAllUsers(
@@ -258,37 +268,43 @@ class UserService implements IUserService {
   }
 
   async verifyOTP(email: string, otp: string): Promise<string> {
+    if (!email || !otp) {
+      throw new CustomError(Messages.INVALID_OTP, HttpStatus.BAD_REQUEST);
+    }
     const user = await this._repository.getUserByEmail(email);
     if (!user) {
       throw new CustomError(
-        "We couldn't find an account associated with this email address.",
-        404
+        Messages.USER_NOT_FOUND,
+        HttpStatus.NOT_FOUND
       );
     }
     if (!user.otp || !user.otpExpiry || user.otp !== otp) {
       throw new CustomError(
-        "The OTP you entered is invalid. Please check and try again.",
-        400
+        Messages.INVALID_OTP,
+        HttpStatus.BAD_REQUEST
       );
     }
     if (user.otpExpiry < new Date()) {
       throw new CustomError(
-        "The OTP has expired. Please request a new one.",
-        400
+        Messages.OTP_EXPIRED,
+        HttpStatus.BAD_REQUEST
       );
     }
     await this._repository.verifyOtpAndUpdate(email);
-    return "Verification Successfull";
+    return Messages.OTP_VERIFIED;
   }
 
   async resetPassword(email: string, newPassword: string): Promise<string> {
+    if (!email || !newPassword) {
+      throw new CustomError(Messages.INVALID_USER_DATA, HttpStatus.BAD_REQUEST);
+    }
     const user = await this._repository.getUserByEmail(email);
     if (!user) {
-      throw new Error("User not Found");
+      throw new CustomError(Messages.USER_NOT_FOUND, HttpStatus.NOT_FOUND);
     }
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     await this._repository.resetPassword(email, hashedPassword);
-    return "Your password has been reset successfully!";
+    return Messages.PASSWORD_RESET;
   }
 
   async updateUser(
@@ -296,13 +312,16 @@ class UserService implements IUserService {
     updatedData: Partial<IUser>,
     isAdmin: boolean
   ): Promise<IUserDocument | null> {
+    if (!id || !mongoose.Types.ObjectId.isValid(id) || !updatedData.firstname || !updatedData.lastname || !updatedData.phone) {
+      throw new CustomError(Messages.INVALID_USER_DATA, HttpStatus.BAD_REQUEST);
+    }
     if (isAdmin) {
       if (
         !updatedData.firstname ||
         !updatedData.lastname ||
         !updatedData.phone
       ) {
-        throw new Error("firstname,lastname and phone is required");
+        throw new CustomError(Messages.INVALID_USER_DATA, HttpStatus.BAD_REQUEST);
       }
     } else {
       if (
@@ -310,15 +329,19 @@ class UserService implements IUserService {
         !updatedData.lastname ||
         !updatedData.address
       ) {
-        throw new Error("Firstname, Lastname and Address are Required");
+        throw new CustomError(Messages.INVALID_USER_DATA, HttpStatus.BAD_REQUEST);
       }
       const { areaStreet, city, state, pincode } = updatedData.address as any;
       if (!areaStreet || !city || !state || !pincode) {
-        throw new Error("Address fields are incomplete.");
+        throw new CustomError(Messages.INVALID_ADDRESS, HttpStatus.BAD_REQUEST);
       }
     }
 
-    return this._repository.updateUser(id, updatedData);
+    const updatedUser = await this._repository.updateUser(id, updatedData);
+    if (!updatedUser) {
+      throw new CustomError(Messages.USER_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+    return updatedUser;
   }
 
   async changePassword(
@@ -326,22 +349,22 @@ class UserService implements IUserService {
     currentPassword: string,
     newPassword: string
   ): Promise<string> {
+    if (!id || !mongoose.Types.ObjectId.isValid(id) || !currentPassword || !newPassword) {
+      throw new CustomError(Messages.MISSING_PASSWORD_FIELDS, HttpStatus.BAD_REQUEST);
+    }
     const user = await this._repository.getUserById(id);
     if (!user) {
-      throw new Error("User not found");
+      throw new CustomError(Messages.USER_NOT_FOUND, HttpStatus.NOT_FOUND);
     }
 
-    const isPasswordValid = await bcrypt.compare(
-      currentPassword,
-      user.password
-    );
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
     if (!isPasswordValid) {
-      throw new Error("Current password is incorrect");
+      throw new CustomError(Messages.INVALID_CURRENT_PASSWORD, HttpStatus.BAD_REQUEST);
     }
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     await this._repository.changePassword(id, hashedPassword);
 
-    return "Password updated Successfully";
+    return Messages.PASSWORD_UPDATED;
   }
 
   async updateUserStatus(id: string, isActive: boolean): Promise<any> {
