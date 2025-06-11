@@ -13,6 +13,12 @@
      # Copy the rest of your backend code
      COPY . .
 
+     # Accept service account as a build arg
+     ARG FIREBASE_SERVICE_ACCOUNT
+
+     # Create serviceAccount.json inside the image
+     RUN mkdir -p secureDocs \
+     && echo "$FIREBASE_SERVICE_ACCOUNT" > secureDocs/serviceAccount.json
      # Build TypeScript to JavaScript
      RUN npm run build
 
