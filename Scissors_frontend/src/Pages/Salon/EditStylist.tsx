@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getStylistById, updateStylist } from "../../Services/salonAPI";
-import { IStylist, WorkingHours } from "../../interfaces/interface";
+import {  WorkingHours } from "../../interfaces/interface";
 import SalonHeader from "../../Components/SalonHeader";
 import SalonSidebar from "../../Components/SalonSidebar";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { Service } from "@/interfaces/SalonPge";
 import { useSelector } from "react-redux";
 
 const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -23,7 +22,6 @@ const EditStylist = () => {
   const [loading, setLoading] = useState(true);
   const {salon} = useSelector((state:any)=>state.salon)
   console.log(salon,"salonData")
-  const [Services, setServices] = useState<Service[]>(salon.services);
 
   useEffect(() => {
     const fetchStylist = async () => {

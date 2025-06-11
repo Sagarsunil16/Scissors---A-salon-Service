@@ -1,7 +1,7 @@
 import AdminHeader from "../../Components/AdminHeader";
 import Sidebar from "../../Components/Sidebar";
 import { useDispatch } from "react-redux";
-import { updateUserStatus, deleteUser } from "../../Redux/Admin/adminSlice";
+import { deleteUser } from "../../Redux/Admin/adminSlice";
 import { fetchUsers, deleteUserAPI, blockAndUnblockUser } from "../../Services/adminAPI";
 import { useEffect, useState } from "react";
 import Table from "../../Components/Table";

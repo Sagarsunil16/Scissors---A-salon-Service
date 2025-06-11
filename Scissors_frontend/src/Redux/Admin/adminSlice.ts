@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { AdminState,salon,User } from "../../interfaces/interface";
+import { AdminState,ISalon,User } from "../../interfaces/interface";
 
 const initialState:AdminState = {
     currentUser:"",
@@ -60,7 +60,7 @@ const adminSlice = createSlice({
         getSalonDataStart:(state)=>{
             state.loading =true
         },
-        getSalonDataSuccess:(state,action:PayloadAction<salon[]>)=>{
+        getSalonDataSuccess:(state,action:PayloadAction<ISalon[]>)=>{
             state.salonData.salonData = action.payload
             state.loading = false,
             state.error = false
@@ -69,14 +69,14 @@ const adminSlice = createSlice({
             state.loading =  false,
             state.error = action.payload;
         },
-        updateSalonStatus:(state,action:PayloadAction<salon>)=>{
+        updateSalonStatus:(state,action:PayloadAction<ISalon>)=>{
             const updatedSalon = action.payload
             const index =  state.salonData.salonData.findIndex((salon)=>salon._id === updatedSalon._id)
             if(index!==-1){
                 state.salonData.salonData[index] = updatedSalon
             }
         },
-        updateProfileData:(state,action:PayloadAction<salon>)=>{
+        updateProfileData:(state,action:PayloadAction<ISalon>)=>{
             state.currentUser = action.payload
         },
         signOut:(state)=>{

@@ -7,7 +7,6 @@ import {
   getAvailableSlot,
   fetchServiceStylist,
   getSalonDetails,
-  getSalonReviews,
   createBooking,
   getWalletBalance,
 } from "../../Services/UserAPI";
@@ -309,7 +308,7 @@ const SalonDetails: React.FC = () => {
       }
 
       try {
-        const response = await createBooking({
+          await createBooking({
           salonId: id!,
           stylistId: selectedStylist,
           serviceIds: selectedServices,

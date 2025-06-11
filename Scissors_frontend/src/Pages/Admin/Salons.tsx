@@ -2,17 +2,15 @@ import { useEffect, useState } from "react";
 import Sidebar from "../../Components/Sidebar";
 import AdminHeader from "../../Components/AdminHeader";
 import Table from "../../Components/Table";
-import { useDispatch, useSelector } from "react-redux";
 import { blockAndUnblockSalon, fetchSalons } from "../../Services/adminAPI";
 import { ISalon } from "../../interfaces/interface";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 const Salons = () => {
-  const dispatch = useDispatch();
+  
   const [currentPage, setCurrentPage] = useState(1);
   const [salonData, setSalonData] = useState<ISalon[]>([]);
-  const salons = useSelector((state: any) => state.admin.salonData.salonData);
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState("");
   const handlePageChange = async (page: number) => {

@@ -22,7 +22,7 @@ const SalonSidebar = () => {
   const signout = async (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
     try {
-      const response = await signOutSalon();
+      await signOutSalon();
       dispatch(signOut());
       navigate("/salon/login");
     } catch (error: any) {

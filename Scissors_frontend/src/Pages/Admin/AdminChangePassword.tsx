@@ -4,12 +4,11 @@ import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import {useSelector } from "react-redux";
 import { updatePassword } from "../../Services/adminAPI";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useState } from "react";
 import { toast } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css";
 const AdminChangePassword = () => {
-  const navigate = useNavigate()
   const { currentUser } = useSelector((state: any) => state.admin);
 
   const [responseMessage, setResponseMessage] = useState("");

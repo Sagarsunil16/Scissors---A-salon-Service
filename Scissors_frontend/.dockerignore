@@ -1,0 +1,7 @@
+# Node modules should not be copied
+node_modules
+build
+dist
+.git
+.gitignore
+*.md

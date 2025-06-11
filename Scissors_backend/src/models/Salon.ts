@@ -138,6 +138,5 @@ const salonSchema: Schema = new Schema({
 });
 
 salonSchema.index({'address.location':'2dsphere'});
-salonSchema.index({email:1},{unique:true});
 
 export default mongoose.model<ISalonDocument>("Salon", salonSchema);

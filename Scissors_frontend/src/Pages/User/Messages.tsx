@@ -12,7 +12,6 @@ import ProfileNavbar from "../../Components/ProfileNavbar";
 import { IMessage, Chat } from "../../types/Imessage";
 import { useSelector } from "react-redux";
 import { ZegoUIKitPrebuilt } from "@zegocloud/zego-uikit-prebuilt";
-import { useNavigate } from "react-router-dom";
 import { getChats, getMessages } from "../../Services/UserAPI";
 import toast from "react-hot-toast";
 
@@ -36,7 +35,7 @@ const MessagesPage: React.FC = () => {
   const { currentUser } = useSelector((state: any) => state.user);
   const zegoInstanceRef = useRef<ZegoUIKitPrebuilt | null>(null);
   const socketRef = useRef<Socket | null>(null);
-  const navigate = useNavigate();
+
     
   useEffect(() => {
     if (!currentUser?._id) return;

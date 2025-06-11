@@ -3,14 +3,12 @@ import Navbar from '../../Components/Navbar'
 import Footer from '../../Components/Footer'
 import SignIn from '../../Components/SignIn'
 import { useDispatch } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
 import { signInstart,signInSuccess,signInFailure } from '../../Redux/User/userSlice'
 import { loginUser } from '../../Services/UserAPI'
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 const UserLogin = () => {
   const dispatch = useDispatch()
-  const navigate = useNavigate()
   const handleUserLogin =  async(values:{email:string,password:string})=>{
     dispatch(signInstart())
     try {

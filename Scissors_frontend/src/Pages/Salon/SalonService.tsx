@@ -4,7 +4,6 @@ import SalonHeader from "../../Components/SalonHeader";
 import SalonSidebar from "../../Components/SalonSidebar";
 import { useSelector } from "react-redux";
 import {
-  getAllService,
   getSalonData,
   updateService,
   deleteService,

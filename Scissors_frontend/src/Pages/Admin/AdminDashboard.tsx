@@ -30,7 +30,7 @@ interface DashboardResponse {
   };
   revenueTrend: { date: string; revenue: number }[];
   appointmentStatus: { name: string; value: number }[];
-  recentAppointments: { _id: string; salonName: string; createdAt: Date; status: string }[];
+  recentAppointments: { _id: string; salonName: string; createdAt: string; status: string }[];
 }
 
 // Colors for pie chart
@@ -189,7 +189,7 @@ const AdminDashboard: React.FC = () => {
                         outerRadius={60}
                         label={false}
                       >
-                        {dashboardData.appointmentStatus.map((entry, index) => (
+                        {dashboardData.appointmentStatus.map((_, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>

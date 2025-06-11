@@ -177,7 +177,7 @@ const SalonDashboard: React.FC = () => {
                         outerRadius={50}
                         label={false}
                       >
-                        {salonData.appointmentStatus.map((entry, index) => (
+                        {salonData.appointmentStatus.map((_, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>

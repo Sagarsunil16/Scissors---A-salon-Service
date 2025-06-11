@@ -206,7 +206,7 @@ const SalonAddStylist = () => {
                   <FieldArray name="workingHours">
                     {({ push, remove }) => (
                       <div className="space-y-2 sm:space-y-3">
-                        {values.workingHours.map((workingHour, index) => (
+                        {values.workingHours.map((_, index) => (
                           <div
                             key={index}
                             className="border border-gray-100 p-2 sm:p-2.5 rounded-md space-y-2 relative"

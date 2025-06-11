@@ -47,7 +47,7 @@ const UserSignUp = () => {
   const handleSubmit = async (values:any)=>{
     dispatch(signUpStart())
        try {
-        const response =  await signUpUser(values)
+        await signUpUser(values)
         await sentOTP(values.email)
         dispatch(signUpSuccess());
         toast.success("Please verify the OTP sent to your email.");

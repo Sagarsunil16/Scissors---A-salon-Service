@@ -125,7 +125,7 @@ const CheckoutForm = () => {
 
       const { id: sessionId } = response.data;
 
-      const { error: stripeError } = await stripe.redirectToCheckout({
+      const { error: stripeError } = await stripe!.redirectToCheckout({
         sessionId,
       });
 
