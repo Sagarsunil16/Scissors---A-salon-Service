@@ -8,6 +8,8 @@ on:
 jobs:
   build-and-deploy-backend:
     runs-on: ubuntu-latest
+    env:
+      FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -24,5 +26,8 @@ jobs:
       - name: Build and push backend image
         working-directory: ./Scissors_backend
         run: |
+         mkdir -p secureDocs
+          echo "$FIREBASE_SERVICE_ACCOUNT" > secureDocs/serviceAccount.json
           docker build -t ${{ secrets.DOCKER_USERNAME }}/scissors-backend:latest .
           docker push ${{ secrets.DOCKER_USERNAME }}/scissors-backend:latest
+          
