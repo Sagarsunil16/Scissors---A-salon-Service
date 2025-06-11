@@ -7,6 +7,8 @@ import { Messages } from "../constants/Messages";
 import { HttpStatus } from "../constants/HttpStatus";
 import { IUserDocument } from "../models/User";
 import { ISalonDocument } from "../models/Salon";
+import { UserDto } from "../dto/user.dto";
+import { SalonDto } from "../dto/salon.dto";
 
 class AuthService implements IAuthService {
   private _salonService: ISalonService;
@@ -33,11 +35,11 @@ class AuthService implements IAuthService {
       throw new CustomError(Messages.INVALID_REFRESH_TOKEN, HttpStatus.UNAUTHORIZED);
     }
 
-    let entity: IUserDocument | ISalonDocument | null;
+    let entity
     if (decoded.role === "User" || decoded.role === "Admin") {
-      entity = await this._userService.getUserById(decoded.id);
+      entity = await this._userService.getUserRawById(decoded.id);
     } else if (decoded.role === "Salon") {
-      entity = await this._salonService.findSalon(decoded.id);
+      entity = await this._salonService.findSalonRaw(decoded.id);
     } else {
       throw new CustomError(Messages.INVALID_TOKEN_ROLE, HttpStatus.UNAUTHORIZED);
     }

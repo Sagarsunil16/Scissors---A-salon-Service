@@ -1,6 +1,7 @@
 import { IUserDocument } from "../../models/User";
 import { ISalonDocument } from "../../models/Salon";
 
+
 export interface TokenPayload {
   id: string;
   role: string;

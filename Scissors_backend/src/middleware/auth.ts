@@ -52,6 +52,7 @@ const auth = (roles: string[], requireEntity: boolean = false) => {
       req.user = { id: decoded.id, role: decoded.role, entity };
       next();
     } catch (error) {
+      console.log(error)
       res.status(401).json({ message: 'Invalid or expired token' });
       return;
     }

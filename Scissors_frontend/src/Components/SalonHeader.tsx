@@ -17,14 +17,7 @@ const SalonHeader = () => {
         </h2>
       </div>
 
-      {/* Right Section: Search */}
-      <div className="w-full sm:w-64">
-        <input
-          type="text"
-          placeholder="Search..."
-          className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-      </div>
+     
 
       {/* Notification & Profile Icons */}
       <div className="absolute top-4 right-4 flex items-center space-x-4 sm:static sm:space-x-4">

@@ -10,15 +10,15 @@ class CategoryRepository extends BaseRepository<ICategoryDocument> implements IC
   }
 
   async findByIdCategory(id: string): Promise<ICategoryDocument | null> {
-    return await this.findById(id);
+    return await this.model.findById(id).lean().exec();
   }
 
   async findByName(name: string): Promise<ICategoryDocument | null> {
-    return await this.findOne({ name });
+    return await this.model.findOne({ name }).lean().exec();
   }
 
   async getAllCategory(): Promise<ICategoryDocument[]> {
-    return await this.model.find({}).exec();
+    return await this.model.find({}).lean().exec();
   }
 
   async createCategory(categoryData: ICategory): Promise<ICategoryDocument> {
@@ -29,11 +29,11 @@ class CategoryRepository extends BaseRepository<ICategoryDocument> implements IC
     id: string,
     updatedData: { name: string; description: string }
   ): Promise<ICategoryDocument | null> {
-    return await this.findOneAndUpdate({ _id: id }, { ...updatedData }, { new: true });
+    return await this.model.findByIdAndUpdate(id , { ...updatedData }, { new: true }).lean().exec();
   }
 
   async deleteCategory(id: string): Promise<ICategoryDocument | null> {
-    return await this.deleteById(id);
+    return await this.model.findByIdAndDelete(id).lean().exec();
   }
 
   async getCategoriesPaginated(
@@ -41,12 +41,11 @@ class CategoryRepository extends BaseRepository<ICategoryDocument> implements IC
     skip: number,
     limit: number
   ): Promise<ICategoryDocument[]> {
-    const result = await this.findAll(query, Math.floor(skip / limit) + 1, limit);
-    return result.data;
+    return await this.model.find(query).skip(skip).limit(limit).lean().exec();
   }
 
   async countCategories(query: mongoose.FilterQuery<ICategoryDocument>): Promise<number> {
-    return await this.countDocuments(query);
+    return await this.model.countDocuments(query).exec();
   }
 }
 

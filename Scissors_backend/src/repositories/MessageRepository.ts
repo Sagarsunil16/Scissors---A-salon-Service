@@ -25,7 +25,7 @@ class MessageRepository extends BaseRepository<IMessageDocument> implements IMes
   }
 
   async getChatHistory(chatId: string): Promise<IMessageDocument[]> {
-      return await this.model.find({chatId}).sort({timeStamp:1})
+      return await this.model.find({chatId}).sort({createdAt:1})
   }
 
   async findById(id: string): Promise<IMessageDocument | null> {

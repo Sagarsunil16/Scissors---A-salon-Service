@@ -3,15 +3,16 @@ import auth from '../middleware/auth';
 import upload from '../config/multer';
 import { ROLES } from '../constants';
 import { appointmentController, chatController, messageController, offerController, salonController, salonDashboardController, serviceController, stylistController } from '../container/di';
-
+import { CreateSalonDto,UpdateSalonDto,AddServiceDto,UpdateServiceDto,LoginSalonDto, } from '../dto/salon.dto';
+import validateDto from '../middleware/validationMiddleware';
 const salonRouter = Router();
 
 // Public routes
-salonRouter.post('/register', salonController.createSalon.bind(salonController));
+salonRouter.post('/register',validateDto(CreateSalonDto), salonController.createSalon.bind(salonController));
 salonRouter.post('/otp', salonController.sendOtp.bind(salonController));
 salonRouter.put('/verify', salonController.verifyOtpAndUpdate.bind(salonController));
 salonRouter.post('/resend-otp', salonController.sendOtp.bind(salonController));
-salonRouter.post('/login', salonController.loginSalon.bind(salonController));
+salonRouter.post('/login',validateDto(LoginSalonDto), salonController.loginSalon.bind(salonController));
 salonRouter.post('/signout', salonController.signOutSalon.bind(salonController));
 
 // Protected routes
@@ -20,15 +21,15 @@ salonRouter.post('/upload-image', auth([ROLES.SALON]), upload.single('image'), s
 salonRouter.put('/delete-image', auth([ROLES.SALON]), salonController.deleteImage.bind(salonController));
 salonRouter.get('/salon-service', auth([ROLES.SALON], true), salonController.getSalonData.bind(salonController));
 salonRouter.get('/service', auth([ROLES.SALON]), serviceController.getAllServices.bind(serviceController));
-salonRouter.put('/add-service', auth([ROLES.SALON]), salonController.addService.bind(salonController));
-salonRouter.put('/edit-service', auth([ROLES.SALON]), salonController.updateService.bind(salonController));
+salonRouter.put('/add-service', auth([ROLES.SALON]),validateDto(AddServiceDto), salonController.addService.bind(salonController));
+salonRouter.put('/edit-service', auth([ROLES.SALON]),validateDto(UpdateServiceDto), salonController.updateService.bind(salonController));
 salonRouter.put('/delete-service', auth([ROLES.SALON]), salonController.deleteService.bind(salonController));
 salonRouter.post('/add-stylist', auth([ROLES.SALON]), stylistController.createStylist.bind(stylistController));
 salonRouter.get('/stylist', auth([ROLES.SALON]), stylistController.getStylistbySalonId.bind(stylistController));
 salonRouter.get('/stylist/:id', auth([ROLES.SALON]), stylistController.getStylistById.bind(stylistController));
 salonRouter.put('/stylist/edit/:id', auth([ROLES.SALON]), stylistController.updateStylist.bind(stylistController));
 salonRouter.delete('/stylist/:id', auth([ROLES.SALON]), stylistController.deleteStylist.bind(stylistController));
-salonRouter.put('/profile', auth([ROLES.SALON], true), salonController.updateSalon.bind(salonController));
+salonRouter.put('/profile', auth([ROLES.SALON], true),validateDto(UpdateSalonDto), salonController.updateSalon.bind(salonController));
 
 // Chat-related routes
 salonRouter.get('/chats', auth([ROLES.SALON]), chatController.getSalonChats.bind(chatController));

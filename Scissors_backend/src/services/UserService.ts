@@ -11,7 +11,9 @@ import { TokenPayload } from "../Interfaces/Auth/IAuthService";
 import { IUserService } from "../Interfaces/User/IUserService";
 import { Messages } from "../constants/Messages";
 import { HttpStatus } from "../constants/HttpStatus";
-import mongoose from "mongoose";
+import mongoose, { mongo } from "mongoose";
+import { UserDto } from "../dto/user.dto";
+import { plainToClass } from "class-transformer";
 
 class UserService implements IUserService {
   private _repository: IUserRepository;
@@ -20,32 +22,89 @@ class UserService implements IUserService {
     this._repository = repository;
   }
 
-  async createUser(userData: IUser): Promise<IUserDocument> {
+  async createUser(userData: IUser): Promise<UserDto> {
     const { email, password, firstname, lastname } = userData;
     if (!email || !password || !firstname || !lastname) {
       throw new CustomError(Messages.INVALID_USER_DATA, HttpStatus.BAD_REQUEST);
     }
     userData.password = await bcrypt.hash(userData.password, 10);
-    return await this._repository.createUser(userData);
+    let newUser = await this._repository.createUser(userData);
+    newUser = newUser.toObject()
+        return plainToClass(UserDto, {
+            _id: (newUser._id as mongoose.Types.ObjectId).toString(),
+            firstname: newUser.firstname,
+            lastname: newUser.lastname,
+            email: newUser.email,
+            phone: newUser.phone,
+            address: newUser.address,
+            role: newUser.role,
+            is_Active: newUser.is_Active,
+            verified: newUser.verified,
+            googleLogin: newUser.googleLogin,
+        });
   }
 
-  async getUserById(id: string): Promise<IUserDocument | null> {
-    return await this._repository.getUserById(id);
+  async getUserRawById(id: string): Promise<IUserDocument | null> {
+    return this._repository.getUserRawById(id)
+  
+}
+
+  async getUserById(id: string): Promise<UserDto | null> {
+   const user = await this._repository.getUserById(id);
+        if (!user) return null;
+        return plainToClass(UserDto, {
+            _id: (user._id as mongoose.Types.ObjectId).toString(),
+            firstname: user.firstname,
+            lastname: user.lastname,
+            email: user.email,
+            phone: user.phone,
+            address: user.address,
+            role: user.role,
+            is_Active: user.is_Active,
+            verified: user.verified,
+            googleLogin: user.googleLogin,
+        });
   }
 
-  async getUserByEmail(email: string): Promise<IUserDocument | null> {
-    return await this._repository.getUserByEmail(email);
+  async getUserByEmail(email: string): Promise<UserDto | null> {
+   const user = await this._repository.getUserByEmail(email);
+        if (!user) return null;
+        return plainToClass(UserDto, {
+            _id: (user._id as string).toString(),
+            firstname: user.firstname,
+            lastname: user.lastname,
+            email: user.email,
+            phone: user.phone,
+            address: user.address,
+            role: user.role,
+            is_Active: user.is_Active,
+            verified: user.verified,
+            googleLogin: user.googleLogin,
+        });
   }
 
-  async deleteUser(id: string): Promise<IUserDocument | null> {
-    return await this._repository.deleteUser(id);
+  async deleteUser(id: string): Promise<UserDto | null> {
+    const user = await this._repository.deleteUser(id);
+        if (!user) return null;
+        return plainToClass(UserDto, {
+            _id: (user._id as mongoose.Types.ObjectId).toString(),
+            firstname: user.firstname,
+            lastname: user.lastname,
+            email: user.email,
+            phone: user.phone,
+            address: user.address,
+            role: user.role,
+            is_Active: user.is_Active,
+            verified: user.verified,
+            googleLogin: user.googleLogin,
+        });
   }
 
   async loginUser(
     email: string,
     password: string
   ): Promise<{
-    user: IUserDocument;
+    user: UserDto;
     accessToken: string;
     refreshToken: string;
   } | null> {
@@ -101,14 +160,25 @@ class UserService implements IUserService {
       refreshToken,
       refreshTokenExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     });
-    return { user, accessToken, refreshToken };
+    return { user: plainToClass(UserDto, {
+                _id: (user._id as mongoose.Types.ObjectId).toString(),
+                firstname: user.firstname,
+                lastname: user.lastname,
+                email: user.email,
+                phone: user.phone,
+                address: user.address,
+                role: user.role,
+                is_Active: user.is_Active,
+                verified: user.verified,
+                googleLogin: user.googleLogin,
+            }), accessToken, refreshToken };
   }
 
   async adminLogin(
     email: string,
     password: string
   ): Promise<{
-    user: IUserDocument;
+    user: UserDto;
     accessToken: string;
     refreshToken: string;
   }> {
@@ -147,12 +217,23 @@ class UserService implements IUserService {
       refreshTokenExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     });
 
-    return { user, accessToken, refreshToken };
+    return { user: plainToClass(UserDto, {
+                _id: (user._id as mongoose.Types.ObjectId).toString(),
+                firstname: user.firstname,
+                lastname: user.lastname,
+                email: user.email,
+                phone: user.phone,
+                address: user.address,
+                role: user.role,
+                is_Active: user.is_Active,
+                verified: user.verified,
+                googleLogin: user.googleLogin,
+            }), accessToken, refreshToken };
   }
 
   async googleLogin(
     idToken: string
-  ): Promise<{ user: IUserDocument; token: string; refreshToken: string }> {
+  ): Promise<{ user: UserDto; token: string; refreshToken: string }> {
     if (!idToken) {
       throw new CustomError(Messages.INVALID_TOKEN, HttpStatus.BAD_REQUEST);
     }
@@ -200,8 +281,19 @@ class UserService implements IUserService {
       refreshToken,
       refreshTokenExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     });
-    return { user, token, refreshToken };
-  }
+    return { user: plainToClass(UserDto, {
+                _id: (user._id as mongoose.Types.ObjectId).toString(),
+                firstname: user.firstname,
+                lastname: user.lastname,
+                email: user.email,
+                phone: user.phone,
+                address: user.address,
+                role: user.role,
+                is_Active: user.is_Active,
+                verified: user.verified,
+                googleLogin: user.googleLogin,
+            }), token, refreshToken };
+            }
 
   async signOut(refreshToken: string) {
     if (refreshToken) {
@@ -244,7 +336,7 @@ class UserService implements IUserService {
     page: number,
     limit: number,
     search: string
-  ): Promise<{ userData: IUserDocument[]; totalUserPages: number }> {
+  ): Promise<{ userData: UserDto[]; totalUserPages: number }> {
     if (isNaN(page) || isNaN(limit) || page < 1 || limit < 1) {
       throw new CustomError(Messages.INVALID_PAGINATION_PARAMS, HttpStatus.BAD_REQUEST);
     }
@@ -263,15 +355,30 @@ class UserService implements IUserService {
       throw new CustomError(Messages.NO_USER_DATA_FOUND, HttpStatus.NOT_FOUND);
     }
 
+    const userData = users.map((user) =>
+            plainToClass(UserDto, {
+                _id: (user._id as mongoose.Types.ObjectId).toString(),
+                firstname: user.firstname,
+                lastname: user.lastname,
+                email: user.email,
+                phone: user.phone,
+                address: user.address,
+                role: user.role,
+                is_Active: user.is_Active,
+                verified: user.verified,
+                googleLogin: user.googleLogin,
+            })
+        );
+
     const totalUserPages = Math.ceil(totalUsers / limit);
-    return { userData: users, totalUserPages };
+    return { userData, totalUserPages };
   }
 
   async verifyOTP(email: string, otp: string): Promise<string> {
     if (!email || !otp) {
       throw new CustomError(Messages.INVALID_OTP, HttpStatus.BAD_REQUEST);
     }
-    const user = await this._repository.getUserByEmail(email);
+    const user = await this._repository.getUserRawByEmail(email);
     if (!user) {
       throw new CustomError(
         Messages.USER_NOT_FOUND,
@@ -311,7 +418,7 @@ class UserService implements IUserService {
     id: string,
     updatedData: Partial<IUser>,
     isAdmin: boolean
-  ): Promise<IUserDocument | null> {
+  ): Promise<UserDto | null> {
     if (!id || !mongoose.Types.ObjectId.isValid(id) || !updatedData.firstname || !updatedData.lastname || !updatedData.phone) {
       throw new CustomError(Messages.INVALID_USER_DATA, HttpStatus.BAD_REQUEST);
     }
@@ -341,7 +448,18 @@ class UserService implements IUserService {
     if (!updatedUser) {
       throw new CustomError(Messages.USER_NOT_FOUND, HttpStatus.NOT_FOUND);
     }
-    return updatedUser;
+    return plainToClass(UserDto, {
+            _id: (updatedUser._id as mongoose.Types.ObjectId).toString(),
+            firstname: updatedUser.firstname,
+            lastname: updatedUser.lastname,
+            email: updatedUser.email,
+            phone: updatedUser.phone,
+            address: updatedUser.address,
+            role: updatedUser.role,
+            is_Active: updatedUser.is_Active,
+            verified: updatedUser.verified,
+            googleLogin: updatedUser.googleLogin,
+        });
   }
 
   async changePassword(
@@ -352,7 +470,7 @@ class UserService implements IUserService {
     if (!id || !mongoose.Types.ObjectId.isValid(id) || !currentPassword || !newPassword) {
       throw new CustomError(Messages.MISSING_PASSWORD_FIELDS, HttpStatus.BAD_REQUEST);
     }
-    const user = await this._repository.getUserById(id);
+    const user = await this._repository.getUserByIdForAuth(id);
     if (!user) {
       throw new CustomError(Messages.USER_NOT_FOUND, HttpStatus.NOT_FOUND);
     }
@@ -367,12 +485,38 @@ class UserService implements IUserService {
     return Messages.PASSWORD_UPDATED;
   }
 
-  async updateUserStatus(id: string, isActive: boolean): Promise<any> {
-    return await this._repository.updateUserStatus(id, isActive);
+  async updateUserStatus(id: string, isActive: boolean): Promise<UserDto | null> {
+    const user =  await this._repository.updateUserStatus(id, isActive);
+    if (!user) return null;
+    return plainToClass(UserDto, {
+            _id: user._id?.toString(),
+            firstname: user.firstname,
+            lastname: user.lastname,
+            email: user.email,
+            phone: user.phone,
+            address: user.address,
+            role: user.role,
+            is_Active: user.is_Active,
+            verified: user.verified,
+            googleLogin: user.googleLogin,
+        });
   }
 
-  async updateRefreshToken(id: string, refreshToken: string): Promise<any> {
-    return await this._repository.updateRefreshToken(id, refreshToken);
+  async updateRefreshToken(id: string, refreshToken: string): Promise<UserDto | null> {
+    const user = await this._repository.updateRefreshToken(id, refreshToken);
+        if (!user) return null;
+        return plainToClass(UserDto, {
+            _id: user._id?.toString(),
+            firstname: user.firstname,
+            lastname: user.lastname,
+            email: user.email,
+            phone: user.phone,
+            address: user.address,
+            role: user.role,
+            is_Active: user.is_Active,
+            verified: user.verified,
+            googleLogin: user.googleLogin,
+        });
   }
 }
 

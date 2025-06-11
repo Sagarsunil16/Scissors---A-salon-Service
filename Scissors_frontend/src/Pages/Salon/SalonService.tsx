@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import SalonHeader from "../../Components/SalonHeader";
 import SalonSidebar from "../../Components/SalonSidebar";
@@ -34,13 +34,12 @@ const SalonService = () => {
   const { salon } = useSelector((state: any) => state.salon);
 
   const [fetchedServices, setFetchedServices] = useState<Service[]>([]);
-  const [salonServices, setSalonServices] = useState<Service[]>([]);
   const [stylists, setStylists] = useState<IStylist[]>([]);
   const [editingService, setEditingService] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
     name: "",
     description: "",
-    price: "",
+    price: 0,
     service: "",
     duration: 30,
     stylists: [] as string[],
@@ -48,24 +47,18 @@ const SalonService = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5);
-  const [totalServices, setTotalServices] = useState(0);
   const [loading, setLoading] = useState(true);
 
+  // Fetch all services and stylists
   const fetchServices = async () => {
     try {
       setLoading(true);
-      const serviceData = await getAllService();
-      setFetchedServices(serviceData.data.services);
-      const data = {
-        id: salon._id,
-        search: searchQuery,
-        page: currentPage,
-        limit: itemsPerPage,
-      };
-      const salonData = await getSalonData(data);
-      setSalonServices(salonData.data.salonData.services);
-      setTotalServices(salonData.data.salonData.total || salonData.data.salonData.services.length);
-      const stylistData = await getStylists({ id: salon._id });
+      const [ salonData, stylistData] = await Promise.all([
+        // getAllService(),
+        getSalonData({ id: salon._id }),
+        getStylists({ id: salon._id }),
+      ]);
+      setFetchedServices(salonData.data.salonData.services);
       setStylists(stylistData.data.result.stylists);
     } catch (error) {
       console.error("Error fetching services:", error);
@@ -77,14 +70,32 @@ const SalonService = () => {
 
   useEffect(() => {
     fetchServices();
-  }, [salon._id, editingService, searchQuery, currentPage]);
+  }, [salon._id, editingService]);
+
+  // Client-side filtering
+  const filteredServices = useMemo(() => {
+    if (!searchQuery) return fetchedServices;
+
+    return fetchedServices.filter((service) =>
+      [service.name, service.description, service.service.name, service.price.toString()]
+        .some((field) => field.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
+  }, [fetchedServices, searchQuery]);
+
+  // Paginate filtered services
+  const paginatedServices = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredServices.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredServices, currentPage, itemsPerPage]);
+
+  const totalServices = filteredServices.length;
 
   const handleEditClick = (service: Service) => {
     setEditingService(service._id);
     setEditForm({
       name: service.name,
       description: service.description,
-      price: service.price.toString(),
+      price: service.price,
       service: service.service._id,
       duration: service.duration,
       stylists: service.stylists.map((stylist) => stylist._id),
@@ -110,7 +121,7 @@ const SalonService = () => {
     setEditForm({
       name: "",
       description: "",
-      price: "",
+      price: 0,
       service: "",
       duration: 30,
       stylists: [],
@@ -125,11 +136,9 @@ const SalonService = () => {
       const response = await updateService(data);
       const updatedService = response.data.result;
 
-      setSalonServices((prevServices) =>
+      setFetchedServices((prevServices) =>
         prevServices.map((service) =>
-          service._id === serviceId
-            ? { ...service, ...updatedService }
-            : service
+          service._id === serviceId ? { ...service, ...updatedService } : service
         )
       );
       toast.success(response.data.message);
@@ -137,7 +146,7 @@ const SalonService = () => {
       setEditForm({
         name: "",
         description: "",
-        price: "",
+        price: 0,
         service: "",
         duration: 30,
         stylists: [],
@@ -172,11 +181,10 @@ const SalonService = () => {
         const data = { salonId, serviceId };
         const response = await deleteService(data);
         toast.success(response.data.message);
-        setSalonServices((prevServices) =>
+        setFetchedServices((prevServices) =>
           prevServices.filter((s) => s._id !== serviceId)
         );
-        setTotalServices((prev) => prev - 1);
-        if (salonServices.length <= 1 && currentPage > 1) {
+        if (paginatedServices.length <= 1 && currentPage > 1) {
           setCurrentPage((prev) => prev - 1);
         }
       } catch (error: any) {
@@ -198,47 +206,47 @@ const SalonService = () => {
     {
       header: "Name",
       accessor: "name",
-      minWidth: "100px",
+      minWidth: "150px",
       render: (item: Service, isEditing: boolean, editForm: any) =>
         isEditing ? (
           <input
             type="text"
             name="name"
             value={editForm.name}
-            className="border rounded px-2 py-1 w-full text-xs sm:text-sm"
+            className="border rounded px-2 py-1 w-full text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             onChange={handleInputChange}
           />
         ) : (
-          item.name
+          <span className="text-xs sm:text-sm">{item.name}</span>
         ),
     },
     {
       header: "Description",
       accessor: "description",
-      minWidth: "150px",
+      minWidth: "200px",
       render: (item: Service, isEditing: boolean, editForm: any) =>
         isEditing ? (
           <input
             type="text"
             name="description"
             value={editForm.description}
-            className="border rounded px-2 py-1 w-full text-xs sm:text-sm"
+            className="border rounded px-2 py-1 w-full text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             onChange={handleInputChange}
           />
         ) : (
-          item.description
+          <span className="text-xs sm:text-sm line-clamp-2">{item.description}</span>
         ),
     },
     {
       header: "Service",
       accessor: "service",
-      minWidth: "100px",
+      minWidth: "150px",
       render: (item: Service, isEditing: boolean, editForm: any) =>
         isEditing ? (
           <select
             name="service"
             value={editForm.service}
-            className="border rounded px-2 py-1 w-full text-xs sm:text-sm"
+            className="border rounded px-2 py-1 w-full text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             onChange={handleInputChange}
           >
             <option value="">Select a Service</option>
@@ -249,30 +257,30 @@ const SalonService = () => {
             ))}
           </select>
         ) : (
-          item.service.name
+          <span className="text-xs sm:text-sm">{item.service.name}</span>
         ),
     },
     {
       header: "Price",
       accessor: "price",
-      minWidth: "80px",
+      minWidth: "100px",
       render: (item: Service, isEditing: boolean, editForm: any) =>
         isEditing ? (
           <input
             type="text"
             name="price"
             value={editForm.price}
-            className="border rounded px-2 py-1 w-full text-xs sm:text-sm"
+            className="border rounded px-2 py-1 w-full text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             onChange={handleInputChange}
           />
         ) : (
-          `Rs ${item.price}`
+          <span className="text-xs sm:text-sm">Rs {item.price}</span>
         ),
     },
     {
       header: "Duration",
       accessor: "duration",
-      minWidth: "80px",
+      minWidth: "100px",
       render: (item: Service, isEditing: boolean, editForm: any) =>
         isEditing ? (
           <input
@@ -280,17 +288,17 @@ const SalonService = () => {
             min="15"
             step="15"
             value={editForm.duration}
-            className="border rounded px-2 py-1 w-full text-xs sm:text-sm"
+            className="border rounded px-2 py-1 w-full text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             onChange={handleDurationChange}
           />
         ) : (
-          `${item.duration} mins`
+          <span className="text-xs sm:text-sm">{item.duration} mins</span>
         ),
     },
     {
       header: "Stylists",
       accessor: "stylists",
-      minWidth: "120px",
+      minWidth: "150px",
       render: (item: Service, isEditing: boolean, editForm: any) =>
         isEditing ? (
           <div className="space-y-1 max-h-24 overflow-y-auto">
@@ -303,17 +311,25 @@ const SalonService = () => {
                   type="checkbox"
                   checked={editForm.stylists.includes(stylist._id)}
                   onChange={() => handleStylistChange(stylist._id)}
-                  className="h-4 w-4 text-blue-500"
+                  className="h-4 w-4 text-blue-500 focus:ring-blue-500"
                 />
                 <span>{stylist.name}</span>
               </label>
             ))}
           </div>
         ) : (
-          item.stylists
-            .map((stylist) => stylists.find((s) => s._id === stylist._id)?.name)
-            .filter(Boolean)
-            .join(", ")
+          <span className="text-xs sm:text-sm">
+              { item.stylists && item.stylists.length > 0?
+              item.stylists
+              .map((stylist) => stylists.find((s) => s._id === stylist._id)?.name)
+              .filter(Boolean)
+              .join(", ")
+                :
+              <p className="text-red-600">
+                Please Add A stylist
+              </p>
+    }
+          </span>
         ),
     },
   ];
@@ -338,34 +354,39 @@ const SalonService = () => {
       <SalonSidebar />
       <div className="flex-1 flex flex-col w-full">
         <SalonHeader />
-        <div className="p-4 sm:p-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 space-y-2 sm:space-y-0">
-            <h2 className="text-xl sm:text-2xl font-semibold">Salon Services</h2>
-            <Link to={"/salon/add-service"}>
-              <Button className="w-full sm:w-auto bg-blue-500 hover:bg-blue-600">
-                Add Service
-              </Button>
-            </Link>
+        <main className="p-4 sm:p-6 flex-1">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+            <h2 className="text-xl sm:text-2xl font-semibold text-gray-800">Salon Services</h2>
+            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+              
+              <Link to="/salon/add-service" className="w-full sm:w-auto">
+                <Button className="w-full sm:w-auto bg-blue-500 hover:bg-blue-600 text-xs sm:text-sm py-2">
+                  Add Service
+                </Button>
+              </Link>
+            </div>
           </div>
-          <ReusableTable<Service>
-            columns={columns}
-            data={salonServices}
-            totalItems={totalServices}
-            itemsPerPage={itemsPerPage}
-            currentPage={currentPage}
-            loading={loading}
-            searchQuery={searchQuery}
-            editingId={editingService}
-            editForm={editForm}
-            onSearchChange={handleSearchChange}
-            onPageChange={handlePageChange}
-            onEditSave={handleEditSave}
-            onEditCancel={handleEditCancel}
-            onInputChange={handleInputChange}
-            actions={actions}
-            getRowId={(item: Service) => item._id}
-          />
-        </div>
+          <div className="bg-white ">
+            <ReusableTable<Service>
+              columns={columns}
+              data={paginatedServices}
+              totalItems={totalServices}
+              itemsPerPage={itemsPerPage}
+              currentPage={currentPage}
+              loading={loading}
+              searchQuery={searchQuery}
+              onSearchChange={handleSearchChange}
+              editingId={editingService}
+              editForm={editForm}
+              onPageChange={handlePageChange}
+              onEditSave={handleEditSave}
+              onEditCancel={handleEditCancel}
+              onInputChange={handleInputChange}
+              actions={actions}
+              getRowId={(item: Service) => item._id}
+            />
+          </div>
+        </main>
       </div>
     </div>
   );

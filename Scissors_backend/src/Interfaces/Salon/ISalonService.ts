@@ -1,43 +1,33 @@
+import { AddServiceDto, CreateSalonDto, LoginSalonDto, SalonDto, UpdateSalonDto, UpdateServiceDto } from "../../dto/salon.dto";
 import { ISalonDocument } from "../../models/Salon";
 import { ISalon, SalonResult } from "./ISalon";
 import { SalonQueryParams } from "./ISalon";
 
 
 export interface ISalonService {
-  createSalon(salonData: ISalon): Promise<ISalonDocument>;
-  findSalon(id: string): Promise<ISalonDocument | null>;
+  createSalon(salonData: CreateSalonDto): Promise<SalonDto>;
+  findSalon(id: string): Promise<SalonDto | null>;
+  findSalonRaw(id: string): Promise<ISalonDocument | null>
   sendOtp(email: string): Promise<string>;
   verifyOtp(email: string, otp: string): Promise<string>;
-  loginSalon(email: string, password: string): Promise<{ salon: ISalonDocument; accessToken: string; refreshToken: string }>;
+  loginSalon(data:LoginSalonDto): Promise<{ salon: SalonDto; accessToken: string; refreshToken: string }>;
   signOut(refreshToken: string): Promise<void>;
-  getSalonData(id: string): Promise<ISalonDocument | null>;
+  getSalonData(id: string): Promise<SalonDto | null>;
   getNearbySalons(params: SalonQueryParams): Promise<SalonResult>;
   getFilteredSalons(
     filters: { search?: string; location?: string; maxPrice?: number; ratings?: number[]; offers?: string },
     page: number,
     itemsPerPage: number
-  ): Promise<{ salons: ISalonDocument[]; total: number; totalPages: number }>;
-  salonProfileUpdate(updatedData: Partial<ISalon>): Promise<ISalonDocument | null>;
-  updateSalonStatus(id: string, isActive: boolean): Promise<ISalonDocument | null>;
-  getAllSalons(page: number, search: string): Promise<{ salonData: ISalonDocument[]; totalPages: number }>;
-  allSalonListForChat(): Promise<Partial<ISalonDocument>[]>;
-  uploadSalonImage(salonId: string, filePath: string): Promise<ISalonDocument | null>;
-  deleteSalonImage(salonId: string, imageId: string, cloudinaryImageId: string): Promise<ISalonDocument | null>;
-  addService(
-    salonId: string,
-    serviceData: { name: string; description: string; service: string; price: number; duration: number; stylist: {}[] }
-  ): Promise<ISalonDocument | null>;
+  ): Promise<{ salons: SalonDto[]; total: number; totalPages: number }>;
+  salonProfileUpdate(updatedData: UpdateSalonDto): Promise<SalonDto | null>;
+  updateSalonStatus(id: string, isActive: boolean): Promise<SalonDto | null>;
+  getAllSalons(page: number, search: string): Promise<{ salonData: SalonDto[]; totalPages: number }>;
+  allSalonListForChat(): Promise<Partial<SalonDto>[]>;
+  uploadSalonImage(salonId: string, filePath: string): Promise<SalonDto | null>;
+  deleteSalonImage(salonId: string, imageId: string, cloudinaryImageId: string): Promise<SalonDto | null>;
+  addService(data:AddServiceDto): Promise<SalonDto | null>;
   updateService(
-    serviceData: {
-      salonId: string;
-      serviceId: string;
-      name: string;
-      description: string;
-      price: number;
-      service: string;
-      duration: number;
-      stylists: string[];
-    }
-  ): Promise<ISalonDocument | null>;
-  removeService(salonId: string, serviceId: string): Promise<ISalonDocument | null>;
+    data:UpdateServiceDto
+  ): Promise<SalonDto | null>;
+  removeService(salonId: string, serviceId: string): Promise<SalonDto | null>;
 }

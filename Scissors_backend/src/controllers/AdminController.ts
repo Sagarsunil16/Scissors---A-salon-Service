@@ -32,7 +32,7 @@ class AdminController {
         .status(HttpStatus.OK)
         .json({
           message: Messages.LOGIN_SUCCESS,
-          user: user._doc,
+          user: user
         });
     } catch (error) {
       next(error);

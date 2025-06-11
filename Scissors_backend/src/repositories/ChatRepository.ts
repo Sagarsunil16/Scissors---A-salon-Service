@@ -26,7 +26,7 @@ class ChatRepository extends BaseRepository<IChatDocument> implements IChatRepos
     }
 
     async getSalonsChat(salonId: string): Promise<IChatDocument[]> {
-        return await this.model.find({salonId}).sort({lastActive:-1})
+        return await this.model.find({salonId}).populate({ path: 'userId', select: 'firstname email' }).sort({lastActive:-1})
     }
 
     async deleteChat(chatId: string): Promise<void> {

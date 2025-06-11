@@ -12,25 +12,29 @@ class ServiceRepository extends BaseRepository<IServiceDocument> implements ISer
   }
 
   async findServiceById(serviceId: string): Promise<IServiceDocument | null> {
-    return await this.findById(serviceId);
+    return await this.model.findById(serviceId).lean().exec();
   }
 
   async getAllServices(
     page: number,
     query: any = {},
-    limit: number = 10
-  ): Promise<{ services: IServiceDocument[]; totalCount: number }> {
-    const result = await this.findAll(query, page, limit);
-    return { services: result.data, totalCount: result.totalCount };
+    limit: number = 6
+  ): Promise<{ services: IServiceDocument[]; totalCount: number   }> {
+    const skip = (page - 1) * limit;
+    const [services, totalCount] = await Promise.all([
+      this.model.find(query).skip(skip).limit(limit).lean().exec(),
+      this.model.countDocuments(query).exec(),
+    ]);
+    return { services, totalCount };
   }
 
   async deleteService(id: string): Promise<IServiceDocument | null> {
-    return await this.deleteById(id);
+    return await this.model.findByIdAndDelete(id).lean().exec();
   }
 
   async updateService(data: { id: string; name: string; description: string }): Promise<IServiceDocument | null> {
     const updateData: Partial<IService> = { name: data.name, description: data.description };
-    return await this.updateById(data.id, updateData, { new: true });
+    return await this.model.findByIdAndUpdate(data.id, updateData, { new: true }).lean().exec()
   }
 }
 

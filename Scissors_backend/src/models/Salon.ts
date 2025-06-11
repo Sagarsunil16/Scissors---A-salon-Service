@@ -49,11 +49,11 @@ const salonSchema: Schema = new Schema({
   },
   openingTime: {
     type: String,
-    default: "00:00",
+    default: "10:00",
   },
   closingTime: {
     type: String,
-    default: "00:00",
+    default: "22:00",
   },
   verified: {
     type: Boolean,
@@ -137,6 +137,7 @@ const salonSchema: Schema = new Schema({
   },
 });
 
-salonSchema.index({'address.location':'2dsphere'})
+salonSchema.index({'address.location':'2dsphere'});
+salonSchema.index({email:1},{unique:true});
 
 export default mongoose.model<ISalonDocument>("Salon", salonSchema);

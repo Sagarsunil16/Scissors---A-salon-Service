@@ -12,10 +12,12 @@ const AddNewService = () => {
   const validationSchema = Yup.object().shape({
     name: Yup.string()
       .required("Service name is required")
-      .min(2, "Service name must be at least 2 characters"),
+     .min(3, "Service name must be at least 3 characters")
+    .max(50, "Service name can't exceed 50 characters"),
     description: Yup.string()
       .required("Service description is required")
-      .min(5, "Description must be at least 5 characters"),
+       .min(10, "Description must be at least 10 characters")
+    .max(500, "Description can't exceed 500 characters"),
   });
 
   const handleSubmit = async (values: any) => {

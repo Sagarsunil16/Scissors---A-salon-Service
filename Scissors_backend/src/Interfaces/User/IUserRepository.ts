@@ -5,7 +5,9 @@ import { IUserDocument } from "../../models/User";
 export interface IUserRepository {
     createUser(userData:Partial<IUser>):Promise<IUserDocument>;
     getUserById(id:string):Promise<IUserDocument | null>;
-    getUserByEmail(email:string):Promise<IUserDocument | null>;   
+    getUserRawById(id:string):Promise<IUserDocument | null>
+    getUserByEmail(email:string):Promise<IUserDocument | null>; 
+    getUserRawByEmail(email:string):Promise<IUserDocument | null>  
     deleteUser(id:string):Promise<IUserDocument | null>;
     getAllUsers(page:number,limit:number,query:any):Promise<{data:IUserDocument[],totalCount:number}>
     updateUserOtp(email:string,otp:string,otpExpiry:Date):Promise<IUserDocument | null>;
@@ -16,4 +18,5 @@ export interface IUserRepository {
     verifyOtpAndUpdate(email:string):Promise<IUserDocument | null>
     updateRefreshToken(id:string,refreshToken:string):Promise<IUserDocument | null>
     countActiveUsers():Promise<number>
+    getUserByIdForAuth(id: string): Promise<IUserDocument | null>;
 }

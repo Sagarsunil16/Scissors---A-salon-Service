@@ -69,6 +69,7 @@ class CategoryController {
   async deleteCategory(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { id } = req.body;
+      console.log(req.body)
       const result = await this._categoryService.deleteCategory(id);
       res.status(HttpStatus.OK).json({
         message: Messages.CATEGORY_DELETED,

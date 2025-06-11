@@ -21,6 +21,7 @@ class SalonDashboardService implements ISalonDashboardService {
     startDate.setDate(startDate.getDate() - 30); // Last 30 days
     const endDate = new Date();
 
+    console.log(salonId,"SalonId")
     const [
       totalAppointments,
       totalRevenue,
@@ -45,6 +46,13 @@ class SalonDashboardService implements ISalonDashboardService {
       this._salonRepository.getSalonById(salonId),
     ]);
 
+    console.log(totalAppointments,
+      totalRevenue,
+      totalServices,
+      pendingAppointments,
+      revenueTrend,
+      appointmentStatus,
+      recentAppointments,)
     return {
       metrics: {
         totalAppointments,

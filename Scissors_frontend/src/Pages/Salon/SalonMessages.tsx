@@ -10,7 +10,6 @@ import { IMessage, Chat } from "../../types/Imessage";
 import { useSelector } from "react-redux";
 import { formatMessageTime } from "../../lib/utils";
 import { ZegoUIKitPrebuilt } from "@zegocloud/zego-uikit-prebuilt";
-import { useNavigate } from "react-router-dom";
 import { getChats, getMessages, } from "../../Services/salonAPI";
 import toast from "react-hot-toast";
 
@@ -34,7 +33,7 @@ const SalonMessages: React.FC = () => {
   const callContainerRef = useRef<HTMLDivElement>(null);
   const zegoInstanceRef = useRef<ZegoUIKitPrebuilt | null>(null);
   const messageEndRef = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate();
+  
 
 
  useEffect(() => {
@@ -155,8 +154,8 @@ const SalonMessages: React.FC = () => {
         setChats(
           response.data.chats.map((chat: any) => ({
             id: chat._id,
-            userId: chat.userId,
-            name: "User",
+            userId: chat.userId?._id,
+            name: chat.userId.firstname,
             lastMessage: chat.lastMessage,
             lastActive: chat.lastActive,
             unreadCount: chat.unreadCount,
@@ -169,6 +168,7 @@ const SalonMessages: React.FC = () => {
     fetchChats();
   }, []);
 
+ 
   useEffect(() => {
     messageEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -180,8 +180,7 @@ const SalonMessages: React.FC = () => {
       const response = await getMessages(chat.userId as string);
       console.log("[CLIENT] Fetched messages for user", chat.userId, ":", response.data);
       setMessages(response.data);
-      socketRef.current?.emit("joinChat", { salonId: chat.userId });
-      // await markMessagesAsRead(chat.userId as string);
+      socketRef.current?.emit("joinChat", { salonId: chat.userId })
       socketRef.current?.emit("markMessagesAsRead", { userId: chat.userId, salonId: salon._id });
       setChats((prevChats) =>
         prevChats.map((c) =>
@@ -346,7 +345,7 @@ const SalonMessages: React.FC = () => {
           setIsCallProcessing(false);
           if (callContainerRef.current) callContainerRef.current.innerHTML = "";
           zegoInstanceRef.current = null;
-          navigate("/salon/messages");
+          window.location.reload()
         },
       });
     } catch (error) {

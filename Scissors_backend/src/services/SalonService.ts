@@ -16,6 +16,10 @@ import { ISalonService } from "../Interfaces/Salon/ISalonService";
 import Offer from "../models/Offer";
 import { Messages } from "../constants/Messages";
 import { HttpStatus } from "../constants/HttpStatus";
+import { AddServiceDto, CreateSalonDto, LoginSalonDto, SalonDto, UpdateSalonDto, UpdateServiceDto } from "../dto/salon.dto";
+import { plainToClass } from "class-transformer";
+import { validate } from "class-validator";
+import { Update } from "vite";
 
 class SalonService implements ISalonService {
   private _salonRepository: ISalonRepository;
@@ -26,15 +30,28 @@ class SalonService implements ISalonService {
     this._categoryRepository = categoryRepository;
   }
 
-  async createSalon(salonData: ISalon): Promise<ISalonDocument> {
+  async createSalon(salonData: CreateSalonDto): Promise<SalonDto> {
+    console.log(salonData)
+    const createSalonDto = plainToClass(CreateSalonDto, salonData);
+    const errors = await validate(createSalonDto);
+    if (errors.length > 0) {
+      throw new CustomError(
+        Messages.INVALID_SALON_DATA + ': ' + errors.map((err) => Object.values(err.constraints || {})).join(', '),
+        HttpStatus.BAD_REQUEST
+      );
+    }
+    const existingSalon = await this._salonRepository.getSalonByEmail(createSalonDto.email);
+    if (existingSalon) {
+      throw new CustomError("Salon Already Exists", HttpStatus.CONFLICT);
+    }
     const categoryData = await this._categoryRepository.findByName(salonData.category);
     if (!categoryData) {
       throw new CustomError("Category not found. Please choose a valid category.", 400);
     }
-    salonData.category = categoryData._id as mongoose.Types.ObjectId;
+    salonData.category = categoryData._id as string;
 
     const address = `${salonData.address.areaStreet}, ${salonData.address.city}, ${salonData.address.state}, ${salonData.address.pincode}`;
-
+    let location: { type: "Point"; coordinates: [number, number]; } | undefined;
     try {
       const response = await axios.get<GeolocationApiResponse>(GEOLOCATION_API, {
         params: {
@@ -48,20 +65,67 @@ class SalonService implements ISalonService {
       }
 
       const { lng, lat } = response.data.results[0].geometry.location;
-      salonData.address.location = {
+      location = {
         type: 'Point',
-        coordinates: [lng, lat]
+        coordinates: [lng, lat],
       };
     } catch (error: any) {
       console.log(error.message, "error in the geocoding");
     }
 
-    salonData.password = await bcrypt.hash(salonData.password, 10);
-    return await this._salonRepository.createSalon(salonData);
+    const hashedPassword = await bcrypt.hash(createSalonDto.password, 10);
+    let salon = await this._salonRepository.createSalon({
+      salonName: createSalonDto.salonName,
+      email: createSalonDto.email,
+      phone: Number(createSalonDto.phone),
+      password: hashedPassword,
+      address: { ...createSalonDto.address, location },
+      category: categoryData._id as string,
+    });
+     salon = salon.toObject()
+    return plainToClass(SalonDto, {
+      _id: salon._id.toString(),
+      salonName: salon.salonName,
+      email: salon.email,
+      phone: salon.phone,
+      address: salon.address,
+      category: salon.category.toString(),
+      openingTime: salon.openingTime,
+      closingTime: salon.closingTime,
+      rating: salon.rating,
+      reviewCount: salon.reviewCount,
+      images: salon.images,
+      services: salon.services,
+      verified: salon.verified,
+      is_Active: salon.is_Active,
+      role:salon.role
+    });
   }
-
-  async findSalon(id: string): Promise<ISalonDocument | null> {
-    return this._salonRepository.getSalonById(id);
+  async findSalonRaw(id: string): Promise<ISalonDocument | null> {
+      return this._salonRepository.findSalonRaw(id)
+  }
+  async findSalon(id: string): Promise<SalonDto | null> {
+   const salon = await this._salonRepository.getSalonById(id);
+    if (!salon) {
+      throw new CustomError(Messages.SALON_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+    return plainToClass(SalonDto, {
+      _id: salon._id.toString(),
+      salonName: salon.salonName,
+      email: salon.email,
+      phone: salon.phone,
+      address: salon.address,
+      category: salon.category.toString(),
+      openingTime: salon.openingTime,
+      closingTime: salon.closingTime,
+      rating: salon.rating,
+      reviewCount: salon.reviewCount,
+      images: salon.images,
+      services: salon.services,
+      verified: salon.verified,
+      is_Active: salon.is_Active,
+      role:salon.role
+    });
   }
 
   async sendOtp(email: string): Promise<string> {
@@ -91,12 +155,20 @@ class SalonService implements ISalonService {
     return "Verification successful. You may now log in.";
   }
 
-  async loginSalon(email: string, password: string): Promise<{ salon: ISalonDocument; accessToken: string; refreshToken: string }> {
-    const salon = await this._salonRepository.getSalonByEmail(email);
+  async loginSalon(data:LoginSalonDto): Promise<{ salon: SalonDto; accessToken: string; refreshToken: string }> {
+    const loginSalonDto = plainToClass(LoginSalonDto, data);
+    const errors = await validate(loginSalonDto);
+    if (errors.length > 0) {
+      throw new CustomError(
+        Messages.INVALID_CREDENTIALS + ': ' + errors.map((err) => Object.values(err.constraints || {})).join(', '),
+        HttpStatus.BAD_REQUEST
+      );
+    }
+    const salon = await this._salonRepository.getSalonByEmail(loginSalonDto.email);
     if (!salon) {
       throw new CustomError("Salon not found. Please check your email or create an account.", 404);
     }
-    const isPasswordValid = await bcrypt.compare(password, salon.password);
+    const isPasswordValid = await bcrypt.compare(loginSalonDto.password, salon.password);
     if (!isPasswordValid) {
       throw new CustomError("Invalid email or password. Please try again.", 400);
     }
@@ -109,6 +181,7 @@ class SalonService implements ISalonService {
       throw new CustomError("Your account has been deactivated. Please contact customer care.", 403);
     }
 
+    console.log(salon,"salon in login")
     const accessToken = jwt.sign(
       { id: salon._id, role: salon.role, active: salon.is_Active },
       process.env.JWT_SECRET as string,
@@ -126,7 +199,27 @@ class SalonService implements ISalonService {
     };
     await this._salonRepository.updateSalon(salon._id.toString(), updateData, { new: true });
 
-    return { salon, accessToken, refreshToken };
+    return {
+      salon: plainToClass(SalonDto, {
+        _id: salon._id.toString(),
+        salonName: salon.salonName,
+        email: salon.email,
+        phone: salon.phone,
+        address: salon.address,
+        category: salon.category.toString(),
+        openingTime: salon.openingTime,
+        closingTime: salon.closingTime,
+        rating: salon.rating,
+        reviewCount: salon.reviewCount,
+        images: salon.images,
+        services: salon.services,
+        verified: salon.verified,
+        is_Active: salon.is_Active,
+        role:salon.role
+      }),
+      accessToken,
+      refreshToken,
+    };
   }
 
   async signOut(refreshToken: string) {
@@ -145,11 +238,31 @@ class SalonService implements ISalonService {
     }
   }
 
-  async getSalonData(id: string): Promise<ISalonDocument | null> {
+  async getSalonData(id: string): Promise<SalonDto | null> {
     if (!id) {
       throw new CustomError("Salon ID is required to fetch salon data.", 400);
     }
-    return this._salonRepository.getSalonById(id);
+    const salon = await this._salonRepository.getSalonById(id);
+    console.log("salon data in repo" ,salon)
+    return plainToClass(SalonDto,{
+        _id: salon?._id.toString(),
+        salonName: salon?.salonName,
+        email: salon?.email,
+        phone: salon?.phone,
+        address: salon?.address,
+        category: salon?.category.toString(),
+        openingTime: salon?.openingTime,
+        closingTime: salon?.closingTime,
+        rating: salon?.rating,
+        reviewCount: salon?.reviewCount,
+        images: salon?.images,
+        services: salon?.services,
+        verified: salon?.verified,
+        is_Active: salon?.is_Active,
+        timeZone:salon?.timeZone,
+        role:salon?.role
+
+    })
   }
 
   async getNearbySalons(params: SalonQueryParamsForUser): Promise<SalonResult> {
@@ -194,9 +307,29 @@ class SalonService implements ISalonService {
       salons = await this._salonRepository.getAllSalons(query, skip, limit);
       totalSalons = await this._salonRepository.countAllSalons(query);
     }
+    console.log(salons,"salonss")
 
     return {
-      salons,
+      salons: salons.map((salon) =>
+        plainToClass(SalonDto, {
+          _id: salon._id.toString(),
+          salonName: salon.salonName,
+          email: salon.email,
+          phone: salon.phone,
+          address: salon.address,
+          category: salon.category?.toString?.() || null,
+          openingTime: salon.openingTime,
+          closingTime: salon.closingTime,
+          rating: salon.rating,
+          reviewCount: salon.reviewCount,
+          images: salon.images,
+          services: salon.services,
+          verified: salon.verified,
+          is_Active: salon.is_Active,
+          timeZone:salon.timeZone,
+          role:salon.role
+        })
+      ),
       totalSalons,
       totalPages: Math.ceil(totalSalons / limit),
     };
@@ -206,7 +339,7 @@ class SalonService implements ISalonService {
     filters: { search?: string; location?: string; maxPrice?: number; ratings?: number[]; offers?: string },
     page: number,
     itemsPerPage: number
-  ): Promise<{ salons: ISalonDocument[]; total: number; totalPages: number }> {
+  ): Promise<{ salons: SalonDto[]; total: number; totalPages: number }> {
     const { salons, total } = await this._salonRepository.findAllSalons(
       filters,
       page,
@@ -214,25 +347,128 @@ class SalonService implements ISalonService {
     );
     const totalPages = Math.ceil(total / itemsPerPage);
     return {
-      salons,
+      salons: salons.map((salon) =>
+        plainToClass(SalonDto, {
+          _id: salon._id.toString(),
+          salonName: salon.salonName,
+          email: salon.email,
+          phone: salon.phone,
+          address: salon.address,
+          category: salon.category.toString(),
+          openingTime: salon.openingTime,
+          closingTime: salon.closingTime,
+          rating: salon.rating,
+          reviewCount: salon.reviewCount,
+          images: salon.images,
+          services: salon.services,
+          verified: salon.verified,
+          is_Active: salon.is_Active,
+          timeZone:salon?.timeZone,
+          role:salon.role
+        })
+      ),
       total,
       totalPages
     };
   }
 
-  async salonProfileUpdate(updatedData: Partial<ISalon>): Promise<ISalonDocument | null> {
-    if (!updatedData.salonName || !updatedData.email || !updatedData.phone) {
-      throw new CustomError("Missing required fields. Salon name, email, and phone are mandatory.", 400);
+  async salonProfileUpdate(updatedData: UpdateSalonDto): Promise<SalonDto | null> {
+    const updateSalonDto = plainToClass(UpdateSalonDto, updatedData);
+    const errors = await validate(updateSalonDto);
+    if (errors.length > 0) {
+      throw new CustomError(
+        Messages.INVALID_SALON_DATA + ': ' + errors.map((err) => Object.values(err.constraints || {})).join(', '),
+        HttpStatus.BAD_REQUEST
+      );
     }
-    const updatedSalon = await this._salonRepository.updateSalonProfile(updatedData);
-    return updatedSalon;
+
+    const salon = await this._salonRepository.getSalonById(updateSalonDto.id);
+    if (!salon) {
+      throw new CustomError(Messages.SALON_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+
+    const address = `${updateSalonDto.address.areaStreet}, ${updateSalonDto.address.city}, ${updateSalonDto.address.state}, ${updateSalonDto.address.pincode}`;
+    let location: { type: "Point"; coordinates: [number, number]; } | undefined
+    try {
+      const response = await axios.get<GeolocationApiResponse>(GEOLOCATION_API, {
+        params: {
+          address,
+          key: process.env.GOOGLE_MAPS_API_KEY,
+        },
+      });
+
+      if (response.data.status !== 'OK' || !response.data.results[0]) {
+        throw new CustomError(Messages.INVALID_ADDRESS, HttpStatus.BAD_REQUEST);
+      }
+
+      const { lng, lat } = response.data.results[0].geometry.location;
+      location = {
+        type: 'Point',
+        coordinates: [lng, lat],
+      };
+    } catch (error) {
+      throw new CustomError(Messages.GEOCODING_NOT_FOUND, HttpStatus.BAD_REQUEST);
+    }
+
+    const updatedSalon = await this._salonRepository.updateSalonProfile({
+      salonName: updateSalonDto.salonName,
+      email: updateSalonDto.email,
+      phone: updateSalonDto.phone,
+      address: { ...updateSalonDto.address, location},
+      openingTime: updateSalonDto.openingTime,
+      closingTime: updateSalonDto.closingTime,
+      timeZone: updateSalonDto.timeZone,
+    });
+
+    if (!updatedSalon) {
+      throw new CustomError(Messages.SALON_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+    return plainToClass(SalonDto, {
+      _id: updatedSalon._id.toString(),
+      salonName: updatedSalon.salonName,
+      email: updatedSalon.email,
+      phone: updatedSalon.phone,
+      address: updatedSalon.address,
+      category: updatedSalon.category.toString(),
+      openingTime: updatedSalon.openingTime,
+      closingTime: updatedSalon.closingTime,
+      rating: updatedSalon.rating,
+      reviewCount: updatedSalon.reviewCount,
+      images: updatedSalon.images,
+      services: updatedSalon.services,
+      verified: updatedSalon.verified,
+      is_Active: updatedSalon.is_Active,
+      timeZone:updatedSalon?.timeZone,
+      role:updatedSalon?.role
+    });
   }
 
-  async updateSalonStatus(id: string, isActive: boolean): Promise<ISalonDocument | null> {
-    return await this._salonRepository.updateSalonStatus(id, isActive);
+  async updateSalonStatus(id: string, isActive: boolean): Promise<SalonDto | null> {
+   const updatedSalon = await this._salonRepository.updateSalonStatus(id, isActive);
+    if (!updatedSalon) {
+      throw new CustomError(Messages.SALON_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+    return plainToClass(SalonDto, {
+      _id: updatedSalon._id.toString(),
+      salonName: updatedSalon.salonName,
+      email: updatedSalon.email,
+      phone: updatedSalon.phone,
+      address: updatedSalon.address,
+      category: updatedSalon.category.toString(),
+      openingTime: updatedSalon.openingTime,
+      closingTime: updatedSalon.closingTime,
+      rating: updatedSalon.rating,
+      reviewCount: updatedSalon.reviewCount,
+      images: updatedSalon.images,
+      services: updatedSalon.services,
+      verified: updatedSalon.verified,
+      is_Active: updatedSalon.is_Active,
+      timeZone:updatedSalon?.timeZone,
+      role:updatedSalon?.role
+    });
   }
 
-  async getAllSalons(page: number, search: string): Promise<{ salonData: ISalonDocument[]; totalPages: number }> {
+  async getAllSalons(page: number, search: string): Promise<{ salonData: SalonDto[]; totalPages: number }> {
     if (isNaN(page) || page < 1) {
       throw new CustomError(Messages.INVALID_PAGINATION_PARAMS, HttpStatus.BAD_REQUEST);
     }
@@ -245,109 +481,230 @@ class SalonService implements ISalonService {
       ];
     }
 
-    const { data: salons, totalCount } = await this._salonRepository.getAllSalon(page, query);
+    let { data: salons, totalCount } = await this._salonRepository.getAllSalon(page, query);
     const totalPages = Math.ceil(totalCount / 10);
 
-    return { salonData: salons, totalPages };
+   salons = salons.map((salon: any) => salon.toObject());
+
+    return { salonData: salons.map((salon) =>
+        plainToClass(SalonDto, {
+          _id: salon._id.toString(),
+          salonName: salon.salonName,
+          email: salon.email,
+          phone: salon.phone,
+          address: salon.address,
+          category: salon.category?.toString() ?? "",
+          openingTime: salon.openingTime,
+          closingTime: salon.closingTime,
+          rating: salon.rating,
+          reviewCount: salon.reviewCount,
+          images: salon.images,
+          services: salon.services,
+          verified: salon.verified,
+          is_Active: salon.is_Active,
+          timeZone:salon?.timeZone,
+          role:salon.role
+        })
+      ), totalPages };
   }
 
-  async allSalonListForChat(): Promise<Partial<ISalonDocument>[]> {
-    return await this._salonRepository.allSalonListForChat();
+  async allSalonListForChat(): Promise<Partial<SalonDto>[]> {
+    const salons = await this._salonRepository.allSalonListForChat();
+    return salons.map((salon) =>
+      plainToClass(SalonDto, {
+        _id: salon._id?.toString(),
+        salonName: salon.salonName,
+        email: salon.email,
+        images: salon.images,
+      })
+    );
   }
 
-  async uploadSalonImage(salonId: string, filePath: string): Promise<ISalonDocument | null> {
+  async uploadSalonImage(salonId: string, filePath: string): Promise<SalonDto | null> {
+    const salon = await this._salonRepository.getSalonById(salonId);
+    if (!salon) {
+      throw new CustomError(Messages.SALON_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
     try {
       const { public_id, secure_url } = await cloudinary.uploader.upload(filePath, {
         folder: "salon_gallery"
       });
       const imageData = { id: public_id, url: secure_url };
-      const updatedSalonData = await this._salonRepository.addImagesToSalon(salonId, imageData);
-      return updatedSalonData;
+      const updatedSalon = await this._salonRepository.addImagesToSalon(salonId, imageData);
+      if (!updatedSalon) {
+        throw new CustomError(Messages.SALON_NOT_FOUND, HttpStatus.NOT_FOUND);
+      }
+      return plainToClass(SalonDto, {
+        _id: updatedSalon._id.toString(),
+        salonName: updatedSalon.salonName,
+        email: updatedSalon.email,
+        phone: updatedSalon.phone,
+        address: updatedSalon.address,
+        category: updatedSalon.category.toString(),
+        openingTime: updatedSalon.openingTime,
+        closingTime: updatedSalon.closingTime,
+        rating: updatedSalon.rating,
+        reviewCount: updatedSalon.reviewCount,
+        images: updatedSalon.images,
+        services: updatedSalon.services,
+        verified: updatedSalon.verified,
+        is_Active: updatedSalon.is_Active,
+        timeZone:updatedSalon?.timeZone,
+        role:updatedSalon.role
+      });;
     } catch (error) {
       console.log(error);
       return null;
     }
   }
 
-  async deleteSalonImage(salonId: string, imageId: string, cloudinaryImageId: string): Promise<ISalonDocument | null> {
+  async deleteSalonImage(salonId: string, imageId: string, cloudinaryImageId: string): Promise<SalonDto | null> {
     const salon = await this._salonRepository.getSalonById(salonId);
     if (!salon) {
       throw new CustomError("Salon not found. Please verify the salon ID.", 404);
     }
-    await cloudinary.uploader.destroy(cloudinaryImageId);
-    const imageExist = salon.images.some((image) => image._id.toString() === imageId);
-    if (!imageExist) {
-      throw new CustomError("The image you are trying to delete does not exist.", 404);
+    const imageExists = salon.images.some((image) => image._id.toString() === imageId);
+    if (!imageExists) {
+      throw new CustomError(Messages.IMAGE_NOT_FOUND, HttpStatus.NOT_FOUND);
     }
+   try {
+      await cloudinary.uploader.destroy(cloudinaryImageId);
+      const updatedSalon = await this._salonRepository.deleteSalonImage(salonId, imageId);
 
-    const updatedSalonData = await this._salonRepository.deleteSalonImage(salonId, imageId);
-    return updatedSalonData;
+      if (!updatedSalon) {
+        throw new CustomError(Messages.SALON_NOT_FOUND, HttpStatus.NOT_FOUND);
+      }
+
+      return plainToClass(SalonDto, {
+        _id: updatedSalon._id.toString(),
+        salonName: updatedSalon.salonName,
+        email: updatedSalon.email,
+        phone: updatedSalon.phone,
+        address: updatedSalon.address,
+        category: updatedSalon.category.toString(),
+        openingTime: updatedSalon.openingTime,
+        closingTime: updatedSalon.closingTime,
+        rating: updatedSalon.rating,
+        reviewCount: updatedSalon.reviewCount,
+        images: updatedSalon.images,
+        services: updatedSalon.services,
+        verified: updatedSalon.verified,
+        is_Active: updatedSalon.is_Active,
+        timeZone:updatedSalon?.timeZone,
+        role:updatedSalon?.role
+      });
+    } catch (error) {
+      throw new CustomError(Messages.IMAGE_DELETION_FAILED, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
 
   async addService(
-    salonId: string,
-    serviceData: { name: string; description: string; service: string; price: number; duration: number; stylist: {}[] }
-  ): Promise<ISalonDocument | null> {
-    if (!salonId) {
-      throw new CustomError("Salon ID is required to add a service.", 400);
+   data:AddServiceDto
+  ): Promise<SalonDto | null> {
+    const addServiceDto = plainToClass(AddServiceDto, data);
+    const errors = await validate(addServiceDto);
+    if (errors.length > 0) {
+      throw new CustomError(
+        Messages.INVALID_SERVICE_DATA + ': ' + errors.map((err) => Object.values(err.constraints || {})).join(', '),
+        HttpStatus.BAD_REQUEST
+      );
     }
-    if (!serviceData.name || !serviceData.price || !serviceData.description || !serviceData.service || !serviceData.duration) {
-      throw new CustomError("All fields are required to add a service.", 400);
+
+    console.log("we entered here")
+    const salon = await this._salonRepository.getSalonById(addServiceDto.salonId);
+    if (!salon) {
+      throw new CustomError(Messages.SALON_NOT_FOUND, HttpStatus.NOT_FOUND);
     }
-    const result = await this._salonRepository.addService(salonId, serviceData);
-    return result;
+    const updatedSalon = await this._salonRepository.addService(addServiceDto.salonId, {
+      name: addServiceDto.name,
+      description: addServiceDto.description,
+      service: addServiceDto.service,
+      price: addServiceDto.price,
+      duration: addServiceDto.duration,
+      stylists: addServiceDto.stylists,
+    });
+
+    if (!updatedSalon) {
+      throw new CustomError(Messages.SALON_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+
+    return plainToClass(SalonDto, {
+      _id: updatedSalon._id.toString(),
+      salonName: updatedSalon.salonName,
+      email: updatedSalon.email,
+      phone: updatedSalon.phone,
+      address: updatedSalon.address,
+      category: updatedSalon.category.toString(),
+      openingTime: updatedSalon.openingTime,
+      closingTime: updatedSalon.closingTime,
+      rating: updatedSalon.rating,
+      reviewCount: updatedSalon.reviewCount,
+      images: updatedSalon.images,
+      services: updatedSalon.services,
+      verified: updatedSalon.verified,
+      is_Active: updatedSalon.is_Active,
+      timeZone:updatedSalon?.timeZone,
+      role:updatedSalon?.role
+    });
   }
 
   async updateService(
-    serviceData: {
-      salonId: string;
-      serviceId: string;
-      name: string;
-      description: string;
-      price: number;
-      service: string;
-      duration: number;
-      stylists: string[];
-    }
-  ): Promise<ISalonDocument | null> {
-    const requiredFields: (keyof typeof serviceData)[] = [
-      'name',
-      'description',
-      'price',
-      'service',
-      'duration',
-      'stylists'
-    ];
+    data: UpdateServiceDto
+  ): Promise<SalonDto | null> {
 
-    const missingFields = requiredFields.filter(
-      (field): field is keyof typeof serviceData =>
-        !serviceData[field]
-    );
-    if (missingFields.length > 0) {
-      throw new CustomError(`Missing fields: ${missingFields.join(', ')}`, 400);
+    const updateServiceDto = plainToClass(UpdateServiceDto, data);
+    const errors = await validate(updateServiceDto);
+    if (errors.length > 0) {
+      throw new CustomError(
+        Messages.INVALID_SERVICE_DATA + ': ' + errors.map((err) => Object.values(err.constraints || {})).join(', '),
+        HttpStatus.BAD_REQUEST
+      );
     }
 
-    if (!mongoose.Types.ObjectId.isValid(serviceData.service)) {
-      throw new CustomError("Invalid service ID.", 400);
+   const salon = await this._salonRepository.getSalonById(updateServiceDto.salonId);
+    if (!salon) {
+      throw new CustomError(Messages.SALON_NOT_FOUND, HttpStatus.NOT_FOUND);
     }
 
-    const data = {
-      name: serviceData.name,
-      description: serviceData.description,
-      price: serviceData.price,
-      service: new mongoose.Types.ObjectId(serviceData.service),
-      duration: serviceData.duration,
-      stylists: serviceData.stylists.map(id => new mongoose.Types.ObjectId(id))
-    };
+    const serviceExists = salon.services.some((s) => s._id.toString() === updateServiceDto.serviceId);
+    if (!serviceExists) {
+      throw new CustomError(Messages.SERVICE_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
 
-    return this._salonRepository.updateService(
-      serviceData.salonId,
-      serviceData.serviceId,
-      data
-    );
+    const updatedSalon = await this._salonRepository.updateService(updateServiceDto.salonId, updateServiceDto.serviceId, {
+      name: updateServiceDto.name,
+      description: updateServiceDto.description,
+      service: new mongoose.Types.ObjectId(updateServiceDto.service),
+      price: updateServiceDto.price,
+      duration: updateServiceDto.duration,
+      stylists: updateServiceDto.stylists.map((id) => new mongoose.Types.ObjectId(id)),
+    });
+
+    if (!updatedSalon) {
+      throw new CustomError(Messages.SALON_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+    return plainToClass(SalonDto, {
+      _id: updatedSalon._id.toString(),
+      salonName: updatedSalon.salonName,
+      email: updatedSalon.email,
+      phone: updatedSalon.phone,
+      address: updatedSalon.address,
+      category: updatedSalon.category.toString(),
+      openingTime: updatedSalon.openingTime,
+      closingTime: updatedSalon.closingTime,
+      rating: updatedSalon.rating,
+      reviewCount: updatedSalon.reviewCount,
+      images: updatedSalon.images,
+      services: updatedSalon.services,
+      verified: updatedSalon.verified,
+      is_Active: updatedSalon.is_Active,
+      timeZone:updatedSalon?.timeZone,
+      role:updatedSalon?.role
+
+    })
   }
 
-  async removeService(salonId: string, serviceId: string): Promise<ISalonDocument | null> {
+  async removeService(salonId: string, serviceId: string): Promise<SalonDto | null> {
     if (!salonId || !serviceId) {
       throw new CustomError("Both Salon ID and Service ID are required to remove a service.", 400);
     }
@@ -356,7 +713,34 @@ class SalonService implements ISalonService {
     if (!salon) {
       throw new CustomError("Salon not found. Please verify the salon ID.", 404);
     }
-    return this._salonRepository.removeService(salonId, serviceId);
+
+    const serviceExists = salon.services.some((s) => s._id.toString());
+    if (!serviceExists) {
+      throw new CustomError(Messages.SERVICE_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+    const updatedSalon = await this._salonRepository.removeService(salonId, serviceId);
+    if (!updatedSalon) {
+      throw new CustomError(Messages.SALON_NOT_FOUND, HttpStatus.NOT_FOUND);
+    }
+
+    return plainToClass(SalonDto, {
+      _id: updatedSalon._id.toString(),
+      salonName: updatedSalon.salonName,
+      email: updatedSalon.email,
+      phone: updatedSalon.phone,
+      address: updatedSalon.address,
+      category: updatedSalon.category.toString(),
+      openingTime: updatedSalon.openingTime,
+      closingTime: updatedSalon.closingTime,
+      rating: updatedSalon.rating,
+      reviewCount: updatedSalon.reviewCount,
+      images: updatedSalon.images,
+      services: updatedSalon.services,
+      verified: updatedSalon.verified,
+      is_Active: updatedSalon.is_Active,
+      timeZone:updatedSalon?.timeZone,
+      role:updatedSalon?.role
+    });
   }
 }
 

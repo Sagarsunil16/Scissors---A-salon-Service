@@ -25,6 +25,10 @@ interface Service {
   description: string;
   price: number;
   duration: number;
+  service: {
+    _id: string;
+    name: string;
+  };
 }
 
 interface Image {
@@ -105,7 +109,6 @@ const SalonDetails: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [visibleServices, setVisibleServices] = useState(3);
   const [error, setError] = useState<string | null>(null);
   const [slotLoading, setSlotLoading] = useState(false);
   const [serviceOption, setServiceOption] = useState<"home" | "store">("store");
@@ -222,15 +225,11 @@ const SalonDetails: React.FC = () => {
     setSelectedSlotGroup(null);
   };
 
-  const toggleVisibleServices = () => {
-    setVisibleServices((prev) => (prev === 3 ? salon.services.length : 3));
-  };
-
   const calculateTotal = () => {
     let total = selectedServices.reduce((sum, serviceId) => {
       const service = salon?.services.find((s) => s._id === serviceId);
       if (!service) return sum;
-      const offers = getServiceOffers(serviceId);
+      const offers = getServiceOffers(service.service._id); // Use service.service._id
       const maxDiscount =
         offers.length > 0 ? Math.max(...offers.map((o) => o.discount), 0) : 0;
       const discountedPrice = service.price * (1 - maxDiscount / 100);
@@ -441,58 +440,48 @@ const SalonDetails: React.FC = () => {
           </div>
 
           <div className="bg-white p-6 rounded shadow-md h-fit">
-            <h2 className="text-2xl font-semibold mb-4">Services & Pricing</h2>
-            <div className="space-y-4">
-              {salon.services.slice(0, visibleServices).map((service) => (
-                <div key={service._id} className="border-b pb-4">
-                  <div className="flex justify-between items-center">
-                    <div className="flex-1">
-                      <h3 className="font-medium text-gray-900">
-                        {service.name}
-                      </h3>
-                      <p className="text-gray-500 text-sm mt-1">
-                        {service.description} ({service.duration} min)
-                      </p>
-                      {getServiceOffers(service._id).map((offer) => (
-                        <div key={offer._id} className="mt-2 text-sm text-green-600">
-                          <p>
-                            <strong>{offer.title}:</strong> {offer.discount}% off{" "}
-                            (Expires: {new Date(offer.expiryDate).toLocaleDateString()})
-                          </p>
-                          <p className="text-gray-600">{offer.description}</p>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="flex items-center gap-4 ml-1">
-                      <span className="text-blue-600">₹{service.price}</span>
-                      <button
-                        onClick={() => toggleService(service._id)}
-                        className={`p-2 rounded-full transition-colors ${
-                          selectedServices.includes(service._id)
-                            ? "bg-green-500 text-white"
-                            : "bg-gray-100 hover:bg-gray-200"
-                        }`}
-                      >
-                        {selectedServices.includes(service._id) ? (
-                          <FiCheck className="w-5 h-5" />
-                        ) : (
-                          <FiPlus className="w-5 h-5" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {salon.services.length > 3 && (
-                <button
-                  onClick={toggleVisibleServices}
-                  className="text-blue-600 font-semibold mt-4"
-                >
-                  {visibleServices === 3 ? "Show More ▼" : "Show Less ▲"}
-                </button>
-              )}
-            </div>
+  <h2 className="text-2xl font-semibold mb-4">Services & Pricing</h2>
+  <div className="max-h-[200px] overflow-y-auto space-y-4 pr-2">
+    {salon.services.map((service) => (
+      <div key={service._id} className="border-b pb-4">
+        <div className="flex justify-between items-center">
+          <div className="flex-1">
+            <h3 className="font-medium text-gray-900">{service.name}</h3>
+            <p className="text-gray-500 text-sm mt-1">
+              {service.description} ({service.duration} min)
+            </p>
+            {getServiceOffers(service.service._id).map((offer) => (
+              <div key={offer._id} className="mt-2 text-sm text-green-600">
+                <p>
+                  <strong>{offer.title}:</strong> {offer.discount}% off (Expires:{" "}
+                  {new Date(offer.expiryDate).toLocaleDateString()})
+                </p>
+                <p className="text-gray-600">{offer.description}</p>
+              </div>
+            ))}
           </div>
+          <div className="flex items-center gap-4 ml-1">
+            <span className="text-blue-600">₹{service.price}</span>
+            <button
+              onClick={() => toggleService(service._id)}
+              className={`p-2 rounded-full transition-colors ${
+                selectedServices.includes(service._id)
+                  ? "bg-green-500 text-white"
+                  : "bg-gray-100 hover:bg-gray-200"
+              }`}
+            >
+              {selectedServices.includes(service._id) ? (
+                <FiCheck className="w-5 h-5" />
+              ) : (
+                <FiPlus className="w-5 h-5" />
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+</div>
 
           {selectedServices.length > 0 && (
             <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg">
@@ -504,7 +493,7 @@ const SalonDetails: React.FC = () => {
                       {selectedServices.map((serviceId) => {
                         const service = salon?.services.find((s) => s._id === serviceId);
                         if (!service) return null;
-                        const offers = getServiceOffers(serviceId);
+                        const offers = getServiceOffers(service.service._id);
                         const maxDiscount = offers.length > 0 ? Math.max(...offers.map((o) => o.discount), 0) : 0;
                         const discountedPrice = service.price * (1 - maxDiscount / 100);
                         const appliedOffer = offers.find((o) => o.discount === maxDiscount);

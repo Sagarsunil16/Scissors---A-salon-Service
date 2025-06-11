@@ -362,7 +362,7 @@ const MessagesPage: React.FC = () => {
           setIsCallProcessing(false);
           if (callContainerRef.current) callContainerRef.current.innerHTML = "";
           zegoInstanceRef.current = null;
-          navigate("/messages");
+          window.location.reload()
         },
       });
     } catch (error) {

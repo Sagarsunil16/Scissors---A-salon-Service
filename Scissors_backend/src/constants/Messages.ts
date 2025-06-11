@@ -195,10 +195,10 @@ export const Messages = {
   INVALID_GOOGLE_TOKEN:"Invalid google token",
   ACCOUNT_BLOCKED:"The account is blocked",
   EMAIL_NOT_FOUND:"Email not found",
-  ACCOUNT_NOT_VERIFIED:"Account not verified"
-
-
-
+  ACCOUNT_NOT_VERIFIED:"Account not verified",
+  GEOCODING_NOT_FOUND:" Geocoding not found",
+  IMAGE_NOT_FOUND : "The image you are trying to delete does not exist",
+  IMAGE_DELETION_FAILED : "Failed to delete the image"
 
   
  

@@ -3,7 +3,7 @@ import { ISalonDocument } from "../../models/Salon";
 import mongoose from "mongoose";
 
 export interface ISalonRepository{
-    createSalon(salonData:ISalon):Promise<ISalonDocument>;
+    createSalon(salonData:Partial<ISalon>):Promise<ISalonDocument>;
     getSalonByEmail(email:string):Promise<ISalonDocument | null>;
     getSalonById(id:string):Promise<ISalonDocument | null>
     getSalonService(SalonId:string,serviceId:string):Promise<ISalonService | null>
@@ -14,8 +14,15 @@ export interface ISalonRepository{
     updateSalonStatus(id:string,isActive:boolean):Promise<ISalonDocument | null>
     addImagesToSalon(salonId:string,imageData: {url:string}):Promise<ISalonDocument |null>
     deleteSalonImage(salonId:string,imageId:string):Promise<ISalonDocument | null>
-    addService(salonId:string,serviceData:{name:string,description:string,service:string,price:number}):Promise<ISalonDocument | null>
-    updateService(salonId:string,serviceId:string,serviceData:{name:string,description:string,service:mongoose.Types.ObjectId,price:number}):Promise<ISalonDocument | null>
+    addService(salonId:string,serviceData:{ name: string; description: string; service: string; price: number; duration: number; stylists?: {}[] }):Promise<ISalonDocument | null>
+    updateService(salonId:string,serviceId:string,serviceData: {
+          name: string;
+          description: string;
+          service: mongoose.Types.ObjectId;
+          price: number;
+          duration: number;
+          stylists: mongoose.Types.ObjectId[];
+        }):Promise<ISalonDocument | null>
     findOrCreateService(salonData:{serviceName:string,serviceDescription:string,category:string,price:number}):Promise<any>
     linkServiceToSalon(salonId:string,serviceId:string):Promise<any>
     totalPages():Promise<number>
@@ -30,4 +37,5 @@ export interface ISalonRepository{
     countActiveSalons():Promise<number>
     countUniqueServices():Promise<number>
     countServicesBySalon(salonId:string):Promise<number>
+    findSalonRaw(id: string): Promise<ISalonDocument | null>
 }

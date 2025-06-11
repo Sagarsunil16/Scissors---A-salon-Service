@@ -401,6 +401,7 @@ class AppointmentRepository extends BaseRepository<IAppointmentDocument> impleme
           "user.lastname": 1,
           "user.email": 1,
           "user.phone": 1,
+          "user.address": 1,
           "stylist.name": 1,
           "stylist.specialization": 1,
           "salon.services": 1,

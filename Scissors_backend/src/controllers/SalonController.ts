@@ -72,12 +72,14 @@ class SalonController {
 
   async loginSalon(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
+      console.log(req.body,"asdasda")
       const { email, password } = req.body;
       if (!email || !password) {
         throw new CustomError(Messages.INVALID_CREDENTIALS, HttpStatus.BAD_REQUEST);
       }
 
-      const result = await this._salonService.loginSalon(email, password);
+      const result = await this._salonService.loginSalon(req.body);
+      console.log(result,"login result")
       res
         .cookie("authToken", result?.accessToken, {
           httpOnly: true,
@@ -261,12 +263,15 @@ class SalonController {
 
   async addService(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { id, ...serviceData } = req.body;
-      if (!id || !mongoose.Types.ObjectId.isValid(id) || !serviceData.name || !serviceData.price || !serviceData.duration) {
+      const { salonId, ...serviceData } = req.body;
+      console.log("we have entered")
+      console.log(req.body)
+      if (!salonId || !mongoose.Types.ObjectId.isValid(salonId) || !serviceData.name || !serviceData.price || !serviceData.duration) {
+        console.log("we entered here")
         throw new CustomError(Messages.INVALID_SERVICE_DATA, HttpStatus.BAD_REQUEST);
       }
 
-      const result = await this._salonService.addService(id, serviceData);
+      const result = await this._salonService.addService(req.body);
       res.status(HttpStatus.OK).json({
         message: Messages.SERVICE_ADDED,
         updatedSalonData: result,

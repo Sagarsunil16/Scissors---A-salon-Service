@@ -52,6 +52,7 @@ const SalonOffers = () => {
   const [error, setError] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "expired">("all");
   const [filterService, setFilterService] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5);
   const [showModal, setShowModal] = useState(false);
@@ -94,7 +95,11 @@ const SalonOffers = () => {
           const matchesService =
             filterService === "all" ||
             offer.serviceIds.some((s) => s._id === filterService);
-          return matchesStatus && matchesService;
+          const matchesSearch =
+            searchQuery.trim() === "" ||
+            offer.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            offer.description.toLowerCase().includes(searchQuery.toLowerCase());
+          return matchesStatus && matchesService && matchesSearch;
         })
         .map((offer) => ({
           _id: offer._id,
@@ -110,7 +115,7 @@ const SalonOffers = () => {
           is_Active: offer.isActive && new Date(offer.expiryDate) >= new Date(),
         }));
     },
-    [filterStatus, filterService]
+    [filterStatus, filterService, searchQuery]
   );
 
   const filteredOffers = getFilteredOffers(offers);
@@ -122,6 +127,11 @@ const SalonOffers = () => {
         ? prev.serviceIds.filter((id) => id !== serviceId)
         : [...prev.serviceIds, serviceId],
     }));
+  };
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+    setCurrentPage(1); // Reset to first page on search
   };
 
   const handleCreateOffer = async (e: React.FormEvent) => {
@@ -260,7 +270,10 @@ const SalonOffers = () => {
                   <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Filter by Status</label>
                   <Select
                     value={filterStatus}
-                    onValueChange={(value) => setFilterStatus(value as "all" | "active" | "expired")}
+                    onValueChange={(value) => {
+                      setFilterStatus(value as "all" | "active" | "expired");
+                      setCurrentPage(1);
+                    }}
                   >
                     <SelectTrigger className="w-full border-gray-200 rounded-md text-xs sm:text-sm">
                       <SelectValue placeholder="Select status" />
@@ -274,7 +287,13 @@ const SalonOffers = () => {
                 </div>
                 <div className="w-full sm:w-44">
                   <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Filter by Service</label>
-                  <Select value={filterService} onValueChange={setFilterService}>
+                  <Select
+                    value={filterService}
+                    onValueChange={(value) => {
+                      setFilterService(value);
+                      setCurrentPage(1);
+                    }}
+                  >
                     <SelectTrigger className="w-full border-gray-200 rounded-md text-xs sm:text-sm">
                       <SelectValue placeholder="Select service" />
                     </SelectTrigger>
@@ -295,8 +314,6 @@ const SalonOffers = () => {
                 </div>
               ) : error ? (
                 <div className="text-red-500 text-center py-4 text-xs sm:text-sm">{error}</div>
-              ) : filteredOffers.length === 0 ? (
-                <div className="text-center py-4 text-gray-500 text-xs sm:text-sm bg-gray-50 rounded-md">No offers found</div>
               ) : (
                 <>
                   <div className="hidden sm:block">
@@ -307,10 +324,10 @@ const SalonOffers = () => {
                       itemsPerPage={itemsPerPage}
                       currentPage={currentPage}
                       loading={loading}
-                      searchQuery=""
+                      searchQuery={searchQuery}
                       editingId={null}
                       editForm={{}}
-                      onSearchChange={() => {}} // No search input for offers
+                      onSearchChange={handleSearchChange}
                       onPageChange={(page) => {
                         console.log('SalonOffers onPageChange:', page);
                         setCurrentPage(page);

@@ -1,3 +1,4 @@
+import { UserDto } from "../../dto/user.dto";
 import { IUserDocument } from "../../models/User";
 import { IUser } from "./IUser";
 
@@ -9,15 +10,16 @@ interface IAddress {
 }
 
 export interface IUserService {
-  createUser(userData: IUser): Promise<IUserDocument>;
-  getUserById(id: string): Promise<IUserDocument | null>;
-  getUserByEmail(id: string): Promise<IUserDocument | null>;
-  deleteUser(id: string): Promise<IUserDocument | null>;
+  createUser(userData: Partial<IUser> ): Promise<UserDto>;
+  getUserById(id: string): Promise<UserDto | null>;
+  getUserByEmail(id: string): Promise<UserDto | null>;
+  deleteUser(id: string): Promise<UserDto | null>;
+  getUserRawById(id:string):Promise<IUserDocument | null>
   loginUser(
     email: string,
     password: string
   ): Promise<{
-    user: IUserDocument;
+    user: UserDto;
     accessToken: string;
     refreshToken: string;
   } | null>;
@@ -25,22 +27,22 @@ export interface IUserService {
     email: string,
     password: string
   ): Promise<{
-    user: IUserDocument;
+    user: UserDto;
     accessToken: string;
     refreshToken: string;
   }>;
-  googleLogin(idToken: string): Promise<{ user: IUserDocument; token: string; refreshToken: string }>;
+  googleLogin(idToken: string): Promise<{ user: UserDto; token: string; refreshToken: string }>;
   signOut(refreshToken: string): Promise<IUserDocument | null | undefined>;
   sendOtp(email: string): Promise<string>;
   verifyOTP(email: string, otp: string): Promise<string>;
   resetPassword(email: string, newPassword: string): Promise<string>;
-  updateUser(id: string, updatedData: Partial<IUser>, isAdmin: boolean): Promise<IUserDocument | null>;
+  updateUser(id: string, updatedData: Partial<IUser>, isAdmin: boolean): Promise<UserDto | null>;
   changePassword(id: string, currentPassword: string, newPassword: string): Promise<string>;
-  updateUserStatus(id: string, isActive: boolean): Promise<any>;
+  updateUserStatus(id: string, isActive: boolean): Promise<UserDto | null>;
   updateRefreshToken(id: string, refreshToken: string): Promise<any>;
   getAllUsers(
     page: number,
     limit: number,
     search: string
-  ): Promise<{ userData: IUserDocument[]; totalUserPages: number }>;
+  ): Promise<{ userData: UserDto[]; totalUserPages: number }>;
 }

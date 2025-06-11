@@ -66,7 +66,7 @@ class BookingService implements IBookingService {
     if (!salon) {
       throw new CustomError("Salon not found", HttpStatus.NOT_FOUND);
     }
-
+    console.log(salon,"salonsssdata")
     const reviews = await this._reviewService.getSalonReviews(salonId);
     const offers = await this._offerService.getSalonOffer(salonId);
 

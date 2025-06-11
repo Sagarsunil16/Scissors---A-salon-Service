@@ -1,6 +1,9 @@
 import { Router } from 'express';
 import auth from '../middleware/auth';
 import { adminController, adminDashboardController, categoryController, serviceController } from '../container/di';
+import validateDto from '../middleware/validationMiddleware';
+import { CreateCategoryDto, UpdateCategoryDto } from '../dto/category.dto';
+import { CreateServiceDto, UpdateServiceDto } from '../dto/service.dto';
 
 const adminRouter = Router();
 
@@ -16,14 +19,14 @@ adminRouter.get('/salons', auth(['Admin']), adminController.getSalons.bind(admin
 adminRouter.put('/salon/block-unblock', auth(['Admin']), adminController.blockAndUnblockSalon.bind(adminController));
 adminRouter.put('/profile', auth(['Admin'], true), adminController.updateProfile.bind(adminController));
 adminRouter.put('/change-password', auth(['Admin'], true), adminController.changePassword.bind(adminController));
-adminRouter.post('/addCategory', auth(['Admin']), categoryController.addNewCategory.bind(categoryController));
+adminRouter.post('/addCategory', auth(['Admin']), validateDto(CreateCategoryDto), categoryController.addNewCategory.bind(categoryController));
 adminRouter.get('/categories', auth(['Admin']), categoryController.getFilteredCategory.bind(categoryController));
-adminRouter.put('/edit-category', auth(['Admin']), categoryController.editCategory.bind(categoryController));
+adminRouter.put('/edit-category', auth(['Admin']), validateDto(UpdateCategoryDto) ,categoryController.editCategory.bind(categoryController));
 adminRouter.put('/delete-category', auth(['Admin']), categoryController.deleteCategory.bind(categoryController));
 adminRouter.get('/service', auth(['Admin']), serviceController.getAllServices.bind(serviceController));
-adminRouter.post('/add-service', auth(['Admin']), serviceController.createService.bind(serviceController));
+adminRouter.post('/add-service', auth(['Admin']),validateDto(CreateServiceDto), serviceController.createService.bind(serviceController));
 adminRouter.delete('/delete-service', auth(['Admin']), serviceController.deleteService.bind(serviceController));
-adminRouter.put('/edit-service', auth(['Admin']), serviceController.updateService.bind(serviceController));
+adminRouter.put('/edit-service', auth(['Admin']),validateDto(UpdateServiceDto) ,serviceController.updateService.bind(serviceController));
 adminRouter.get('/dashboard',auth(["Admin"]),adminDashboardController.getDashboardData.bind(adminDashboardController))
 
 export default adminRouter;

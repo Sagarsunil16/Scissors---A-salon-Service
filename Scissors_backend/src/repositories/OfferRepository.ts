@@ -12,9 +12,9 @@ class OfferRepository extends BaseRepository<IOfferDocument> implements IOfferRe
     super(Offer);
   }
 
-  async findActiveOffersBySalonId(salonId: string): Promise<IOfferDocument[]> {
+  async findOffersBySalonId(salonId: string): Promise<IOfferDocument[]> {
     return await this.model
-      .find({ salonId, isActive: true, expiryDate: { $gte: new Date() } })
+      .find({ salonId, expiryDate: { $gte: new Date() } })
       .populate("serviceIds", "name")
       .exec();
   }
@@ -23,7 +23,7 @@ class OfferRepository extends BaseRepository<IOfferDocument> implements IOfferRe
     return await salonRepo.findById(salonId);
   }
 
-  async countActiveOffersBySalonId(salonId: string): Promise<number> {
+  async countOffersBySalonId(salonId: string): Promise<number> {
     return await this.countDocuments({
       salonId,
       isActive: true,

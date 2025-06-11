@@ -27,11 +27,6 @@ class OfferService implements IOfferService {
       throw new CustomError(Messages.SALON_NOT_FOUND, HttpStatus.NOT_FOUND);
     }
 
-    const activeOffersCount = await this._repository.countActiveOffersBySalonId(salonId.toString());
-    if (activeOffersCount >= 5) {
-      throw new CustomError(Messages.MAX_OFFERS_REACHED, HttpStatus.BAD_REQUEST);
-    }
-
     if (new Date(expiryDate) <= new Date()) {
       throw new CustomError(Messages.INVALID_EXPIRY_DATE, HttpStatus.BAD_REQUEST);
     }
@@ -57,7 +52,7 @@ class OfferService implements IOfferService {
       throw new CustomError(Messages.SALON_NOT_FOUND, HttpStatus.NOT_FOUND);
     }
 
-    return await this._repository.findActiveOffersBySalonId(salonId);
+    return await this._repository.findOffersBySalonId(salonId);
   }
 
   async updateOfferStatus(offerId: string): Promise<IOfferDocument> {

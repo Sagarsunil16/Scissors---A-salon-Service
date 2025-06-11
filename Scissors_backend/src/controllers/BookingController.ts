@@ -37,7 +37,7 @@ class BookingController {
         stylistIds as string,
         date as string
       );
-
+      console.log(response,"salon details")
       res.status(HttpStatus.OK).json({
         message: "Salon data fetched successfully",
         salonData: response.salonData,

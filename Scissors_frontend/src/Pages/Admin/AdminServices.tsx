@@ -7,6 +7,7 @@ import {getAllServices,deleteService,editService} from "../../Services/adminAPI"
 import Swal from "sweetalert2"
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { useDebounce } from "@/hooks/useDebounce";
 const AdminServices = () => {
   const [services, setServices] = useState<IService[]>([]);
   const [editingService, setEditingService] = useState(null);
@@ -16,6 +17,7 @@ const AdminServices = () => {
   const [search,setSearch] = useState("")
   const navigate = useNavigate();
 
+  const debouncedSearch = useDebounce(search,500)
   const handleDeleteService = async (id: string) => {
     const result = await Swal.fire({
       title:"Are you Sure?",
@@ -50,23 +52,35 @@ const AdminServices = () => {
     setEditForm({ ...editForm, [name]: value });
   };
 
-  const handleEditSave = async (id: string) => {
-    try {
-      const data = { id, ...editForm };
-      const response = await editService(data);
-      if (response.status === 200) {
-        setServices((prevServices) =>
-          prevServices.map((service) =>
-            service._id === id ? { ...service, ...editForm } : service
-          )
-        );
-        setEditingService(null);
-        toast.success(response.data.message)
-      }
-    } catch (error: any) {
-      toast.error(error.message);
+ const handleEditSave = async (id: string) => {
+  // Simple validation
+  if (!editForm.name.trim()) {
+    toast.error("Service name cannot be empty");
+    return;
+  }
+
+  if (!editForm.description.trim() || editForm.description.length < 5) {
+    toast.error("Description must be at least 5 characters long");
+    return;
+  }
+
+  try {
+    const data = { id, ...editForm };
+    const response = await editService(data);
+    if (response.status === 200) {
+      setServices((prevServices) =>
+        prevServices.map((service) =>
+          service._id === id ? { ...service, ...editForm } : service
+        )
+      );
+      setEditingService(null);
+      toast.success(response.data.message);
     }
-  };
+  } catch (error: any) {
+    toast.error(error.message);
+  }
+};
+
 
   const handleCancelEdit = () => {
     setEditingService(null);
@@ -81,20 +95,22 @@ const AdminServices = () => {
 
   const fetchServices = async (page:number) => {
     try {
-      const data = {page:page,search:search}
+      const data = {page:page,search:debouncedSearch}
       const response = await getAllServices(data);
       console.log(response)
       setServices(response.data.services);
-      setTotalPages(response.data.totalPages)
+      setTotalPages(response.data.pagination.totalPages || 1)
     } catch (error: any) {
-      toast.error(error.message);
+      const message = error?.response?.data?.error || error.message || "Something went wrong";
+      toast.error(message);
     }
   };
   useEffect(() => {
     fetchServices(currentPage);
-  }, [currentPage,search]);
+  }, [currentPage,debouncedSearch]);
 
   return (
+    
     <div className="flex flex-col md:flex-row min-h-screen bg-white">
       <Sidebar />
       <div className="flex-1 p-4 md:p-6">

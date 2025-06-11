@@ -3,6 +3,9 @@ import CustomError from "../Utils/cutsomError";
 import { Messages } from "../constants/Messages";
 import { HttpStatus } from "../constants/HttpStatus";
 import { IUserService } from "../Interfaces/User/IUserService";
+import { plainToClass } from "class-transformer";
+import { CreateUserDto, UpdateUserDto } from "../dto/user.dto";
+import { validate } from "class-validator";
 
 class UserController {
   private _userService: IUserService;
@@ -13,13 +16,22 @@ class UserController {
 
   async createUser(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const newUser = await this._userService.createUser(req.body);
+      const createUserDto = plainToClass(CreateUserDto, req.body);
+            const errors = await validate(createUserDto);
+            if (errors.length > 0) {
+                throw new CustomError(
+                    Messages.INVALID_USER_DATA,
+                    HttpStatus.BAD_REQUEST,
+      
+                );
+            }
+      const newUser = await this._userService.createUser(createUserDto);
       res.status(HttpStatus.CREATED).json({
         message: Messages.USER_CREATED,
         user: newUser,
       });
     } catch (error: any) {
-      next(new CustomError(error.message || Messages.CREATE_USER_FAILED, HttpStatus.INTERNAL_SERVER_ERROR));
+      next(error);
     }
   }
 
@@ -27,6 +39,7 @@ class UserController {
     try {
       const { email, password } = req.body;
       const result = await this._userService.loginUser(email, password);
+      console.log(result?.user)
       const cookieOptions = {
         path: "/",
         httpOnly: true,
@@ -48,7 +61,7 @@ class UserController {
           user: result?.user,
         });
     } catch (error: any) {
-      next(new CustomError(error.message || Messages.USER_LOGIN_FAILED, HttpStatus.UNAUTHORIZED));
+      next(error);
     }
   }
 
@@ -77,7 +90,7 @@ class UserController {
           user: result?.user,
         });
     } catch (error: any) {
-      next(new CustomError(error.message || Messages.GOOGLE_LOGIN_FAILED, HttpStatus.UNAUTHORIZED));
+      next(error);
     }
   }
 
@@ -94,7 +107,7 @@ class UserController {
         .status(HttpStatus.OK)
         .json({ message: Messages.LOGGED_OUT });
     } catch (error: any) {
-      next(new CustomError(error.message || Messages.SIGN_OUT_FAILED, HttpStatus.INTERNAL_SERVER_ERROR));
+      next(error);
     }
   }
 
@@ -104,7 +117,7 @@ class UserController {
       const message = await this._userService.sendOtp(email);
       res.status(HttpStatus.OK).json({ message });
     } catch (error: any) {
-      next(new CustomError(error.message || Messages.SEND_OTP_FAILED, HttpStatus.BAD_REQUEST));
+      next(error);
     }
   }
 
@@ -117,7 +130,7 @@ class UserController {
         isValid,
       });
     } catch (error: any) {
-      next(new CustomError(error.message || Messages.VERIFY_OTP_FAILED, HttpStatus.BAD_REQUEST));
+      next(error);
     }
   }
 
@@ -133,12 +146,23 @@ class UserController {
 
   async updateUser(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { id, firstname, lastname, phone, address } = req.body;
-      const updatedData = { firstname, lastname, phone, address };
-      const updatedUser = await this._userService.updateUser(id, updatedData, false);
+      console.log(req.body,"idd")
+      const updateUserDto = plainToClass(UpdateUserDto, req.body);
+      console.log(updateUserDto,"dto")
+            const errors = await validate(updateUserDto);
+            if (errors.length > 0) {
+              console.log("Error here")
+                throw new CustomError(
+                    Messages.INVALID_USER_DATA,
+                    HttpStatus.BAD_REQUEST,
+                );
+            }
+      const updatedUser = await this._userService.updateUser(updateUserDto.id as string,
+                updateUserDto,
+                false);
       res.status(HttpStatus.OK).json({
         message: Messages.PROFILE_UPDATED,
-        user: updatedUser?._doc,
+        user: updatedUser
       });
     } catch (error: any) {
       next(new CustomError(error.message || Messages.UPDATE_USER_FAILED, HttpStatus.INTERNAL_SERVER_ERROR));

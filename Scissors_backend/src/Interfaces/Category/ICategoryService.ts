@@ -1,17 +1,14 @@
+import { CategoryDto, CreateCategoryDto, UpdateCategoryDto } from "../../dto/category.dto";
 import { ICategory, ICategoryDocument } from "./ICategory";
 
 export interface ICategoryService{
-    getAllCategory(): Promise<ICategoryDocument[]>;
+    getAllCategory(): Promise<CategoryDto[]>;
     getFilteredCategory(
       page: number,
       limit: number,
       search: string
-    ): Promise<{ categories: ICategoryDocument[]; totalItems: number,totalPages: number;currentPage: number; }>;
-    createCategory(categoryData: ICategory): Promise<ICategoryDocument>;
-    updateCategory(updatedData: {
-      id: string;
-      name: string;
-      description: string;
-    }): Promise<ICategoryDocument | null>;
+    ): Promise<{ categories: CategoryDto[]; totalItems: number,totalPages: number;currentPage: number; }>;
+    createCategory(categoryData: CreateCategoryDto): Promise<CategoryDto>;
+    updateCategory(updatedData: UpdateCategoryDto): Promise<CategoryDto | null>;
     deleteCategory(id: string): Promise<string>;
 }

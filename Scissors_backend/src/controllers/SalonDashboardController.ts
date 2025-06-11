@@ -15,6 +15,7 @@ class SalonDashboardController{
 
     async getDashboardData(req:AuthenticatedRequest,res:Response,next:NextFunction):Promise<void>{
         try {
+            console.log(req.user)
             const salonId = req.user?.id
             const data = await this._salonDashboardService.getSalonDashboardData(salonId as string)
             res.status(200).json(data)

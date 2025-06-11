@@ -12,6 +12,7 @@ class ServiceController {
 
   async createService(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
+      console.log(req.body,"we entered")
       const result = await this._salonMenuService.createService(req.body);
       res.status(HttpStatus.OK).json({
         message: Messages.SERVICE_CREATED,
@@ -31,6 +32,11 @@ class ServiceController {
         message: Messages.SERVICES_FETCHED,
           services: result.services,
           totalPages: Math.ceil(result.totalCount / 10),
+          pagination: {
+          totalItems: result.totalCount,
+          totalPages: result.totalPages,
+          currentPage: result.currentPage,
+        }
       });
     } catch (error) {
       next(error);

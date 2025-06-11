@@ -36,12 +36,13 @@ interface Slot {
 
 interface Appointment {
   _id: string;
-  user: { firstname: string; lastname: string; email: string; phone: string };
+  user: { firstname: string; lastname: string; email: string; phone: string, address:{areaStreet:string,city:string,state:string,pincode:string} };
   stylist: { name: string };
   services: Service[];
   slots: Slot[];
   status: string;
   totalPrice: number;
+  serviceOption:string
   salon: {
     _id: string;
     salonName: string;
@@ -151,6 +152,26 @@ const SalonBookings = () => {
       render: (item: Appointment) => `${item.user.firstname} ${item.user.lastname}`,
     },
     {
+      header: 'Contact',
+      accessor: 'user',
+      minWidth: '150px',
+      render: (item: Appointment) => (
+        <div>
+          <div className="text-sm">{item.user.phone}</div>
+          {item.serviceOption === 'home' && item.user.address && (
+            <div className="text-xs text-gray-500 mt-1">
+              {[
+                item.user.address.areaStreet,
+                item.user.address.city,
+                item.user.address.state,
+                item.user.address.pincode
+              ].filter(Boolean).join(', ')}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
       header: 'Stylist',
       accessor: 'stylist',
       minWidth: '100px',
@@ -206,7 +227,7 @@ const SalonBookings = () => {
   ];
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50 md:flex-row">
+    <div className="flex flex-col min-h-screen bg-white md:flex-row">
       <SalonSidebar />
       <div className="flex-1 flex flex-col">
         <SalonHeader />
@@ -215,15 +236,6 @@ const SalonBookings = () => {
 
           {/* Search and Filter */}
           <div className="flex flex-col sm:flex-row gap-3 mb-4 sm:mb-6">
-            {/* <div className="flex-1">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by customer name or email"
-                className="w-full px-2 py-2 sm:px-3 sm:py-2.5 border border-gray-200 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm"
-              />
-            </div> */}
             <div className="w-full sm:w-48">
               <select
                 id="statusFilter"
@@ -285,6 +297,21 @@ const SalonBookings = () => {
                         <span className="font-semibold text-xs">Customer:</span>{' '}
                         {`${appointment.user.firstname} ${appointment.user.lastname}`}
                       </div>
+                      <div>
+                        <span className="font-semibold text-xs">Phone:</span>{' '}
+                        {appointment.user.phone}
+                      </div>
+                      {appointment.serviceOption === 'home' && appointment.user.address && (
+                        <div>
+                          <span className="font-semibold text-xs">Address:</span>{' '}
+                          {[
+                            appointment.user.address.areaStreet,
+                            appointment.user.address.city,
+                            appointment.user.address.state,
+                            appointment.user.address.pincode
+                          ].filter(Boolean).join(', ')}
+                        </div>
+                      )}
                       <div>
                         <span className="font-semibold text-xs">Stylist:</span>{' '}
                         {appointment.stylist?.name || 'N/A'}

@@ -96,7 +96,7 @@ export const getAllService = async () => {
   return await API.get("/service");
 };
 export const addService = async (data: {
-  id: string;
+  salonId: string;
   name: string;
   description: string;
   service: string;
@@ -109,7 +109,7 @@ export const updateService = async (data: {
   serviceId: string;
   name: string;
   description: string;
-  price: string;
+  price: number;
 }) => {
   return await API.put("/edit-service", data);
 };
@@ -151,7 +151,7 @@ export const updateStylist = async (
     name: string;
     email: string;
     phone: string;
-    available: boolean;
+    isAvailable: boolean;
     workingHours: { startTime: string; endTime: string }[];
   }
 ) => {

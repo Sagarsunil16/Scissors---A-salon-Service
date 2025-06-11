@@ -2,7 +2,7 @@ import mongoose, {Schema} from "mongoose";
 import { ICategoryDocument } from "../Interfaces/Category/ICategory";
 
 
-const categoryModel:Schema = new Schema({
+const categorySchema:Schema = new Schema({
     name:{
         type:String,
         required:true,
@@ -16,4 +16,4 @@ const categoryModel:Schema = new Schema({
 },{timestamps:true})
 
 
-export default mongoose.model<ICategoryDocument>("Category",categoryModel)
+export default mongoose.model<ICategoryDocument>("Category",categorySchema)
