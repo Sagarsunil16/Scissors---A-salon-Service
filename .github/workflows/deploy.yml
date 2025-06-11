@@ -22,7 +22,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and push backend image
-        working-directory: ./scissors_backend
+        working-directory: ./Scissors_backend
         run: |
           docker build -t ${{ secrets.DOCKER_USERNAME }}/scissors-backend:latest .
           docker push ${{ secrets.DOCKER_USERNAME }}/scissors-backend:latest
