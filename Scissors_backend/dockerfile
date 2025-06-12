@@ -10,20 +10,18 @@
      # Install dependencies
      RUN npm install
 
+     
      # Copy the rest of your backend code
      COPY . .
 
-     # Accept service account as a build arg
-     ARG FIREBASE_SERVICE_ACCOUNT
+     # Copy the service account file into the image
+     COPY secureDocs/serviceAccount.json ./secureDocs/serviceAccount.json
 
-     # Create serviceAccount.json inside the image
-     RUN mkdir -p secureDocs \
-     && echo "$FIREBASE_SERVICE_ACCOUNT" > secureDocs/serviceAccount.json
      # Build TypeScript to JavaScript
      RUN npm run build
 
      # Expose the port your backend uses (e.g., 5000)
-     EXPOSE 5000
+     EXPOSE 3000
 
      # Start the app
      CMD ["node", "dist/index.js"]

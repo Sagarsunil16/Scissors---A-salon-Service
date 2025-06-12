@@ -24,7 +24,7 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Create serviceAccount.json from secret
+      - name: Create secureDocs/serviceAccount.json
         working-directory: ./Scissors_backend
         run: |
           mkdir -p secureDocs

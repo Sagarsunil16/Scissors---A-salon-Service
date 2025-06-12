@@ -1,8 +1,19 @@
-import admin from 'firebase-admin'
-import serviceAccount from '../secureDocs/serviceAccount.json'
-if(!admin.apps.length){
-    admin.initializeApp({
-        credential:admin.credential.cert(serviceAccount as admin.ServiceAccount) // Use service account for production
-    })
+import admin from "firebase-admin";
+import * as fs from "fs";
+import * as path from "path";
+
+if (!admin.apps.length) {
+  const serviceAccountPath = process.env.FIREBASE_ADMIN_SDK_PATH || path.resolve(__dirname, "../secureDocs/serviceAccount.json");
+
+  if (!fs.existsSync(serviceAccountPath)) {
+    throw new Error(`Firebase service account key not found at path: ${serviceAccountPath}`);
+  }
+
+  const serviceAccount = require(serviceAccountPath);
+
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+  });
 }
-export default admin
+
+export default admin;
