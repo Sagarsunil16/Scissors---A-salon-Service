@@ -3,7 +3,7 @@ import * as fs from "fs";
 import * as path from "path";
 
 if (!admin.apps.length) {
-  const serviceAccountPath = process.env.FIREBASE_ADMIN_SDK_PATH || path.resolve(__dirname, "../secureDocs/serviceAccount.json");
+  const serviceAccountPath = path.resolve(process.cwd(), 'secureDocs/serviceAccount.json');
 
   if (!fs.existsSync(serviceAccountPath)) {
     throw new Error(`Firebase service account key not found at path: ${serviceAccountPath}`);
