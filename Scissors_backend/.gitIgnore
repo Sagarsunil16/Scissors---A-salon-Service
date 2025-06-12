@@ -2,3 +2,4 @@
 .env
 /src/secureDocs
 firebase/scissors-firebase-admin.json
+dockerrun.aws.json
