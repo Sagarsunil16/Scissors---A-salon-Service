@@ -17,7 +17,7 @@ dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
-
+const port = process.env.PORT || 3000
 mongoConnect();
 expiredReservations.start();
 logger.info("ExpiredReservationsJob started");
@@ -65,7 +65,7 @@ app.use(((error: Error, req: Request, res: Response, next: NextFunction) => {
   });
 }) as express.ErrorRequestHandler);
 
-server.listen(process.env.PORT, () => {
+server.listen(port, () => {
   logger.info(`Server is listening on port ${process.env.PORT}`);
 });
 

@@ -15,7 +15,7 @@
      COPY . .
 
      # Copy the service account file into the image
-     COPY secureDocs/serviceAccount.json ./src//secureDocs/serviceAccount.json
+     COPY src/secureDocs/serviceAccount.json ./secureDocs/serviceAccount.json
 
      # Build TypeScript to JavaScript
      RUN npm run build
