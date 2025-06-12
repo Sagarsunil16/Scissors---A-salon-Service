@@ -5,7 +5,7 @@ import { API_ENDPOINTS } from "../Constants";
 import { Chat, IMessage } from "../types/Imessage"; // Added IMessage import
 
 const API = axios.create({
-  baseURL: API_ENDPOINTS.BASE_URL,
+  baseURL:  `${import.meta.env.VITE_API_URL}`,
   withCredentials: true,
 });
 

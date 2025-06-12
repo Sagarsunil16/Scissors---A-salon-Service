@@ -40,7 +40,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-const allowedOrigins = ["http://localhost:5173"];
+const allowedOrigins = ["https://scissors-a-salon-service.vercel.app/"];
 app.use(
   cors({
     origin: allowedOrigins,
