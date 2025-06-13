@@ -34,6 +34,9 @@ app.use(
 // Initialize Socket.io
 const io = initializeSocket(server);
 
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
+});
 app.use("/uploads", express.static("uploads"));
 app.use("/webhook", express.raw({ type: "application/json" }));
 app.use(express.json());
