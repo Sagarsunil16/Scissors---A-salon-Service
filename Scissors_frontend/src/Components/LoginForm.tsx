@@ -16,6 +16,8 @@ const LoginForm = ({
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
+  const baseurl =import.meta.env.VITE_API_URL
+  console.log(baseurl,"baseurl")
   const initialValues = {
     email: "",
     password: "",
