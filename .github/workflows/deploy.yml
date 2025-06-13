@@ -41,8 +41,8 @@ jobs:
       - name: Restart Elastic Beanstalk app to use latest Docker image
         run: |
           aws elasticbeanstalk restart-app-server \
-            --environment-name YOUR_ENVIRONMENT_NAME \
-            --region YOUR_AWS_REGION
+            --environment-name scissors-backend-env \
+            --region ap-south-1
         env:
            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
