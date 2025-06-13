@@ -46,7 +46,14 @@ app.use(cookieParser());
 const allowedOrigins = ["http://localhost:5173","https://www.scissors.hair","https://scissors.hair"];
 app.use(
   cors({
-    origin: allowedOrigins,
+   origin: (origin, callback) => {
+      console.log("Origin request from:", origin);
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
     methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
   })
