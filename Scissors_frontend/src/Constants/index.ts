@@ -1,6 +1,6 @@
 // API Endpoints
 export const API_ENDPOINTS = {
-    BASE_URL: 'http://scissors-backend-env.eba-ybkmp3x2.ap-south-1.elasticbeanstalk.com',
+    BASE_URL: 'https://api.scissors.hair/',
     USER_SIGNUP: '/signup',
     USER_LOGIN: '/login',
     USER_SIGNOUT: '/signout',
