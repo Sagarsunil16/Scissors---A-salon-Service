@@ -11,7 +11,7 @@ import logger from "./Utils/logger";
 import morgan from "morgan";
 import CustomError from "./Utils/cutsomError";
 import { HttpStatus } from "./constants/HttpStatus";
-import { expiredReservations } from "./container/di";
+import { bookingController, expiredReservations } from "./container/di";
 
 dotenv.config();
 
@@ -38,7 +38,12 @@ app.get('/health', (req, res) => {
   res.status(200).send('OK');
 });
 app.use("/uploads", express.static("uploads"));
-app.use("/webhook", express.raw({ type: "application/json" }));
+// Stripe webhook raw body parser
+app.post(
+  "/api/users/webhook",
+  express.raw({ type: "application/json" }),
+  bookingController.webHooks.bind(bookingController)
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
