@@ -2,7 +2,8 @@ import { Router } from 'express';
 import auth from '../middleware/auth';
 import { ROLES } from '../constants';
 import upload from '../config/multer';
-import { appointmentController, bookingController, chatController, messageController, reviewController, salonController, userController, walletController } from '../container/di';
+import { appointmentController, bookingController, chatController, messageController, reviewController, salonController, userController, walletController } from '../container/di'
+import express from 'express';
 import BookingController from '../controllers/BookingController';
 import WalletRepository from '../repositories/WalletRepository';
 
@@ -32,7 +33,11 @@ userRouter.post('/bookings',auth([ROLES.USER]),bookingController.createBooking.b
 userRouter.put('/profile', auth([ROLES.USER], true), userController.updateUser.bind(userController));
 userRouter.put('/change-password', auth([ROLES.USER], true), userController.changePassword.bind(userController));
 userRouter.post('/create-checkout-session', auth([ROLES.USER]), bookingController.createCheckoutSession.bind(bookingController));
-// userRouter.post('/webhook', bookingController.webHooks.bind(bookingController));
+userRouter.post(
+  '/webhook',
+  express.raw({ type: 'application/json' }),
+  bookingController.webHooks.bind(bookingController)
+);
 userRouter.get('/appointments', auth([ROLES.USER]), appointmentController.getUserAppointments.bind(appointmentController));
 userRouter.put('/appointment/cancel/:id', auth([ROLES.USER]), appointmentController.cancelAppointmentByUser.bind(appointmentController));
 userRouter.get('/wallet/balance',auth([ROLES.USER]),walletController.getBalance.bind(walletController))
