@@ -200,6 +200,7 @@ class BookingController {
     res: Response,
     next: NextFunction
   ): Promise<void> {
+    console.log("✅ Webhook received!");
     const sig = req.headers["stripe-signature"];
     const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -217,6 +218,7 @@ class BookingController {
         sig as string,
         endpointSecret
       );
+        console.log("Received event:", event.type);
     } catch (error: any) {
       res.status(400).send(`Webhook Error: ${error.message}`);
       return;
