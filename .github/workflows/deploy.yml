@@ -39,12 +39,13 @@ jobs:
           docker push ${{ secrets.DOCKER_USERNAME }}/scissors-backend:latest
 
       - name: Upload Dockerrun.aws.json to S3
+        working-directory: ./Scissors_backend
         run: |
-          zip deploy.zip Scissors_backend/dockerrun.aws.json
-          aws s3 cp deploy.zip s3://scissors-eb-deploy/deploy.zip --region ap-south-1
+            zip ../deploy.zip dockerrun.aws.json
+            aws s3 cp ../deploy.zip s3://scissors-eb-deploy/deploy.zip --region ap-south-1
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
       - name: Deploy new version to Elastic Beanstalk
         run: |
