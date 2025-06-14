@@ -201,6 +201,7 @@ class BookingController {
     next: NextFunction
   ): Promise<void> {
     console.log("✅ Webhook received!");
+    
     const sig = req.headers["stripe-signature"];
     const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -213,6 +214,8 @@ class BookingController {
 
     let event: Stripe.Event;
     try {
+      console.log("Signature header:", sig);
+      console.log("Raw body first 200 chars:", req.body.toString().slice(0, 200));
       event = stripe.webhooks.constructEvent(
         req.body,
         sig as string,
