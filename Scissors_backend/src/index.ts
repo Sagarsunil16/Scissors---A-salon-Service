@@ -48,6 +48,11 @@ app.post(
   },
   bookingController.webHooks.bind(bookingController)
 );
+app.get("/webhook", (req, res) => {
+  console.log("✅ GET /webhook was hit");
+  res.send("Webhook test route working");
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
