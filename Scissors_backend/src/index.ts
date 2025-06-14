@@ -42,6 +42,10 @@ app.use("/uploads", express.static("uploads"));
 app.post(
   "/webhook",
   express.raw({ type: "application/json" }),
+  (req, res, next) => {
+    console.log("✅ /webhook route with express.raw() was called");
+    next();
+  },
   bookingController.webHooks.bind(bookingController)
 );
 app.use(express.json());
