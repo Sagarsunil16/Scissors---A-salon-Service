@@ -223,6 +223,7 @@ class BookingController {
       );
         console.log("Received event:", event.type);
     } catch (error: any) {
+      console.log(error)
       res.status(400).send(`Webhook Error: ${error.message}`);
       return;
     }
