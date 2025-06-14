@@ -41,7 +41,7 @@ jobs:
       - name: Upload Dockerrun.aws.json to S3
         working-directory: ./Scissors_backend
         run: |
-            zip ../deploy.zip dockerrun.aws.json
+            zip ../deploy.zip Dockerrun.aws.json
             aws s3 cp ../deploy.zip s3://scissors-eb-deploy/deploy.zip --region ap-south-1
         env:
             AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
