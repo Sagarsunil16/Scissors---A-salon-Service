@@ -40,7 +40,7 @@ app.get('/health', (req, res) => {
 app.use("/uploads", express.static("uploads"));
 // Stripe webhook raw body parser
 app.post(
-  "/api/users/webhook",
+  "/webhook",
   express.raw({ type: "application/json" }),
   bookingController.webHooks.bind(bookingController)
 );
