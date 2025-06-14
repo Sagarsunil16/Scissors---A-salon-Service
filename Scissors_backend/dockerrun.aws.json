@@ -1,0 +1,23 @@
+{
+       "AWSEBDockerrunVersion": "1",
+       "Image": {
+         "Name": "developersagar16/scissors-backend:latest",
+         "Update": "true"
+       },
+       "Ports": [
+         {
+           "ContainerPort": 3000,
+           "HostPort": 80
+         }
+       ],
+       "Environment": [
+         {
+           "Name": "PORT",
+           "Value": "3000"
+         },
+         {
+           "Name": "NODE_ENV",
+           "Value": "production"
+         }
+       ]
+     }
