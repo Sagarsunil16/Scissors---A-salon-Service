@@ -204,6 +204,7 @@ class BookingController {
     
     const sig = req.headers["stripe-signature"];
     const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    console.log("Stripe Secret Key:", process.env.STRIPE_SECRET_KEY);
 
     if (!endpointSecret) {
       throw new CustomError(

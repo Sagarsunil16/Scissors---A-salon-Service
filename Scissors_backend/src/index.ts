@@ -37,7 +37,9 @@ const io = initializeSocket(server);
 app.get('/health', (req, res) => {
   res.status(200).send('OK');
 });
+
 app.use("/uploads", express.static("uploads"));
+
 app.use((req, res, next) => {
   if (req.path === '/webhook') {
     // Skip JSON parsing here - webhook route will handle raw body
