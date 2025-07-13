@@ -206,7 +206,8 @@ class BookingController {
     console.log("🔐 Signature:", sig);
     console.log("📦 Raw body (first 200 chars):", req.body.toString().slice(0, 200));
     const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
-    console.log("Stripe Secret Key:", process.env.STRIPE_SECRET_KEY);
+    console.log("Stripe Webhook Secret:", process.env.STRIPE_WEBHOOK_SECRET);
+    console.log(Buffer.isBuffer(req.body), "Is raw buffer?");
     console.log(req.body,"body raw items or not ")
     if (!endpointSecret) {
       throw new CustomError(
