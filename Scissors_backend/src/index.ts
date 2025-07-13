@@ -10,6 +10,7 @@ import cookieParser from "cookie-parser";
 import logger from "./Utils/logger";
 import morgan from "morgan";
 import CustomError from "./Utils/cutsomError";
+import webhookRouter from './routes/webhookRouter'
 import { HttpStatus } from "./constants/HttpStatus";
 import { bookingController, expiredReservations } from "./container/di";
 
@@ -38,11 +39,7 @@ app.get('/health', (req, res) => {
   res.status(200).send('OK');
 });
 
-app.post(
-  '/webhook',
-  express.raw({ type: 'application/json' }),
-  bookingController.webHooks.bind(bookingController)
-);
+app.use("/webhook", webhookRouter);
 
 app.use("/uploads", express.static("uploads"));
 
