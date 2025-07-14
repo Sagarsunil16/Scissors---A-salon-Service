@@ -199,7 +199,7 @@ class BookingController {
   console.log("✅ Stripe Webhook called!");
   const sig = req.headers["stripe-signature"];
   console.log("🔐 Signature:", sig);
-  console.log("📦 Raw body (first 200 chars):", req.body.toString().slice(0, 200));
+  console.log("📦 Full Raw body:", req.body.toString());
   const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
   console.log("Stripe Webhook Secret:", endpointSecret);
   console.log("Is raw buffer?", Buffer.isBuffer(req.body));
@@ -221,14 +221,15 @@ class BookingController {
   let event: Stripe.Event;
   try {
     event = stripe.webhooks.constructEvent(
-      req.body, // This should be a Buffer
+      req.body,
       sig,
       endpointSecret
-      
     );
-    console.log("Received event:", event.type);
+    console.log("Received event:", event.type, "Event ID:", event.id);
   } catch (error: any) {
     console.error("Webhook signature verification failed:", error.message);
+    console.error("Full error details:", JSON.stringify(error, null, 2));
+    console.error("Request headers:", JSON.stringify(req.headers, null, 2));
     res.status(HttpStatus.BAD_REQUEST).send(`Webhook Error: ${error.message}`);
     return;
   }
@@ -237,6 +238,7 @@ class BookingController {
     await this._bookingService.handleWebhookEvent(event);
     res.status(HttpStatus.OK).send();
   } catch (error: any) {
+    console.error("Error handling webhook event:", error.message);
     next(error);
   }
 }

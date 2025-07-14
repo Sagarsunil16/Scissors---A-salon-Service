@@ -35,7 +35,7 @@
     "nodemailer": "^6.10.0",
     "reflect-metadata": "^0.2.2",
     "socket.io": "^4.8.1",
-    "stripe": "^17.7.0",
+    "stripe": "^18.3.0",
     "winston": "^3.17.0"
   },
   "devDependencies": {
