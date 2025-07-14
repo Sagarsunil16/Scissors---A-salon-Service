@@ -195,50 +195,50 @@ class BookingController {
     }
   }
 
-  async webHooks(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> {
-     console.log("✅ Stripe Webhook called!");
-    
-    const sig = req.headers["stripe-signature"];
-    console.log("🔐 Signature:", sig);
-    console.log("📦 Raw body (first 200 chars):", req.body.toString().slice(0, 200));
-    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
-    console.log("Stripe Webhook Secret:", process.env.STRIPE_WEBHOOK_SECRET);
-    console.log(Buffer.isBuffer(req.body), "Is raw buffer?");
-    console.log(req.body,"body raw items or not ")
-    if (!endpointSecret) {
-      throw new CustomError(
-        Messages.WEBHOOK_SERVER_ERROR,
-        HttpStatus.INTERNAL_SERVER_ERROR
-      );
-    }
+  async webHooks(req: Request, res: Response, next: NextFunction): Promise<void> {
+  console.log("✅ Stripe Webhook called!");
+  const sig = req.headers["stripe-signature"];
+  console.log("🔐 Signature:", sig);
+  console.log("📦 Raw body (first 200 chars):", req.body.toString().slice(0, 200));
+  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  console.log("Stripe Webhook Secret:", endpointSecret);
+  console.log("Is raw buffer?", Buffer.isBuffer(req.body));
 
-    let event: Stripe.Event;
-    try {
-      console.log("Signature header:", sig);
-      console.log("Raw body first 200 chars:", req.body.toString().slice(0, 200));
-      event = stripe.webhooks.constructEvent(
-        req.body,
-        sig as string,
-        endpointSecret
-      );
-        console.log("Received event:", event.type);
-    } catch (error: any) {
-      console.log(error)
-      res.status(400).send(`Webhook Error: ${error.message}`);
-      return;
-    }
-
-    try {
-      await this._bookingService.handleWebhookEvent(event);
-      res.status(HttpStatus.OK).send();
-    } catch (error: any) {
-      next(error);
-    }
+  if (!endpointSecret) {
+    throw new CustomError(
+      Messages.WEBHOOK_SERVER_ERROR,
+      HttpStatus.INTERNAL_SERVER_ERROR
+    );
   }
+
+  if (!sig) {
+    throw new CustomError(
+      "Missing stripe-signature header",
+      HttpStatus.BAD_REQUEST
+    );
+  }
+
+  let event: Stripe.Event;
+  try {
+    event = stripe.webhooks.constructEvent(
+      req.body, // This should be a Buffer
+      sig,
+      endpointSecret
+    );
+    console.log("Received event:", event.type);
+  } catch (error: any) {
+    console.error("Webhook signature verification failed:", error.message);
+    res.status(HttpStatus.BAD_REQUEST).send(`Webhook Error: ${error.message}`);
+    return;
+  }
+
+  try {
+    await this._bookingService.handleWebhookEvent(event);
+    res.status(HttpStatus.OK).send();
+  } catch (error: any) {
+    next(error);
+  }
+}
 }
 
 export default BookingController;

@@ -1,4 +1,4 @@
-import 'reflect-metadata'
+import 'reflect-metadata';
 import express, { Request, Response, NextFunction } from "express";
 import dotenv from "dotenv";
 import http from "http";
@@ -10,7 +10,7 @@ import cookieParser from "cookie-parser";
 import logger from "./Utils/logger";
 import morgan from "morgan";
 import CustomError from "./Utils/cutsomError";
-import webhookRouter from './routes/webhookRouter'
+import webhookRouter from './routes/webhookRouter';
 import { HttpStatus } from "./constants/HttpStatus";
 import { bookingController, expiredReservations } from "./container/di";
 
@@ -35,22 +35,24 @@ app.use(
 // Initialize Socket.io
 const io = initializeSocket(server);
 
+// Health check route
 app.get('/health', (req, res) => {
   res.status(200).send('OK');
 });
 
+// Webhook route (must come before express.json())
 app.use("/webhook", webhookRouter);
 
+// Static files and other middleware
 app.use("/uploads", express.static("uploads"));
-
-app.use(express.json());
+app.use(express.json()); // Moved after webhook route
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-const allowedOrigins = ["http://localhost:5173","https://www.scissors.hair","https://scissors.hair"];
+const allowedOrigins = ["http://localhost:5173", "https://www.scissors.hair", "https://scissors.hair"];
 app.use(
   cors({
-   origin: (origin, callback) => {
+    origin: (origin, callback) => {
       console.log("Origin request from:", origin);
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
