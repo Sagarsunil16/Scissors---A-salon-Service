@@ -224,6 +224,7 @@ class BookingController {
       req.body, // This should be a Buffer
       sig,
       endpointSecret
+      
     );
     console.log("Received event:", event.type);
   } catch (error: any) {
