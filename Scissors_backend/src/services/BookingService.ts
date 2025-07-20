@@ -77,7 +77,7 @@ class BookingService implements IBookingService {
     };
   }
 
-  async getServiceStylists(salonId: string, serviceIds: string[]): Promise<Stylist[]> {
+  async getServiceStylists(salonId: string, serviceIds: string[], selectedDate?: string): Promise<Stylist[]> {
     if (!salonId) {
       throw new CustomError("Salon ID is required", HttpStatus.BAD_REQUEST);
     }
@@ -98,9 +98,13 @@ class BookingService implements IBookingService {
       throw new CustomError("No valid services found", HttpStatus.NOT_FOUND);
     }
 
+     const selectedDay = selectedDate
+    ? moment(selectedDate).format("dddd")
+    : null;
+
     const stylistsMap = new Map<
       string,
-      { _id: string; name: string; rating: number; serviceCount: number }
+      { _id: string; name: string; rating: number; serviceCount: number, workingHours: any[] }
     >();
     services.forEach((service: any) => {
       service.stylists.forEach((stylist: any) => {
@@ -111,6 +115,7 @@ class BookingService implements IBookingService {
             name: stylist.name,
             rating: stylist.rating,
             serviceCount: 0,
+            workingHours: stylist.workingHours,
           });
         }
         const stylistData = stylistsMap.get(stylistId)!;
@@ -118,9 +123,17 @@ class BookingService implements IBookingService {
       });
     });
 
-    const stylists = Array.from(stylistsMap.values()).filter(
+    let stylists = Array.from(stylistsMap.values()).filter(
       (stylist) => stylist.serviceCount === serviceIds.length
     );
+
+    if (selectedDay) {
+    stylists = stylists.filter((stylist) =>
+      stylist.workingHours.some(
+        (wh) => wh.day.toLowerCase() === selectedDay.toLowerCase()
+      )
+    );
+  }
 
     if (stylists.length === 0) {
       throw new CustomError(

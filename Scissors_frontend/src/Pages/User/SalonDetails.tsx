@@ -166,6 +166,7 @@ const SalonDetails: React.FC = () => {
           const response = await fetchServiceStylist({
             salonId: id,
             serviceIds: selectedServices,
+            date:selectedDate
           });
           setStylists(response.data.stylists);
           setSelectedStylist(null);
@@ -182,7 +183,7 @@ const SalonDetails: React.FC = () => {
       }
     };
     fetchStylists();
-  }, [selectedServices, id]);
+  }, [selectedServices,selectedDate, id]);
 
   useEffect(() => {
     const fetchAvailableSlots = async () => {

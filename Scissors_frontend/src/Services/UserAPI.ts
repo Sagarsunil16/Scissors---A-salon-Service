@@ -123,10 +123,11 @@ export const getSalonDetailsWithSlots = async (data: {
     },
   });
 };
-export const fetchServiceStylist = async (data: { salonId: string; serviceIds: string[] }) => {
+export const fetchServiceStylist = async (data: { salonId: string; serviceIds: string[],date:string }) => {
   return API.get(`/salons/${data.salonId}/stylist`, {
     params: {
       serviceIds: data.serviceIds.join(","),
+      date:data.date,
     },
   });
 };

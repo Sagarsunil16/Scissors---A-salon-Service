@@ -85,7 +85,7 @@ class BookingController {
   ): Promise<void> {
     try {
       const { salonId } = req.params;
-      const { serviceIds } = req.query;
+      const { serviceIds,date } = req.query;
 
       const serviceIdsArray =
         typeof serviceIds === "string" ? serviceIds.split(",") : [];

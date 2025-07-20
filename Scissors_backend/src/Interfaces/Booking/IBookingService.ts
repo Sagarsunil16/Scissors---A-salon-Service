@@ -34,7 +34,7 @@ export interface IBookingService {
     stylistId?: string,
     date?: string
   ): Promise<SalonDataWithSlots>;
-  getServiceStylists(salonId: string, serviceIds: string[]): Promise<Stylist[]>;
+  getServiceStylists(salonId: string, serviceIds: string[], selectedDate?: string): Promise<Stylist[]>;
   handleWebhookEvent(event: Stripe.Event): Promise<void>;
   getAvailableSlots(
     salonId: string,
