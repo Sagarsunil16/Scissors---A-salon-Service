@@ -183,7 +183,7 @@ const SalonDetails: React.FC = () => {
       }
     };
     fetchStylists();
-  }, [selectedServices,selectedDate, id]);
+  }, [selectedDate, id]);
 
   useEffect(() => {
     const fetchAvailableSlots = async () => {
