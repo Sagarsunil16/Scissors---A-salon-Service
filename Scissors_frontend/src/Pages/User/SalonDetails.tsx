@@ -601,7 +601,7 @@ const SalonDetails: React.FC = () => {
           />
         </div>
 
-        {selectedServices.length > 0 && (
+        {selectedDate && (
           <div className="bg-white p-4 rounded-lg shadow-md mt-8">
             <h3 className="text-lg font-semibold mb-4">Select Stylist</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
