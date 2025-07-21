@@ -135,6 +135,10 @@ class BookingService implements IBookingService {
     );
   }
 
+    console.log(selectedDate,"Selected date",
+    console.log(stylists,"stylists")
+  )
+
     if (stylists.length === 0) {
       throw new CustomError(
         "No stylists found who offer all selected services",
