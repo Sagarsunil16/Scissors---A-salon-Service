@@ -135,7 +135,7 @@ class BookingService implements IBookingService {
     );
   }
 
-    console.log(selectedDate,"Selected date",
+    console.log(selectedDay,"Selected day",
     console.log(stylists,"stylists")
   )
 
