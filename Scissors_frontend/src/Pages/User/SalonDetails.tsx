@@ -595,6 +595,7 @@ const SalonDetails: React.FC = () => {
             max={getMaxDate()}
             onChange={(e) => {
               setSelectedDate(e.target.value);
+              setSelectedStylist(null);
               setSelectedSlotGroup(null);
             }}
             className="p-2 border rounded-lg w-full"
