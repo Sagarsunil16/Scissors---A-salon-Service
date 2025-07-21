@@ -92,7 +92,8 @@ class BookingController {
 
       const stylists = await this._bookingService.getServiceStylists(
         salonId,
-        serviceIdsArray
+        serviceIdsArray,
+        date as string
       );
       res
         .status(HttpStatus.OK)
