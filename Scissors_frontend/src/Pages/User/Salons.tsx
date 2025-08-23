@@ -12,6 +12,7 @@ const Salons = () => {
   const [search, setSearch] = useState("");
   const [pincode, setPincode] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [sortOption, setSortOption] = useState<string>("rating_desc");
   const [filters, setFilters] = useState<{
     maxPrice: number;
     ratings: number[];
@@ -26,7 +27,10 @@ const Salons = () => {
   const [totalSalons, setTotalSalons] = useState(0);
   const itemsPerPage = 6;
   const [searchParams, setSearchParams] = useSearchParams();
-  const [coordinates, setCoordinates] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [coordinates, setCoordinates] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
 
   const services = [
     { name: "Hair Cut" },
@@ -51,6 +55,7 @@ const Salons = () => {
         discount: number;
         page: number;
         limit: number;
+        sort?: string;
       } = {
         search,
         maxPrice: filters.maxPrice,
@@ -58,6 +63,7 @@ const Salons = () => {
         discount: filters.discount,
         page: currentPage,
         limit: itemsPerPage,
+        sort: sortOption,
       };
       // Only include location params if coordinates are available
       if (coordinates) {
@@ -71,7 +77,10 @@ const Salons = () => {
       setTotalSalons(response.data.paginations.totalSalons);
       setError(null);
     } catch (err: any) {
-      setError(err.response?.data?.message || "Failed to fetch salons. Please try again.");
+      setError(
+        err.response?.data?.message ||
+          "Failed to fetch salons. Please try again."
+      );
       console.error("Salons fetch error:", err);
     }
   };
@@ -105,12 +114,15 @@ const Salons = () => {
       return;
     }
     try {
-      const response = await axios.get("https://maps.googleapis.com/maps/api/geocode/json", {
-        params: {
-          address: `${pincode}, India`,
-          key: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-        },
-      });
+      const response = await axios.get(
+        "https://maps.googleapis.com/maps/api/geocode/json",
+        {
+          params: {
+            address: `${pincode}, India`,
+            key: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+          },
+        }
+      );
       if (response.data.status === "OK" && response.data.results[0]) {
         const { lat, lng } = response.data.results[0].geometry.location;
         setCoordinates({ latitude: lat, longitude: lng });
@@ -128,7 +140,7 @@ const Salons = () => {
   // Fetch salons on mount or when filters change
   useEffect(() => {
     getNearbySalons(); // Always fetch salons, with or without coordinates
-  }, [coordinates, search, filters, currentPage]);
+  }, [coordinates, search, filters, currentPage,sortOption]);
 
   // Try to get user location on mount
   useEffect(() => {
@@ -140,8 +152,10 @@ const Salons = () => {
     const params = new URLSearchParams();
     if (search) params.set("search", search);
     if (pincode) params.set("pincode", pincode);
-    if (filters.maxPrice !== 100000) params.set("maxPrice", String(filters.maxPrice));
-    if (filters.ratings.length > 0) params.set("ratings", filters.ratings.join(","));
+    if (filters.maxPrice !== 100000)
+      params.set("maxPrice", String(filters.maxPrice));
+    if (filters.ratings.length > 0)
+      params.set("ratings", filters.ratings.join(","));
     if (filters.discount > 0) params.set("discount", String(filters.discount));
     params.set("page", String(currentPage));
     setSearchParams(params);
@@ -152,9 +166,15 @@ const Salons = () => {
     const params = Object.fromEntries(searchParams.entries());
     if (params.search) setSearch(params.search);
     if (params.pincode) setPincode(params.pincode);
-    if (params.maxPrice) setFilters((prev) => ({ ...prev, maxPrice: Number(params.maxPrice) }));
-    if (params.ratings) setFilters((prev) => ({ ...prev, ratings: params.ratings.split(",").map(Number) }));
-    if (params.discount) setFilters((prev) => ({ ...prev, discount: Number(params.discount) }));
+    if (params.maxPrice)
+      setFilters((prev) => ({ ...prev, maxPrice: Number(params.maxPrice) }));
+    if (params.ratings)
+      setFilters((prev) => ({
+        ...prev,
+        ratings: params.ratings.split(",").map(Number),
+      }));
+    if (params.discount)
+      setFilters((prev) => ({ ...prev, discount: Number(params.discount) }));
     if (params.page) setCurrentPage(Number(params.page));
   }, [searchParams]);
 
@@ -212,7 +232,10 @@ const Salons = () => {
         <div className="flex flex-col sm:flex-row justify-center items-center mt-5 gap-6 px-4">
           <div className="flex flex-col sm:flex-row items-center gap-2">
             <span className="text-gray-700 font-medium">Location:</span>
-            <form onSubmit={handlePincodeSubmit} className="flex items-center gap-2">
+            <form
+              onSubmit={handlePincodeSubmit}
+              className="flex items-center gap-2"
+            >
               <input
                 type="text"
                 value={pincode}
@@ -246,9 +269,13 @@ const Salons = () => {
         {/* Filters Section */}
         <div className="flex flex-col md:flex-row mt-5">
           <div className="w-full md:w-[20%] p-4">
-            <h2 className="text-xl font-semibold text-gray-700 mb-4">Filters</h2>
+            <h2 className="text-xl font-semibold text-gray-700 mb-4">
+              Filters
+            </h2>
             <div className="mb-4 bg-white shadow-lg p-4 rounded-lg">
-              <h3 className="text-lg font-medium text-gray-600 mb-2">Price Range</h3>
+              <h3 className="text-lg font-medium text-gray-600 mb-2">
+                Price Range
+              </h3>
               <div className="flex flex-col gap-4">
                 <input
                   type="range"
@@ -276,13 +303,17 @@ const Salons = () => {
                       onChange={() => handleRatingChange(star)}
                       className="w-4 h-4 text-blue-500 border-gray-300 rounded focus:ring-blue-400"
                     />
-                    <span className="text-gray-700">{`${star} Star${star > 1 ? "s" : ""}`}</span>
+                    <span className="text-gray-700">{`${star} Star${
+                      star > 1 ? "s" : ""
+                    }`}</span>
                   </label>
                 ))}
               </div>
             </div>
             <div className="mb-4 bg-white shadow-lg p-4 rounded-lg">
-              <h3 className="text-lg font-medium text-gray-600 mb-2">Special Offers</h3>
+              <h3 className="text-lg font-medium text-gray-600 mb-2">
+                Special Offers
+              </h3>
               <div className="flex flex-col gap-2">
                 {[20, 50].map((discount) => (
                   <button
@@ -301,8 +332,20 @@ const Salons = () => {
             </div>
           </div>
 
-          {/* Main Content */}
           <div className="w-full md:w-3/4 ml-0 md:ml-4">
+            <div className="flex justify-end mb-4">
+              <select
+                value={sortOption}
+                onChange={(e) => setSortOption(e.target.value)}
+                className="border border-gray-300 rounded-lg px-3 py-2 shadow-sm"
+              >
+                <option value="rating_desc">Top Rated</option>
+                <option value="name_asc">Name: A-Z</option>
+                <option value="name_desc">Name: Z-A</option>
+              </select>
+            </div>
+
+            {/* Main Content */}
             <h2 className="text-xl font-semibold text-gray-700 mb-4">
               Salon Listings ({totalSalons} found)
             </h2>

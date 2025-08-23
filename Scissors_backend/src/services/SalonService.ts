@@ -266,7 +266,7 @@ class SalonService implements ISalonService {
   }
 
   async getNearbySalons(params: SalonQueryParamsForUser): Promise<SalonResult> {
-    const { longitude, latitude, radius, search, maxPrice, ratings, discount, page, limit } = params;
+    const { longitude, latitude, radius, search, maxPrice, ratings, discount, page, limit, sort } = params;
     const skip = (page - 1) * limit;
     if (longitude !== undefined && latitude !== undefined) {
       if (isNaN(longitude) || isNaN(latitude)) {
@@ -298,16 +298,38 @@ class SalonService implements ISalonService {
       query._id = { $in: offerSalonIds };
     }
 
+
+    let sortOption: any = {};
+    switch (sort) {
+      // case "price_asc":
+      //   sortOption = { "services.price": 1 };
+      //   break;
+      // case "price_desc":
+      //   sortOption = { "services.price": -1 };
+      //   break;
+      case "name_asc":
+        sortOption = { salonName: 1 };
+        break;
+      case "name_desc":
+        sortOption = { salonName: -1 };
+        break;
+      case "rating_asc":
+        sortOption = { rating: 1 };
+        break;
+      case "rating_desc":
+      default:
+        sortOption = { rating: -1 };
+    }
+
     let salons: ISalonDocument[] = [];
     let totalSalons = 0;
     if (longitude !== undefined && latitude !== undefined) {
-      salons = await this._salonRepository.getNearbySalons(longitude, latitude, radius, query, skip, limit);
+      salons = await this._salonRepository.getNearbySalons(longitude, latitude, radius, query, skip, limit,sortOption);
       totalSalons = await this._salonRepository.countNearbySalons(longitude, latitude, radius, query);
     } else {
-      salons = await this._salonRepository.getAllSalons(query, skip, limit);
+      salons = await this._salonRepository.getAllSalons(query, skip, limit, sortOption);
       totalSalons = await this._salonRepository.countAllSalons(query);
     }
-    console.log(salons,"salonss")
 
     return {
       salons: salons.map((salon) =>

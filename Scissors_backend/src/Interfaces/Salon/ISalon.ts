@@ -105,6 +105,7 @@ export interface SalonQueryParamsForUser{
   discount: number;
   page: number;
   limit: number;
+  sort:string
 }
 
 export interface SalonResult {

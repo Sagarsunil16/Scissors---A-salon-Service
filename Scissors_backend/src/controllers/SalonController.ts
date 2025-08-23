@@ -153,7 +153,7 @@ class SalonController {
 
   async getNearbySalons(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { longitude, latitude, radius = 5000, search = "", maxPrice = 100000, ratings = "", discount = "", page = 1, limit = 6 } = req.query;
+      const { longitude, latitude, radius = 5000, search = "", maxPrice = 100000, ratings = "", discount = "", page = 1, limit = 6, sort = "rating_desc" } = req.query;
 
       const params = {
         longitude: longitude ? parseFloat(longitude as string) : undefined,
@@ -165,6 +165,7 @@ class SalonController {
         discount: parseFloat(discount as string) || 0,
         page: parseInt(page as string) || 1,
         limit: parseInt(limit as string) || 6,
+        sort: sort as string,
       };
 
       // if (!params.longitude || !params.latitude) {

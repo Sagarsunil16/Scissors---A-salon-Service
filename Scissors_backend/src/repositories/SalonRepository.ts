@@ -32,7 +32,7 @@ class SalonRepository extends BaseRepository<ISalonDocument> implements ISalonRe
     return await this.model.findById(id).populate("services.service").populate("services.stylists").lean().exec();
   }
 
-  async getNearbySalons(longitude: number, latitude: number, radius: number, query: any, skip: number, limit: number): Promise<ISalonDocument[]> {
+  async getNearbySalons(longitude: number, latitude: number, radius: number, query: any, skip: number, limit: number, sortOption: any): Promise<ISalonDocument[]> {
     return await this.model
       .find({
         ...query,
@@ -43,16 +43,17 @@ class SalonRepository extends BaseRepository<ISalonDocument> implements ISalonRe
         },
       })
       .select("salonName address services rating images category")
+      .sort(sortOption)
       .skip(skip)
       .limit(limit)
       .lean()
       .exec();
   }
 
-  async getAllSalons(query: any, skip: number, limit: number): Promise<ISalonDocument[]> {
+  async getAllSalons(query: any, skip: number, limit: number, sortOption: any): Promise<ISalonDocument[]> {
     console.log(query)
       return this.model.find(query).select('salonName address services rating images category')
-      .sort({ratings:-1}).skip(skip).limit(limit).lean().exec()
+      .sort(sortOption).skip(skip).limit(limit).lean().exec()
   }
 
   async countNearbySalons(longitude: number, latitude: number, radius: number, query: any): Promise<number> {

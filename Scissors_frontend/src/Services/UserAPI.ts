@@ -202,6 +202,7 @@ export const getSalons = async (params: {
   discount?: number;
   page?: number;
   limit?: number;
+  sort?: string; 
 }) => {
   const response = await API.get("/salons", { params });
   return response;

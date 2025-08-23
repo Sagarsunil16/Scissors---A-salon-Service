@@ -30,9 +30,9 @@ export interface ISalonRepository{
     removeService(salonId:string,serviceId:string):Promise<ISalonDocument | null>
     allSalonListForChat():Promise<Partial<ISalonDocument>[]>
     updateSalon(id:string,update:Partial<ISalonDocument>,options?:mongoose.QueryOptions):Promise<ISalonDocument | null>
-    getNearbySalons(longitude:number,latitude:number,radius:number,query:any,skip:number,limit:number):Promise<ISalonDocument[]>
+    getNearbySalons(longitude:number,latitude:number,radius:number,query:any,skip:number,limit:number, sortOption:any):Promise<ISalonDocument[]>
     countNearbySalons(longitude:number,latitude:number,radius:number,query:any):Promise<number>
-    getAllSalons(query: any, skip: number, limit: number): Promise<ISalonDocument[]> 
+    getAllSalons(query: any, skip: number, limit: number, sortOption:any): Promise<ISalonDocument[]> 
     countAllSalons(query: any): Promise<number>
     countActiveSalons():Promise<number>
     countUniqueServices():Promise<number>
