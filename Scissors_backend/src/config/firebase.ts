@@ -1,15 +1,13 @@
 import admin from "firebase-admin";
-import * as fs from "fs";
-import * as path from "path";
 
 if (!admin.apps.length) {
-  const serviceAccountPath = path.resolve(process.cwd(), 'secureDocs/serviceAccount.json');
-
-  if (!fs.existsSync(serviceAccountPath)) {
-    throw new Error(`Firebase service account key not found at path: ${serviceAccountPath}`);
+  if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
+    throw new Error("FIREBASE_SERVICE_ACCOUNT env variable is missing");
   }
 
-  const serviceAccount = require(serviceAccountPath);
+  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+
+  serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
 
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
