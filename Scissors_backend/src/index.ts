@@ -49,7 +49,12 @@ app.use(express.json()); // Moved after webhook route
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-const allowedOrigins = ["http://localhost:5173", "https://www.scissors.hair", "https://scissors.hair"];
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://scissors-a-salon-service-git-main-sagarsunil16s-projects.vercel.app",
+  "https://scissors-a-salon-service.vercel.app",
+];
+
 app.use(
   cors({
     origin: (origin, callback) => {

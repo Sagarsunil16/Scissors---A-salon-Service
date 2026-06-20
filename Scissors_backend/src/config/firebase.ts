@@ -1,30 +1,44 @@
+import fs from "fs";
+import path from "path";
 import dotenv from "dotenv";
 import admin from "firebase-admin";
-import * as fs from "fs";
-import * as path from "path";
 
 dotenv.config();
 
 const defaultServiceAccountPath = path.resolve(
   process.cwd(),
-  "secureDocs/serviceAccount.json"
+  "secureDocs",
+  "serviceAccount.json"
 );
 
-const serviceAccountPath =
-  process.env.FIREBASE_SERVICE_ACCOUNT_PATH || defaultServiceAccountPath;
+const parseServiceAccount = (value: string) => {
+  const serviceAccount = JSON.parse(value);
+
+  if (serviceAccount.private_key) {
+    serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
+  }
+
+  return serviceAccount;
+};
 
 const getServiceAccount = () => {
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    return parseServiceAccount(process.env.FIREBASE_SERVICE_ACCOUNT);
+  }
+
   if (process.env.FIREBASE_SERVICE_ACCOUNT_BASE64) {
-    const serviceAccountJson = Buffer.from(
+    const decoded = Buffer.from(
       process.env.FIREBASE_SERVICE_ACCOUNT_BASE64,
       "base64"
     ).toString("utf8");
-
-    return JSON.parse(serviceAccountJson);
+    return parseServiceAccount(decoded);
   }
 
+  const serviceAccountPath =
+    process.env.FIREBASE_SERVICE_ACCOUNT_PATH || defaultServiceAccountPath;
+
   if (fs.existsSync(serviceAccountPath)) {
-    return require(serviceAccountPath);
+    return parseServiceAccount(fs.readFileSync(serviceAccountPath, "utf8"));
   }
 
   return null;
@@ -40,7 +54,7 @@ if (!admin.apps.length && serviceAccount) {
   });
 } else if (!serviceAccount) {
   console.warn(
-    `Firebase service account not found. Google login will be unavailable until FIREBASE_SERVICE_ACCOUNT_PATH, FIREBASE_SERVICE_ACCOUNT_BASE64, or ${defaultServiceAccountPath} is provided.`
+    `Firebase service account not found. Google login will be unavailable until FIREBASE_SERVICE_ACCOUNT_PATH, FIREBASE_SERVICE_ACCOUNT_BASE64, FIREBASE_SERVICE_ACCOUNT, or ${defaultServiceAccountPath} is provided.`
   );
 }
 
