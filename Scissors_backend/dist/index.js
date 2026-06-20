@@ -43,7 +43,11 @@ app.use("/uploads", express_1.default.static("uploads"));
 app.use(express_1.default.json()); // Moved after webhook route
 app.use(express_1.default.urlencoded({ extended: true }));
 app.use((0, cookie_parser_1.default)());
-const allowedOrigins = ["http://localhost:5173", "https://www.scissors.hair", "https://scissors.hair"];
+const allowedOrigins = [
+    "http://localhost:5173",
+    "https://scissors-a-salon-service-git-main-sagarsunil16s-projects.vercel.app",
+    "https://scissors-a-salon-service.vercel.app",
+];
 app.use((0, cors_1.default)({
     origin: (origin, callback) => {
         console.log("Origin request from:", origin);
