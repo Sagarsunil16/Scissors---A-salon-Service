@@ -1,6 +1,6 @@
-import Navbar from "../../Components/Navbar"
-import ProfileSetting from "../../Components/ProfileSetting"
-import Footer from "../../Components/Footer"
+import Navbar from "@/shared/ui/organisms/navigation/Navbar"
+import ProfileSetting from "@/features/profile/components/ProfileSetting"
+import Footer from "@/shared/ui/organisms/navigation/Footer"
 const Setting = () => {
   return (
     <div>

@@ -1,6 +1,6 @@
 import { Routes,Route,Navigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import PrivateRoute from "../Components/PrivateRoute";
+import PrivateRoute from "@/shared/routes/PrivateRoute";
 import Salons from "../Pages/Admin/Salons";
 import Users from "../Pages/Admin/Users";
 import AdminChangePassword from "../Pages/Admin/AdminChangePassword";

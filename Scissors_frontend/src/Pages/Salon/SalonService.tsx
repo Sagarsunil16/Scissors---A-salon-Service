@@ -1,20 +1,20 @@
 import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
-import SalonHeader from "../../Components/SalonHeader";
-import SalonSidebar from "../../Components/SalonSidebar";
+import SalonHeader from "@/shared/ui/organisms/dashboard/SalonHeader";
+import SalonSidebar from "@/shared/ui/organisms/dashboard/SalonSidebar";
 import { useSelector } from "react-redux";
 import {
   getSalonData,
   updateService,
   deleteService,
   getStylists,
-} from "../../Services/salonAPI";
+} from "@/features/salon-management/api/salonAPI";
 import { IStylist } from "../../interfaces/interface";
 import Swal from "sweetalert2";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { Button } from "../../Components/ui/button";
-import ReusableTable, { Column } from "../../Components/ReusableTable";
+import { Button } from "@/shared/ui/primitives/button";
+import ReusableTable, { Column } from "@/shared/ui/organisms/data-display/ReusableTable";
 
 interface Service {
   _id: string;

@@ -9,15 +9,16 @@ export default {
   	extend: {
   		fontFamily: {
   			portLligat: [
-  				'Port Lligat Slab"',
+  				'Port Lligat Slab',
   				'serif'
   			],
   			manrope: [
-  				'Manrope"',
-  				'serif'
+  				'Manrope',
+  				'sans-serif'
   			],
   			poppins: [
-  				'poppins"'
+  				'Poppins',
+  				'sans-serif'
   			]
   		},
   		borderRadius: {

@@ -100,6 +100,7 @@ export interface SalonQueryParamsForUser{
   latitude?: number;
   radius: number;
   search: string;
+  pincode?: string;
   maxPrice: number;
   ratings: number[];
   discount: number;

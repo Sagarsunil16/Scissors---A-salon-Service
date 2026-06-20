@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import Sidebar from "../../Components/Sidebar";
-import AdminHeader from "../../Components/AdminHeader";
-import Table from "../../Components/Table";
-import { blockAndUnblockSalon, fetchSalons } from "../../Services/adminAPI";
+import Sidebar from "@/shared/ui/organisms/dashboard/AdminSidebar";
+import AdminHeader from "@/shared/ui/organisms/dashboard/AdminHeader";
+import Table from "@/shared/ui/organisms/data-display/Table";
+import { blockAndUnblockSalon, fetchSalons } from "@/features/admin/api/adminAPI";
 import { ISalon } from "../../interfaces/interface";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";

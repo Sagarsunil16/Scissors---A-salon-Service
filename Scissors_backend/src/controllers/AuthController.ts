@@ -23,6 +23,7 @@ class AuthController {
           httpOnly: true,
           maxAge: 15 * 60 * 1000,
           secure: process.env.NODE_ENV === "production",
+          sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
         })
         .status(HttpStatus.OK)
         .json({ message: Messages.TOKEN_REFRESHED, accessToken });

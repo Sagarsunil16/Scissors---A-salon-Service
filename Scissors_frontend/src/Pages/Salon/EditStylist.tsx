@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getStylistById, updateStylist } from "../../Services/salonAPI";
+import { getStylistById, updateStylist } from "@/features/salon-management/api/salonAPI";
 import {  WorkingHours } from "../../interfaces/interface";
-import SalonHeader from "../../Components/SalonHeader";
-import SalonSidebar from "../../Components/SalonSidebar";
+import SalonHeader from "@/shared/ui/organisms/dashboard/SalonHeader";
+import SalonSidebar from "@/shared/ui/organisms/dashboard/SalonSidebar";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useSelector } from "react-redux";

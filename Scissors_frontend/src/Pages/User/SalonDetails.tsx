@@ -1,21 +1,41 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import moment from "moment-timezone";
-import Navbar from "../../Components/Navbar";
-import Footer from "../../Components/Footer";
-import { useParams, useNavigate } from "react-router-dom";
+import Navbar from "@/shared/ui/organisms/navigation/Navbar";
+import Footer from "@/shared/ui/organisms/navigation/Footer";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
-  getAvailableSlot,
-  fetchServiceStylist,
-  getSalonDetails,
   createBooking,
+  fetchServiceStylist,
+  getAvailableSlot,
+  getSalonDetails,
   getWalletBalance,
-} from "../../Services/UserAPI";
-import { FiCheck, FiPlus } from "react-icons/fi";
+} from "@/features/user/api/UserAPI";
 import { useSelector } from "react-redux";
-import { Card, CardContent } from "../../Components/ui/card";
-import { Star } from "lucide-react";
-import { Button } from "../../Components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../Components/ui/select";
+import { Card, CardContent } from "@/shared/ui/primitives/card";
+import {
+  CalendarDays,
+  Check,
+  Clock,
+  CreditCard,
+  Home,
+  Mail,
+  MapPin,
+  Phone,
+  Plus,
+  Scissors,
+  ShieldCheck,
+  Star,
+  Store,
+  UserRound,
+} from "lucide-react";
+import { Button } from "@/shared/ui/primitives/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/ui/primitives/select";
 import { toast } from "react-toastify";
 
 interface Service {
@@ -115,8 +135,11 @@ const SalonDetails: React.FC = () => {
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [stylists, setStylists] = useState<any[]>([]);
+  const [stylistLoading, setStylistLoading] = useState(false);
+  const [stylistError, setStylistError] = useState<string | null>(null);
   const [selectedStylist, setSelectedStylist] = useState<string | null>(null);
   const [slotGroups, setSlotGroups] = useState<SlotGroup[]>([]);
+  const [slotError, setSlotError] = useState<string | null>(null);
   const [selectedSlotGroup, setSelectedSlotGroup] = useState<SlotGroup | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split("T")[0]
@@ -125,6 +148,7 @@ const SalonDetails: React.FC = () => {
   const [bookingLoading, setBookingLoading] = useState(false);
 
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const fetchSalonData = async () => {
@@ -154,29 +178,39 @@ const SalonDetails: React.FC = () => {
         setWalletBalance(0);
       }
     };
-    if (selectedServices.length > 0) {
+
+    if (currentUser && selectedServices.length > 0) {
       fetchWalletBalance();
+    } else {
+      setWalletBalance(null);
     }
-  }, [selectedServices]);
+  }, [currentUser, selectedServices]);
 
   useEffect(() => {
     const fetchStylists = async () => {
       if (selectedServices.length > 0 && id) {
+        setStylistLoading(true);
+        setStylistError(null);
         try {
           const response = await fetchServiceStylist({
             salonId: id,
             serviceIds: selectedServices,
-            date:selectedDate
+            date: selectedDate,
           });
-          setStylists(response.data.stylists);
+          setStylists(response.data.stylists || []);
           setSelectedStylist(null);
           setSlotGroups([]);
           setSelectedSlotGroup(null);
-        } catch (error) {
+        } catch (error: any) {
+          setStylists([]);
+          setStylistError(error.response?.data?.message || "No stylists available for the selected services.");
           console.error("Error fetching stylists:", error);
+        } finally {
+          setStylistLoading(false);
         }
       } else {
         setStylists([]);
+        setStylistError(null);
         setSelectedStylist(null);
         setSlotGroups([]);
         setSelectedSlotGroup(null);
@@ -189,6 +223,7 @@ const SalonDetails: React.FC = () => {
     const fetchAvailableSlots = async () => {
       if (selectedServices.length > 0 && selectedStylist && id) {
         setSlotLoading(true);
+        setSlotError(null);
         try {
           const response = await getAvailableSlot({
             salonId: id,
@@ -199,21 +234,20 @@ const SalonDetails: React.FC = () => {
           setSlotGroups(response.data.slotGroups || []);
           setTotalDuration(response.data.totalDuration || 0);
         } catch (error: any) {
-          setError(error.message || "Failed to fetch available slots");
+          setSlotGroups([]);
+          setSelectedSlotGroup(null);
+          setSlotError(error.response?.data?.message || error.message || "Failed to fetch available slots");
         } finally {
           setSlotLoading(false);
         }
       } else {
         setSlotGroups([]);
+        setSlotError(null);
         setTotalDuration(0);
       }
     };
     fetchAvailableSlots();
   }, [id, selectedStylist, selectedServices, selectedDate]);
-
-  if (loading) return <div className="text-center py-8">Loading...</div>;
-  if (error) return <div className="text-center py-8 text-red-500">{error}</div>;
-  if (!salon) return <div className="text-center py-8">Salon not found</div>;
 
   const toggleService = (serviceId: string) => {
     setSelectedServices((prev) =>
@@ -225,26 +259,34 @@ const SalonDetails: React.FC = () => {
     setSelectedSlotGroup(null);
   };
 
+  const getServiceOffers = (serviceId: string) => {
+    return offers.filter(
+      (offer) =>
+        offer.isActive &&
+        new Date(offer.expiryDate) >= new Date() &&
+        (offer.serviceIds.length === 0 ||
+          offer.serviceIds.some((service) => service._id === serviceId))
+    );
+  };
+
   const calculateTotal = () => {
+    if (!salon) return 0;
     let total = selectedServices.reduce((sum, serviceId) => {
-      const service = salon?.services.find((s) => s._id === serviceId);
+      const service = salon.services.find((item) => item._id === serviceId);
       if (!service) return sum;
-      const offers = getServiceOffers(service.service._id); // Use service.service._id
+      const serviceOffers = getServiceOffers(service.service._id);
       const maxDiscount =
-        offers.length > 0 ? Math.max(...offers.map((o) => o.discount), 0) : 0;
-      const discountedPrice = service.price * (1 - maxDiscount / 100);
-      return sum + discountedPrice;
+        serviceOffers.length > 0
+          ? Math.max(...serviceOffers.map((offer) => offer.discount), 0)
+          : 0;
+      return sum + service.price * (1 - maxDiscount / 100);
     }, 0);
-    if (serviceOption === "home") {
-      total += 99;
-    }
+
+    if (serviceOption === "home") total += 99;
     return total;
   };
 
-  const getMinDate = () => {
-    const today = new Date();
-    return today.toISOString().split("T")[0];
-  };
+  const getMinDate = () => new Date().toISOString().split("T")[0];
 
   const getMaxDate = () => {
     const today = new Date();
@@ -253,37 +295,28 @@ const SalonDetails: React.FC = () => {
   };
 
   const isAddressValid = () => {
-    const { areaStreet, city, state, pincode } = currentUser.address || {};
+    const { areaStreet, city, state, pincode } = currentUser?.address || {};
     return areaStreet && city && state && pincode;
   };
 
   const renderStars = (rating: number) => {
-    const stars = [];
-    for (let i = 1; i <= 5; i++) {
-      stars.push(
-        <Star
-          key={i}
-          className={`w-4 h-4 inline-block mr-1 ${
-            i <= rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
-          }`}
-        />
-      );
-    }
-    return stars;
-  };
-
-  const getServiceOffers = (serviceId: string) => {
-    return offers.filter(
-      (offer) =>
-        offer.isActive &&
-        new Date(offer.expiryDate) >= new Date() &&
-        (offer.serviceIds.length === 0 ||
-          offer.serviceIds.some((s) => s._id === serviceId))
-    );
+    return Array.from({ length: 5 }).map((_, index) => (
+      <Star
+        key={index}
+        className={`mr-1 inline-block h-4 w-4 ${
+          index + 1 <= rating ? "fill-amber-400 text-amber-400" : "text-muted"
+        }`}
+      />
+    ));
   };
 
   const handleBookNow = async () => {
-    if (bookingLoading) return;
+    if (!salon || bookingLoading) return;
+    if (!currentUser) {
+      toast.info("Please sign in to book this appointment");
+      navigate("/login", { state: { from: location } });
+      return;
+    }
     if (!selectedStylist) {
       toast.error("Please select a stylist");
       return;
@@ -309,7 +342,7 @@ const SalonDetails: React.FC = () => {
       }
 
       try {
-          await createBooking({
+        await createBooking({
           salonId: id!,
           stylistId: selectedStylist,
           serviceIds: selectedServices,
@@ -345,10 +378,10 @@ const SalonDetails: React.FC = () => {
       });
 
       const { reservation } = bookingResponse.data;
-
-      const stylistName = stylists.find((stylist) => stylist._id === selectedStylist)?.name || "";
+      const stylistName =
+        stylists.find((stylist) => stylist._id === selectedStylist)?.name || "";
       const serviceNames = selectedServices
-        .map((serviceId) => salon?.services.find((s) => s._id === serviceId)?.name)
+        .map((serviceId) => salon.services.find((service) => service._id === serviceId)?.name)
         .filter(Boolean);
 
       navigate(`/salons/${salon._id}/book`, {
@@ -376,7 +409,7 @@ const SalonDetails: React.FC = () => {
     } catch (error: any) {
       setError(error.response?.data?.message || "Failed to reserve slots");
       toast.error(error.response?.data?.message || "Failed to reserve slots");
-      if (error.response?.data?.message.includes("slot")) {
+      if (error.response?.data?.message?.includes("slot")) {
         setSelectedSlotGroup(null);
         setSlotGroups([]);
       }
@@ -385,314 +418,439 @@ const SalonDetails: React.FC = () => {
     }
   };
 
-  return (
-    <div className="bg-gray-50">
-      <Navbar />
-      <main className="min-h-screen max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8 py-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2 pt-12">
-            {salon.salonName}
-          </h1>
-          <div className="flex items-center space-x-4 text-gray-600">
-            <span className="flex items-center">
-              ⭐ {salon.rating.toFixed(1)} ({salon.reviewCount} reviews)
-            </span>
-            <span>•</span>
-            <span>
-              {salon.address.areaStreet}, {salon.address.city}
-            </span>
-            <span
-              className={`text-sm ${
-                salon.is_Active ? "text-green-600" : "text-red-600"
-              }`}
-            >
-              {salon.is_Active ? "Open Now" : "Closed"}
-            </span>
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="section-shell pt-32">
+          <div className="app-surface rounded-lg p-10 text-center text-muted-foreground">
+            Loading salon details...
           </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          {salon.images.map((image, index) => (
-            <img
-              key={image._id}
-              src={image.url}
-              alt={`Salon ${index + 1}`}
-              className="rounded-lg object-cover h-64 w-full shadow-md"
-            />
-          ))}
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-8">
-          <div className="md:col-span-2 bg-white p-6 rounded-lg shadow-lg">
-            <h2 className="text-2xl font-semibold mb-4">About Us</h2>
-            <div className="space-y-4 text-gray-600">
-              <p className="flex items-center">
-                🕙 Open Hours: {formatTime(salon.openingTime)} -{" "}
-                {formatTime(salon.closingTime)}
-              </p>
-              <p className="flex items-center">
-                📍 Address: {salon.address.areaStreet}, {salon.address.city},{" "}
-                {salon.address.state} - {salon.address.pincode}
-              </p>
-              <p className="flex items-center">📞 Contact: {salon.phone}</p>
-              <p className="flex items-center">✉️ Email: {salon.email}</p>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded shadow-md h-fit">
-  <h2 className="text-2xl font-semibold mb-4">Services & Pricing</h2>
-  <div className="max-h-[200px] overflow-y-auto space-y-4 pr-2">
-    {salon.services.map((service) => (
-      <div key={service._id} className="border-b pb-4">
-        <div className="flex justify-between items-center">
-          <div className="flex-1">
-            <h3 className="font-medium text-gray-900">{service.name}</h3>
-            <p className="text-gray-500 text-sm mt-1">
-              {service.description} ({service.duration} min)
-            </p>
-            {getServiceOffers(service.service._id).map((offer) => (
-              <div key={offer._id} className="mt-2 text-sm text-green-600">
-                <p>
-                  <strong>{offer.title}:</strong> {offer.discount}% off (Expires:{" "}
-                  {new Date(offer.expiryDate).toLocaleDateString()})
-                </p>
-                <p className="text-gray-600">{offer.description}</p>
-              </div>
-            ))}
-          </div>
-          <div className="flex items-center gap-4 ml-1">
-            <span className="text-blue-600">₹{service.price}</span>
-            <button
-              onClick={() => toggleService(service._id)}
-              className={`p-2 rounded-full transition-colors ${
-                selectedServices.includes(service._id)
-                  ? "bg-green-500 text-white"
-                  : "bg-gray-100 hover:bg-gray-200"
-              }`}
-            >
-              {selectedServices.includes(service._id) ? (
-                <FiCheck className="w-5 h-5" />
-              ) : (
-                <FiPlus className="w-5 h-5" />
-              )}
-            </button>
-          </div>
-        </div>
+        </main>
       </div>
-    ))}
-  </div>
-</div>
+    );
+  }
 
-          {selectedServices.length > 0 && (
-            <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg">
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-medium text-lg">Booking Summary</h3>
-                    <div className="text-sm text-gray-500">
-                      {selectedServices.map((serviceId) => {
-                        const service = salon?.services.find((s) => s._id === serviceId);
-                        if (!service) return null;
-                        const offers = getServiceOffers(service.service._id);
-                        const maxDiscount = offers.length > 0 ? Math.max(...offers.map((o) => o.discount), 0) : 0;
-                        const discountedPrice = service.price * (1 - maxDiscount / 100);
-                        const appliedOffer = offers.find((o) => o.discount === maxDiscount);
-                        return (
-                          <div key={service._id} className="mt-1">
-                            <p>{service.name} ({service.duration} min)</p>
-                            {maxDiscount > 0 ? (
-                              <p>
-                                Original: ₹{service.price}, {maxDiscount}% off (
-                                {appliedOffer?.title}) → ₹{discountedPrice.toFixed(2)}
-                              </p>
-                            ) : (
-                              <p>Price: ₹{service.price}</p>
-                            )}
-                          </div>
-                        );
-                      })}
-                      <p>Total Duration: {totalDuration} minutes</p>
-                      {selectedStylist && (
-                        <p>
-                          Stylist: {stylists.find((s) => s._id === selectedStylist)?.name}
-                        </p>
-                      )}
-                      {selectedSlotGroup && (
-                        <p>
-                          {moment(selectedSlotGroup.startTime).format("MMM D, YYYY")} -{" "}
-                          {formatTimeInSalon(selectedSlotGroup.startTime, salon.timeZone)} -{" "}
-                          {formatTimeInSalon(selectedSlotGroup.endTime, salon.timeZone)}
-                        </p>
-                      )}
-                      {serviceOption === "home" && (
-                        <p>Home Service Charge: ₹99</p>
-                      )}
-                      <p className="mt-1 font-semibold">Total: ₹{calculateTotal().toFixed(2)}</p>
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="section-shell pt-32">
+          <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center text-sm text-red-700">
+            {error}
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (!salon) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="section-shell pt-32">
+          <div className="app-surface rounded-lg p-10 text-center text-muted-foreground">
+            Salon not found
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  const selectedServiceDetails = selectedServices
+    .map((serviceId) => salon.services.find((service) => service._id === serviceId))
+    .filter(Boolean) as Service[];
+  const heroImages = salon.images.length > 0 ? salon.images.slice(0, 4) : [];
+  const primaryImage = heroImages[0]?.url || "/images/salon1.jpeg";
+  const fullAddress = `${salon.address.areaStreet}, ${salon.address.city}, ${salon.address.state} - ${salon.address.pincode}`;
+  const selectedServicesDuration = selectedServiceDetails.reduce(
+    (sum, service) => sum + service.duration,
+    0
+  );
+  const selectedStylistName =
+    stylists.find((stylist) => stylist._id === selectedStylist)?.name || "";
+  const canAttemptBooking =
+    selectedServices.length > 0 &&
+    Boolean(selectedStylist) &&
+    Boolean(selectedSlotGroup) &&
+    !slotLoading &&
+    !stylistLoading;
+  const reviewDistribution = [5, 4, 3, 2, 1].map((star) => {
+    const count = reviews.filter((review) => Math.round(review.salonRating) === star).length;
+    return {
+      star,
+      count,
+      percentage: reviews.length ? Math.round((count / reviews.length) * 100) : 0,
+    };
+  });
+
+  return (
+    <div className="min-h-screen bg-background pb-28 lg:pb-0">
+      <Navbar />
+      <main className="pt-20">
+        <section className="border-b border-border bg-white">
+          <div className="section-shell py-8">
+            <div className="app-surface grid gap-6 rounded-lg p-3 lg:grid-cols-[minmax(360px,0.88fr)_1.12fr] lg:p-4">
+            <div className="grid gap-3">
+              <div className="aspect-[4/3] overflow-hidden rounded-lg bg-muted ring-1 ring-border">
+                <img src={primaryImage} alt={salon.salonName} className="h-full w-full object-cover" />
+              </div>
+              <div className="grid grid-cols-4 gap-2">
+                {(heroImages.length > 1
+                  ? heroImages.slice(1)
+                  : [
+                      { url: "/images/gallery1.jpeg", _id: "fallback-1" },
+                      { url: "/images/gallery2.jpeg", _id: "fallback-2" },
+                      { url: "/images/gallery3.jpeg", _id: "fallback-3" },
+                      { url: "/images/gallery4.jpeg", _id: "fallback-4" },
+                    ]
+                )
+                  .slice(0, 4)
+                  .map((image, index) => (
+                    <div key={image._id || index} className="aspect-square overflow-hidden rounded-md bg-muted ring-1 ring-border">
+                      <img src={image.url} alt={`${salon.salonName} gallery ${index + 1}`} className="h-full w-full object-cover" />
                     </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">
-                        Service Option
-                      </label>
-                      <Select
-                        value={serviceOption}
-                        onValueChange={(value) => setServiceOption(value as "home" | "store")}
-                      >
-                        <SelectTrigger className="w-[120px]">
-                          <SelectValue placeholder="Select" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="store">Store</SelectItem>
-                          <SelectItem value="home">Home</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">
-                        Payment Method
-                      </label>
-                      <Select
-                        value={paymentMethod}
-                        onValueChange={(value) => setPaymentMethod(value as "online" | "cash" | "wallet")}
-                        disabled={selectedServices.length === 0}
-                      >
-                        <SelectTrigger className="w-[120px]">
-                          <SelectValue placeholder="Select" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="online">Online</SelectItem>
-                          <SelectItem value="cash">Cash</SelectItem>
-                          <SelectItem
-                            value="wallet"
-                            disabled={walletBalance !== null && walletBalance < calculateTotal()}
-                          >
-                            Wallet (₹{walletBalance !== null ? walletBalance.toFixed(2) : "Loading"})
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <Button
-                      onClick={handleBookNow}
-                      className="bg-blue-600 hover:bg-blue-700 mt-4"
-                      disabled={loading || slotLoading}
-                    >
-                      Book Now
-                    </Button>
-                  </div>
+                  ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col justify-between px-1 py-1 lg:px-3">
+              <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                  <Scissors className="h-3.5 w-3.5" />
+                  Verified salon profile
+                </div>
+                <div className={`rounded-full px-3 py-1 text-xs font-semibold ${salon.is_Active ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>
+                  {salon.is_Active ? "Accepting bookings" : "Currently unavailable"}
                 </div>
               </div>
+              <h1 className="mt-4 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+                {salon.salonName}
+              </h1>
+              <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1 font-semibold text-amber-700">
+                  <Star className="h-4 w-4 fill-current" />
+                  {salon.rating.toFixed(1)} ({salon.reviewCount} reviews)
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <MapPin className="h-4 w-4 text-primary" />
+                  {salon.address.areaStreet}, {salon.address.city}
+                </span>
+              </div>
+              <p className="mt-4 max-w-2xl text-sm leading-7 text-muted-foreground">
+                Browse services, compare available stylists, pick a slot, and confirm your appointment with a secure booking flow.
+              </p>
+              </div>
+
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                <InfoTile icon={<Clock className="h-5 w-5" />} label="Open hours" value={`${formatTime(salon.openingTime)} - ${formatTime(salon.closingTime)}`} />
+                <InfoTile icon={<MapPin className="h-5 w-5" />} label="Location" value={fullAddress} />
+                <InfoTile icon={<Phone className="h-5 w-5" />} label="Contact" value={String(salon.phone)} />
+                <InfoTile icon={<Mail className="h-5 w-5" />} label="Email" value={salon.email} />
+              </div>
             </div>
-          )}
-        </div>
-
-        <div className="bg-white p-4 rounded-lg shadow-md mt-8">
-          <h2 className="text-2xl font-semibold mb-4">Select Date</h2>
-          <input
-            type="date"
-            value={selectedDate}
-            min={getMinDate()}
-            max={getMaxDate()}
-            onChange={(e) => {
-              setSelectedDate(e.target.value);
-              setSelectedStylist(null);
-              setSelectedSlotGroup(null);
-            }}
-            className="p-2 border rounded-lg w-full"
-          />
-        </div>
-
-        {selectedServices.length>0 && (
-          <div className="bg-white p-4 rounded-lg shadow-md mt-8">
-            <h3 className="text-lg font-semibold mb-4">Select Stylist</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-              {stylists &&
-                stylists.map((stylist) => (
-                  <button
-                    key={stylist._id}
-                    onClick={() => {
-                      setSelectedStylist(stylist._id);
-                      setSelectedSlotGroup(null);
-                    }}
-                    className={`p-3 rounded-lg transition-colors ${
-                      selectedStylist === stylist._id
-                        ? "bg-blue-600 text-white"
-                        : "bg-gray-100 hover:bg-gray-200"
-                    }`}
-                  >
-                    <p className="font-medium">{stylist.name}</p>
-                    <p className="text-sm text-yellow-500">
-                      {stylist.rating === 0 ? "No ratings yet" : `${stylist.rating}/5 stars`}
-                    </p>
-                  </button>
-                ))}
             </div>
           </div>
-        )}
+        </section>
 
-        <div className="bg-white p-6 rounded-lg shadow-md mt-8">
-          <h2 className="text-2xl font-semibold mb-4">Available Slots</h2>
-          {slotLoading ? (
-            <div className="text-center py-4">Loading slots...</div>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {slotGroups.length > 0 ? (
-                slotGroups.map((group) => (
-                  <button
-                    key={group._id}
-                    onClick={() => setSelectedSlotGroup(group)}
-                    className={`px-4 py-2 rounded-lg text-sm ${
-                      selectedSlotGroup?._id === group._id
-                        ? "bg-blue-600 text-white"
-                        : "bg-gray-200 hover:bg-gray-300"
-                    }`}
-                  >
-                    {formatTimeInSalon(group.startTime, salon.timeZone)} -{" "}
-                    {formatTimeInSalon(group.endTime, salon.timeZone)} ({group.duration} min)
-                  </button>
-                ))
+        <section className="section-shell grid gap-8 py-8 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="space-y-8">
+
+            <section className="app-surface rounded-lg p-5">
+              <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">Services</p>
+                  <h2 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">Choose services and pricing</h2>
+                </div>
+                <span className="text-sm text-muted-foreground">{selectedServices.length} selected</span>
+              </div>
+
+              <div className="mt-5 grid gap-3">
+                {salon.services.map((service) => {
+                  const offersForService = getServiceOffers(service.service._id);
+                  const bestDiscount = offersForService.length > 0 ? Math.max(...offersForService.map((offer) => offer.discount), 0) : 0;
+                  const isSelected = selectedServices.includes(service._id);
+
+                  return (
+                    <article key={service._id} className={`rounded-lg border p-4 transition ${isSelected ? "border-primary bg-primary/5" : "border-border bg-white hover:border-primary/50"}`}>
+                      <div className="flex gap-4">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-muted text-primary">
+                          <Scissors className="h-5 w-5" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                              <h3 className="font-semibold text-foreground">{service.name}</h3>
+                              <p className="mt-1 text-sm leading-6 text-muted-foreground">{service.description} · {service.duration} min</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="text-base font-semibold text-foreground">Rs {service.price}</span>
+                              <button type="button" onClick={() => toggleService(service._id)} className={`flex h-10 w-10 items-center justify-center rounded-md transition ${isSelected ? "bg-primary text-primary-foreground" : "border border-border bg-background text-foreground hover:border-primary hover:text-primary"}`} aria-label={isSelected ? "Remove service" : "Add service"}>
+                                {isSelected ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                              </button>
+                            </div>
+                          </div>
+                          {bestDiscount > 0 && (
+                            <div className="mt-3 rounded-md bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">
+                              Best offer: {bestDiscount}% off
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+
+            <section className="app-surface rounded-lg p-5">
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">Schedule</p>
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">Pick date, stylist, and slot</h2>
+
+              <div className="mt-5 grid gap-5">
+                <label className="block">
+                  <span className="text-sm font-medium text-foreground">Date</span>
+                  <input type="date" value={selectedDate} min={getMinDate()} max={getMaxDate()} onChange={(event) => {
+                    setSelectedDate(event.target.value);
+                    setSelectedStylist(null);
+                    setSelectedSlotGroup(null);
+                  }} className="mt-2 h-11 w-full rounded-md border border-input bg-background px-3 text-sm outline-none ring-primary transition focus:ring-2" />
+                </label>
+
+                {selectedServices.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-medium text-foreground">Stylist</h3>
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      {stylistLoading ? (
+                        <p className="rounded-md bg-muted p-4 text-sm text-muted-foreground">Finding stylists who can perform all selected services...</p>
+                      ) : stylistError ? (
+                        <p className="rounded-md bg-amber-50 p-4 text-sm text-amber-800">{stylistError}</p>
+                      ) : stylists.length > 0 ? stylists.map((stylist) => (
+                        <button type="button" key={stylist._id} onClick={() => {
+                          setSelectedStylist(stylist._id);
+                          setSelectedSlotGroup(null);
+                        }} className={`rounded-lg border p-3 text-left transition ${selectedStylist === stylist._id ? "border-primary bg-primary text-primary-foreground" : "border-border bg-white hover:border-primary"}`}>
+                          <UserRound className="h-4 w-4" />
+                          <p className="mt-2 font-semibold">{stylist.name}</p>
+                          <p className={`text-xs ${selectedStylist === stylist._id ? "text-primary-foreground/75" : "text-muted-foreground"}`}>
+                            {stylist.rating === 0 ? "No ratings yet" : `${stylist.rating}/5 stars`}
+                          </p>
+                        </button>
+                      )) : (
+                        <p className="rounded-md bg-muted p-4 text-sm text-muted-foreground">No stylists available for the selected services.</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <h3 className="text-sm font-medium text-foreground">Available slots</h3>
+                  {slotLoading ? (
+                    <div className="mt-3 rounded-md bg-muted p-4 text-sm text-muted-foreground">Loading slots...</div>
+                  ) : (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {slotError ? (
+                        <p className="rounded-md bg-amber-50 p-4 text-sm text-amber-800">{slotError}</p>
+                      ) : slotGroups.length > 0 ? slotGroups.map((group) => (
+                        <button type="button" key={group._id} onClick={() => setSelectedSlotGroup(group)} className={`rounded-md border px-3 py-2 text-sm font-medium transition ${selectedSlotGroup?._id === group._id ? "border-primary bg-primary text-primary-foreground" : "border-border bg-white text-foreground hover:border-primary"}`}>
+                          {formatTimeInSalon(group.startTime, salon.timeZone)} - {formatTimeInSalon(group.endTime, salon.timeZone)}
+                        </button>
+                      )) : (
+                        <p className="rounded-md bg-muted p-4 text-sm text-muted-foreground">
+                          {selectedServices.length === 0 ? "Select a service to view available slots." : selectedStylist ? "No slots available for the selected date and stylist." : "Select a stylist to view available slots."}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
+
+            <section className="app-surface rounded-lg p-5">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">Reviews</p>
+                  <h2 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">Customer reviews</h2>
+                </div>
+                <div className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1 text-sm font-semibold text-amber-700">
+                  <Star className="h-4 w-4 fill-current" />
+                  {salon.rating.toFixed(1)}
+                </div>
+              </div>
+              {reviews.length > 0 ? (
+                <div className="mt-5 grid gap-5 lg:grid-cols-[260px_1fr]">
+                  <div className="rounded-lg border border-border bg-muted p-4">
+                    <div className="flex items-end gap-2">
+                      <span className="text-4xl font-semibold text-foreground">{salon.rating.toFixed(1)}</span>
+                      <span className="pb-1 text-sm text-muted-foreground">out of 5</span>
+                    </div>
+                    <div className="mt-2">{renderStars(Math.round(salon.rating))}</div>
+                    <p className="mt-2 text-sm text-muted-foreground">{reviews.length} verified review{reviews.length === 1 ? "" : "s"}</p>
+                    <div className="mt-4 space-y-2">
+                      {reviewDistribution.map((item) => (
+                        <div key={item.star} className="grid grid-cols-[28px_1fr_34px] items-center gap-2 text-xs text-muted-foreground">
+                          <span>{item.star} star</span>
+                          <div className="h-2 overflow-hidden rounded-full bg-white">
+                            <div className="h-full rounded-full bg-amber-400" style={{ width: `${item.percentage}%` }} />
+                          </div>
+                          <span className="text-right">{item.count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="grid gap-3">
+                  {reviews.map((review) => (
+                    <Card key={review._id} className="border border-border shadow-none">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="font-medium text-foreground">{review.userId?.firstname} {review.userId?.lastname}</p>
+                          <span className="text-xs text-muted-foreground">{new Date(review.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        <div className="mt-2">{renderStars(review.salonRating)}</div>
+                        <p className="mt-2 text-sm leading-6 text-muted-foreground">{review.salonComment}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                  </div>
+                </div>
               ) : (
-                <p className="text-gray-500">
-                  {selectedServices.length === 0
-                    ? "Select a service to view slots"
-                    : selectedStylist
-                    ? "No slots available for selected date and stylist"
-                    : "Select a stylist to view slots"}
-                </p>
+                <p className="mt-5 rounded-md bg-muted p-4 text-sm text-muted-foreground">No reviews yet. Book an appointment to share your experience.</p>
               )}
-            </div>
-          )}
-        </div>
+            </section>
+          </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-md mt-8">
-          <h2 className="text-2xl font-semibold mb-4">Customer Reviews</h2>
-          {reviews.length > 0 ? (
-            <div className="max-h-96 overflow-y-auto space-y-4 pr-2">
-              {reviews.map((review) => (
-                <Card key={review._id} className="border border-gray-200 rounded-lg shadow-sm">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <p className="font-medium text-gray-900">
-                        {review.userId?.firstname} {review.userId?.lastname}
-                      </p>
-                      <span className="text-xs text-gray-500">
-                        {new Date(review.createdAt).toLocaleDateString()}
-                      </span>
+          <aside className="lg:sticky lg:top-28 lg:self-start">
+            <div className="app-surface overflow-hidden rounded-lg">
+              <div className="border-b border-border bg-white p-5">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">Booking</p>
+                  <h2 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">Summary</h2>
+                </div>
+                <ShieldCheck className="h-6 w-6 text-primary" />
+              </div>
+              <p className="mt-3 text-sm leading-6 text-muted-foreground">Select services, stylist, and slot to complete your appointment.</p>
+              </div>
+
+              <div className="space-y-3 p-5">
+                {selectedServiceDetails.length > 0 ? selectedServiceDetails.map((service) => {
+                  const offersForService = getServiceOffers(service.service._id);
+                  const maxDiscount = offersForService.length > 0 ? Math.max(...offersForService.map((offer) => offer.discount), 0) : 0;
+                  const discountedPrice = service.price * (1 - maxDiscount / 100);
+                  return (
+                    <div key={service._id} className="rounded-md bg-muted p-3">
+                      <div className="flex justify-between gap-3">
+                        <p className="text-sm font-semibold text-foreground">{service.name}</p>
+                        <p className="text-sm font-semibold text-foreground">Rs {discountedPrice.toFixed(0)}</p>
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">{service.duration} min</p>
                     </div>
-                    <div className="mt-2">
-                      <div>{renderStars(review.salonRating)}</div>
-                      <p className="text-sm text-gray-700 mt-1">{review.salonComment}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                  );
+                }) : (
+                  <p className="rounded-md bg-muted p-4 text-sm text-muted-foreground">Select one or more services to start booking.</p>
+                )}
+              </div>
+
+              <div className="grid gap-3 border-t border-border px-5 pt-5">
+                <div>
+                  <label className="text-sm font-medium text-foreground">Service option</label>
+                  <Select value={serviceOption} onValueChange={(value) => setServiceOption(value as "home" | "store")}>
+                    <SelectTrigger className="mt-2 w-full"><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="store"><span className="inline-flex items-center gap-2"><Store className="h-4 w-4" /> Store</span></SelectItem>
+                      <SelectItem value="home"><span className="inline-flex items-center gap-2"><Home className="h-4 w-4" /> Home</span></SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-foreground">Payment method</label>
+                  <Select value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as "online" | "cash" | "wallet")} disabled={selectedServices.length === 0}>
+                    <SelectTrigger className="mt-2 w-full"><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="online"><span className="inline-flex items-center gap-2"><CreditCard className="h-4 w-4" /> Online</span></SelectItem>
+                      <SelectItem value="cash">Cash</SelectItem>
+                      <SelectItem value="wallet" disabled={walletBalance !== null && walletBalance < calculateTotal()}>
+                        Wallet (Rs {walletBalance !== null ? walletBalance.toFixed(2) : "Loading"})
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="mx-5 mt-5 space-y-2 border-t border-border pt-4 text-sm">
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Duration</span>
+                  <span>{totalDuration || selectedServicesDuration} min</span>
+                </div>
+                {selectedStylist && (
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Stylist</span>
+                    <span>{selectedStylistName}</span>
+                  </div>
+                )}
+                {selectedSlotGroup && (
+                  <div className="rounded-md bg-muted p-3 text-muted-foreground">
+                    <CalendarDays className="mb-2 h-4 w-4 text-primary" />
+                    {moment(selectedSlotGroup.startTime).format("MMM D, YYYY")} · {formatTimeInSalon(selectedSlotGroup.startTime, salon.timeZone)} - {formatTimeInSalon(selectedSlotGroup.endTime, salon.timeZone)}
+                  </div>
+                )}
+                {serviceOption === "home" && (
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Home service charge</span>
+                    <span>Rs 99</span>
+                  </div>
+                )}
+                <div className="flex justify-between pt-2 text-lg font-semibold text-foreground">
+                  <span>Total</span>
+                  <span>Rs {calculateTotal().toFixed(2)}</span>
+                </div>
+              </div>
+
+              <div className="p-5">
+                <Button onClick={handleBookNow} className="h-12 w-full bg-primary text-primary-foreground hover:bg-primary/90" disabled={loading || bookingLoading || !canAttemptBooking}>
+                  {bookingLoading ? "Processing..." : currentUser ? "Book now" : "Sign in to book"}
+                </Button>
+              </div>
             </div>
-          ) : (
-            <p className="text-gray-500">No reviews yet. Book an appointment to share your experience!</p>
-          )}
-        </div>
+          </aside>
+        </section>
       </main>
+
+      {selectedServices.length > 0 && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-white/95 p-3 shadow-lg backdrop-blur lg:hidden">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs text-muted-foreground">{selectedServices.length} service selected</p>
+              <p className="text-lg font-semibold text-foreground">Rs {calculateTotal().toFixed(2)}</p>
+            </div>
+            <Button onClick={handleBookNow} className="h-11 bg-primary px-5 text-primary-foreground hover:bg-primary/90" disabled={loading || bookingLoading || !canAttemptBooking}>
+              {bookingLoading ? "Processing..." : currentUser ? "Book now" : "Sign in"}
+            </Button>
+          </div>
+        </div>
+      )}
+
       <Footer />
+    </div>
+  );
+};
+
+const InfoTile = ({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) => {
+  return (
+    <div className="rounded-md border border-border bg-muted p-4">
+      <div className="flex h-9 w-9 items-center justify-center rounded-md bg-white text-primary shadow-sm">{icon}</div>
+      <p className="mt-2 text-xs text-muted-foreground">{label}</p>
+      <p className="truncate text-sm font-semibold text-foreground">{value}</p>
     </div>
   );
 };

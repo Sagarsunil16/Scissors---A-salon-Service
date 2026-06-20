@@ -1,9 +1,9 @@
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
-import SalonHeader from "../../Components/SalonHeader";
-import SalonSidebar from "../../Components/SalonSidebar";
+import SalonHeader from "@/shared/ui/organisms/dashboard/SalonHeader";
+import SalonSidebar from "@/shared/ui/organisms/dashboard/SalonSidebar";
 import { useSelector } from "react-redux";
-import { addService, getAllService, getStylists } from "../../Services/salonAPI";
+import { addService, getAllService, getStylists } from "@/features/salon-management/api/salonAPI";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { IStylist } from "../../interfaces/interface";

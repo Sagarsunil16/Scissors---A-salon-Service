@@ -1,12 +1,10 @@
-import Navbar from '../../Components/Navbar'
-import ForgotPasswordEmail from '../../Components/ForgotPasswordEmail'
-import Footer from '../../Components/Footer'
+import Navbar from '@/shared/ui/organisms/navigation/Navbar'
+import ForgotPasswordEmail from '@/features/auth/components/ForgotPasswordEmail'
 const ForgotPassword = () => {
   return (
     <div>
       <Navbar/>
       <ForgotPasswordEmail/>
-      <Footer/>
     </div>
   )
 }

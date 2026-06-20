@@ -12,7 +12,6 @@ class ServiceController {
 
   async createService(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      console.log(req.body,"we entered")
       const result = await this._salonMenuService.createService(req.body);
       res.status(HttpStatus.OK).json({
         message: Messages.SERVICE_CREATED,

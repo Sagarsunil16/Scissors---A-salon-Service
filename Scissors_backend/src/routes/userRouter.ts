@@ -20,19 +20,22 @@ userRouter.post('/verify-otp', userController.verifyOtp.bind(userController));
 userRouter.put('/reset-password', userController.resetPassword.bind(userController));
 userRouter.post('/auth/google', userController.googleLogin.bind(userController));
 
-// Protected routes
-userRouter.get('/salons', auth([ROLES.USER]), salonController.getNearbySalons.bind(salonController));
-// userRouter.get('/salons/nearby', auth([ROLES.USER]), salonController.getNearbySalons.bind(salonController));
-userRouter.get('/salon-details', auth([ROLES.USER]), bookingController.getSalonDataWithSlots.bind(bookingController));
-userRouter.get('/salons/:salonId/stylist', auth([ROLES.USER]), bookingController.getServiceStylists.bind(bookingController));
+// Public salon discovery routes
+userRouter.get('/salons', salonController.getNearbySalons.bind(salonController));
+// userRouter.get('/salons/nearby', salonController.getNearbySalons.bind(salonController));
+userRouter.get('/salon-details', bookingController.getSalonDataWithSlots.bind(bookingController));
+userRouter.get('/salons/:salonId/stylist', bookingController.getServiceStylists.bind(bookingController));
 userRouter.post("/timeslots/available", bookingController.getAvailableSlots.bind(bookingController));
-userRouter.get('/salons/:salonId/reviews', auth([ROLES.USER]), reviewController.getSalonReviews.bind(reviewController));
+userRouter.get('/salons/:salonId/reviews', reviewController.getSalonReviews.bind(reviewController));
+
+// Protected routes
 userRouter.post('/bookings',auth([ROLES.USER]),bookingController.createBooking.bind(bookingController))
 
 
 userRouter.put('/profile', auth([ROLES.USER], true), userController.updateUser.bind(userController));
 userRouter.put('/change-password', auth([ROLES.USER], true), userController.changePassword.bind(userController));
 userRouter.post('/create-checkout-session', auth([ROLES.USER]), bookingController.createCheckoutSession.bind(bookingController));
+userRouter.get('/checkout-session/:sessionId/status', auth([ROLES.USER]), bookingController.getCheckoutSessionStatus.bind(bookingController));
 // userRouter.post(
 //   '/webhook',
 //   express.raw({ type: 'application/json' }),

@@ -2,21 +2,21 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useSelector } from "react-redux";
 import { toast } from "react-hot-toast";
 import Swal from "sweetalert2";
-import SalonHeader from "../../Components/SalonHeader";
-import SalonSidebar from "../../Components/SalonSidebar";
-import ReusableTable, { Column } from "../../Components/ReusableTable";
-import { Button } from "../../Components/ui/button";
+import SalonHeader from "@/shared/ui/organisms/dashboard/SalonHeader";
+import SalonSidebar from "@/shared/ui/organisms/dashboard/SalonSidebar";
+import ReusableTable, { Column } from "@/shared/ui/organisms/data-display/ReusableTable";
+import { Button } from "@/shared/ui/primitives/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "../../Components/ui/dialog";
-import { Input } from "../../Components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../Components/ui/select";
-import { Card, CardContent } from "../../Components/ui/card";
-import { createOffer, getOffers, deactivateOffer, deleteOffer } from "../../Services/salonAPI";
+} from "@/shared/ui/primitives/dialog";
+import { Input } from "@/shared/ui/primitives/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/primitives/select";
+import { Card, CardContent } from "@/shared/ui/primitives/card";
+import { createOffer, getOffers, deactivateOffer, deleteOffer } from "@/features/salon-management/api/salonAPI";
 
 interface Offer {
   _id: string;

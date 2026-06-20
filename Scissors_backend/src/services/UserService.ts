@@ -4,14 +4,14 @@ import { IUser } from "../Interfaces/User/IUser";
 import { IUserDocument } from "../models/User";
 import jwt from "jsonwebtoken";
 import { sendOtpEmail, generateOtp } from "../Utils/otp";
-import admin from "../config/firebase";
+import admin, { isFirebaseConfigured } from "../config/firebase";
 import crypto from "crypto";
 import CustomError from "../Utils/cutsomError";
 import { TokenPayload } from "../Interfaces/Auth/IAuthService";
 import { IUserService } from "../Interfaces/User/IUserService";
 import { Messages } from "../constants/Messages";
 import { HttpStatus } from "../constants/HttpStatus";
-import mongoose, { mongo } from "mongoose";
+import mongoose from "mongoose";
 import { UserDto } from "../dto/user.dto";
 import { plainToClass } from "class-transformer";
 
@@ -27,21 +27,25 @@ class UserService implements IUserService {
     if (!email || !password || !firstname || !lastname) {
       throw new CustomError(Messages.INVALID_USER_DATA, HttpStatus.BAD_REQUEST);
     }
+    const existingUser = await this._repository.getUserByEmail(email);
+    if (existingUser) {
+      throw new CustomError(Messages.EMAIL_ALREADY_EXISTS, HttpStatus.CONFLICT);
+    }
     userData.password = await bcrypt.hash(userData.password, 10);
     let newUser = await this._repository.createUser(userData);
-    newUser = newUser.toObject()
-        return plainToClass(UserDto, {
-            _id: (newUser._id as mongoose.Types.ObjectId).toString(),
-            firstname: newUser.firstname,
-            lastname: newUser.lastname,
-            email: newUser.email,
-            phone: newUser.phone,
-            address: newUser.address,
-            role: newUser.role,
-            is_Active: newUser.is_Active,
-            verified: newUser.verified,
-            googleLogin: newUser.googleLogin,
-        });
+    newUser = newUser.toObject();
+    return plainToClass(UserDto, {
+      _id: (newUser._id as mongoose.Types.ObjectId).toString(),
+      firstname: newUser.firstname,
+      lastname: newUser.lastname,
+      email: newUser.email,
+      phone: newUser.phone,
+      address: newUser.address,
+      role: newUser.role,
+      is_Active: newUser.is_Active,
+      verified: newUser.verified,
+      googleLogin: newUser.googleLogin,
+    });
   }
 
   async getUserRawById(id: string): Promise<IUserDocument | null> {
@@ -237,6 +241,9 @@ class UserService implements IUserService {
     if (!idToken) {
       throw new CustomError(Messages.INVALID_TOKEN, HttpStatus.BAD_REQUEST);
     }
+    if (!isFirebaseConfigured) {
+      throw new CustomError(Messages.WEBHOOK_SERVER_ERROR, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
     const decodedToken = await admin.auth().verifyIdToken(idToken);
     const { email, name } = decodedToken;
     if (!email) {
@@ -403,6 +410,10 @@ class UserService implements IUserService {
 
   async resetPassword(email: string, newPassword: string): Promise<string> {
     if (!email || !newPassword) {
+      throw new CustomError(Messages.INVALID_USER_DATA, HttpStatus.BAD_REQUEST);
+    }
+    const strongPassword = /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$#!%*?&]).{8,}/;
+    if (!strongPassword.test(newPassword)) {
       throw new CustomError(Messages.INVALID_USER_DATA, HttpStatus.BAD_REQUEST);
     }
     const user = await this._repository.getUserByEmail(email);

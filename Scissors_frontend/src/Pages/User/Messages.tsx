@@ -1,18 +1,18 @@
-import { Button } from "../../Components/ui/button";
-import { Input } from "../../Components/ui/input";
-import { Card, CardContent, CardHeader } from "../../Components/ui/card";
-import { Avatar, AvatarImage, AvatarFallback } from "../../Components/ui/avatar";
+import { Button } from "@/shared/ui/primitives/button";
+import { Input } from "@/shared/ui/primitives/input";
+import { Card, CardContent, CardHeader } from "@/shared/ui/primitives/card";
+import { Avatar, AvatarImage, AvatarFallback } from "@/shared/ui/primitives/avatar";
 import { Send, Search, MoreVertical, ChevronLeft, Video, ImageIcon, Trash2, Heart } from "lucide-react";
-import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "../../Components/ui/alert-dialog";
+import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/shared/ui/primitives/alert-dialog";
 import { useState, useEffect, useRef } from "react";
 import io, { Socket } from "socket.io-client";
-import Navbar from "../../Components/Navbar";
-import Footer from "../../Components/Footer";
-import ProfileNavbar from "../../Components/ProfileNavbar";
+import Navbar from "@/shared/ui/organisms/navigation/Navbar";
+import Footer from "@/shared/ui/organisms/navigation/Footer";
+import ProfileNavbar from "@/features/profile/components/ProfileNavbar";
 import { IMessage, Chat } from "../../types/Imessage";
 import { useSelector } from "react-redux";
 import { ZegoUIKitPrebuilt } from "@zegocloud/zego-uikit-prebuilt";
-import { getChats, getMessages } from "../../Services/UserAPI";
+import { getChats, getMessages } from "@/features/user/api/UserAPI";
 import toast from "react-hot-toast";
 
 const MessagesPage: React.FC = () => {

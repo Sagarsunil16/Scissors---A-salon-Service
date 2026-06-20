@@ -38,7 +38,7 @@ class SlotService implements ITimeSlotService {
 
       console.log(`Querying slots for ${stylistId} on ${localDate.format('YYYY-MM-DD')} from ${moment(startOfDay).format('HH:mm')} to ${moment(endOfDay).format('HH:mm')} UTC`);
 
-      const allSlots = await this._timeSlotRepository.findAllSlots(salonId, localDate.toDate(), stylistId);
+      const allSlots = await this._timeSlotRepository.findAllSlots(salonId, localDate.toDate(), stylistId, timeZone);
       console.log(`Found ${allSlots.length} total slots`, allSlots.map(s => ({
         _id: s._id.toString(),
         startTime: moment(s.startTime).tz(timeZone).format('HH:mm'),
@@ -52,7 +52,8 @@ class SlotService implements ITimeSlotService {
       const availableSlots = await this._timeSlotRepository.findAvailableSlots(
         salonId,
         localDate.toDate(),
-        stylistId
+        stylistId,
+        timeZone
       );
 
       console.log(`Found ${availableSlots.length} available slots`, availableSlots.map(s => ({
@@ -162,7 +163,7 @@ class SlotService implements ITimeSlotService {
         currentTime = slotEnd.clone().add(coolOffPeriod, 'minutes');
       }
 
-      const existingSlots = await this._timeSlotRepository.findAllSlots(salonId, localDate.toDate(), stylistId);
+      const existingSlots = await this._timeSlotRepository.findAllSlots(salonId, localDate.toDate(), stylistId, timeZone);
       console.log(`Found ${existingSlots.length} existing slots`, existingSlots.map(s => ({
         startTime: moment(s.startTime).tz(timeZone).format('HH:mm'),
         utcStartTime: moment(s.startTime).utc().format('HH:mm'),
@@ -211,8 +212,11 @@ class SlotService implements ITimeSlotService {
       const stylist = await this._stylistRepository.findStylistById(stylistId);
       if (!stylist) throw new CustomError("Stylist not found", 404);
 
-      const stylistServiceIds = salon.services.map(s => s._id.toString());
-      console.log('findConsecutiveSlots:', { stylistId, serviceIds, stylistServiceIds });
+      const stylistServiceIds = salon.services
+        .filter((service: any) =>
+          service.stylists.some((stylist: any) => stylist._id.toString() === stylistId)
+        )
+        .map((service: any) => service._id.toString());
       if (!serviceIds.every(id => stylistServiceIds.includes(id))) {
         const serviceNames = salon.services
           .filter((s: any) => serviceIds.includes(s._id.toString()))
@@ -226,7 +230,8 @@ class SlotService implements ITimeSlotService {
       const availableSlots = await this._timeSlotRepository.findAvailableSlots(
         salonId,
         localDate.toDate(),
-        stylistId
+        stylistId,
+        timeZone
       );
 
       if (availableSlots.length === 0) {
@@ -299,7 +304,7 @@ class SlotService implements ITimeSlotService {
 
       const timeZone = salon.timeZone || "Asia/Kolkata";
       const localDate = moment.tz(date, timeZone).startOf("day");
-      const existingSlots = await this._timeSlotRepository.findAllSlots(salonId, localDate.toDate(), stylistId);
+      const existingSlots = await this._timeSlotRepository.findAllSlots(salonId, localDate.toDate(), stylistId, timeZone);
       if (existingSlots.length === 0) {
         console.log(`No slots found, generating for ${stylistId} on ${localDate.format('YYYY-MM-DD')}`);
         await this.generateSlots(salonId, localDate.toDate(), stylistId);
@@ -308,7 +313,7 @@ class SlotService implements ITimeSlotService {
       return await this.findConsecutiveSlots(salonId, serviceIds, date, stylistId);
     } catch (error: any) {
       console.error("Detailed findAvailableSlots error:", { salonId, serviceIds, stylistId, error });
-      if (error.statusCode === 400) {
+      if (error.statusCode === 400 || error.statusCode === 404) {
         throw error;
       }
       throw new CustomError(error.message || "Failed to find available slots", 500);
@@ -330,13 +335,22 @@ class SlotService implements ITimeSlotService {
 
   async findAvailableSlotsById(slotId: string): Promise<ITimeSlotDocument | null> {
     const slot = await this._timeSlotRepository.findById(slotId);
-    if (slot && slot.status === "available" && !slot.reservedUntil) return slot;
+    if (
+      slot &&
+      slot.status === "available" &&
+      (!slot.reservedUntil || slot.reservedUntil <= new Date())
+    ) return slot;
     return null;
   }
 
   async findAvailableSlotsByIds(slotIds: string[]): Promise<ITimeSlotDocument[]> {
     const slots = await this._timeSlotRepository.findByIds(slotIds);
-    return slots.filter((slot) => slot.status === "available" && !slot.reservedUntil);
+    const now = new Date();
+    return slots.filter(
+      (slot) =>
+        slot.status === "available" &&
+        (!slot.reservedUntil || slot.reservedUntil <= now)
+    );
   }
 
   async reserveSlotGroup(

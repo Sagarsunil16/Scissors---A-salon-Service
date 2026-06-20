@@ -1,5 +1,5 @@
 import { Routes,Route,Navigate } from "react-router-dom"
-import PrivateRoute from "../Components/PrivateRoute"
+import PrivateRoute from "@/shared/routes/PrivateRoute"
 import SalonAddService from "../Pages/Salon/SalonAddService"
 import SalonService from "../Pages/Salon/SalonService"
 import SalonGallery from "../Pages/Salon/SalonGallery"

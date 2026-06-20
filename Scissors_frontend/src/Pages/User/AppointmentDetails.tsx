@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import Navbar from '../../Components/Navbar';
+import Navbar from '@/shared/ui/organisms/navigation/Navbar';
 // import ProfileDropdown from '../components/ProfileDropdown';
-import Footer from '../../Components/Footer';
+import Footer from '@/shared/ui/organisms/navigation/Footer';
 
 interface Service {
   _id: string;

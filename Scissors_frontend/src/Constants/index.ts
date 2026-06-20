@@ -1,6 +1,6 @@
 // API Endpoints
 export const API_ENDPOINTS = {
-    BASE_URL: 'https://api.scissors.hair/',
+    BASE_URL: import.meta.env.VITE_API_URL || 'http://localhost:3000',
     USER_SIGNUP: '/signup',
     USER_LOGIN: '/login',
     USER_SIGNOUT: '/signout',

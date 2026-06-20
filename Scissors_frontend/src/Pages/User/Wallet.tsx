@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "../../Components/ui/card";
-import { Button } from "../../Components/ui/button";
-import Navbar from "../../Components/Navbar";
-import Footer from "../../Components/Footer";
-import ProfileNavbar from "../../Components/ProfileNavbar";
-import { getWalletBalance, getWalletTransactions } from "../../Services/UserAPI";
+import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/primitives/card";
+import { Button } from "@/shared/ui/primitives/button";
+import Navbar from "@/shared/ui/organisms/navigation/Navbar";
+import Footer from "@/shared/ui/organisms/navigation/Footer";
+import ProfileNavbar from "@/features/profile/components/ProfileNavbar";
+import { getWalletBalance, getWalletTransactions } from "@/features/user/api/UserAPI";
 import { toast } from "react-toastify";
 import moment from "moment-timezone";
 

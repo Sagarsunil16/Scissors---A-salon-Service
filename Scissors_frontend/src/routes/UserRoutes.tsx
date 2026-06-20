@@ -1,6 +1,6 @@
 import { Routes,Route,Navigate } from "react-router-dom"
 import ChangePassword from "../Pages/User/ChangePassword"
-import PrivateRoute from "../Components/PrivateRoute"
+import PrivateRoute from "@/shared/routes/PrivateRoute"
 import Setting from "../Pages/User/Setting"
 import UserProfile from "../Pages/User/UserProfile"
 import HomePage from "../Pages/User/HomePage"

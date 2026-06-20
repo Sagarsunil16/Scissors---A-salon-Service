@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import SalonSidebar from '../../Components/SalonSidebar';
-import SalonHeader from '../../Components/SalonHeader';
-import { cancelAppointment, completeAppointment, getAppointments } from '../../Services/salonAPI';
-import ReusableTable, { Column } from '../../Components/ReusableTable';
+import SalonSidebar from '@/shared/ui/organisms/dashboard/SalonSidebar';
+import SalonHeader from '@/shared/ui/organisms/dashboard/SalonHeader';
+import { cancelAppointment, completeAppointment, getAppointments } from '@/features/salon-management/api/salonAPI';
+import ReusableTable, { Column } from '@/shared/ui/organisms/data-display/ReusableTable';
 import moment from 'moment-timezone';
 
 interface Address {

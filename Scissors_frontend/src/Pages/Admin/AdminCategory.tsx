@@ -1,17 +1,17 @@
 import { useEffect, useState } from "react";
-import AdminHeader from "../../Components/AdminHeader";
-import Sidebar from "../../Components/Sidebar";
+import AdminHeader from "@/shared/ui/organisms/dashboard/AdminHeader";
+import Sidebar from "@/shared/ui/organisms/dashboard/AdminSidebar";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import {
   getAllCategory,
   deleteCategory,
   editCategory,
-} from "../../Services/adminAPI";
+} from "@/features/admin/api/adminAPI";
 import { Category } from "../../interfaces/interface";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
-import Pagination from "../../Components/Pagination";
+import Pagination from "@/shared/ui/molecules/Pagination";
 const AdminCategory = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [editingCategory, setEditingCategory] = useState(null);

@@ -25,7 +25,7 @@ export interface Address {
   
   // AdminState interface
   export interface AdminState {
-    currentUser:{}
+    currentUser: User | ISalon | string | null
     userData :{
       userData:User[],
       totalUserPages:string
@@ -66,20 +66,29 @@ export interface Address {
   } 
 
   export interface OTPVerificationProps {
-    resendOTP: (data:{email: string }) => Promise<any>;
-    verifyOTP: (data: { email: string; otp: string }) => Promise<any>;
+    resendOTP: (data:{email: string }) => Promise<{ data: { message?: string } }>;
+    verifyOTP: (data: { email: string; otp: string; purpose?: "password-reset" }) => Promise<{ data: { message?: string } }>;
     redirectPath:string
+    fallbackPath?: string
+    title?: string
+    description?: string
+    eyebrow?: string
+    panelTitle?: string
+    panelItems?: string[]
+    wrongEmailLabel?: string
+    preserveEmailOnRedirect?: boolean
+    verificationPurpose?: "password-reset"
   }
 
   export interface TableProps{
     columns:{header:string,accessor:string}[];
-    data:any[];
+    data:Record<string, unknown>[];
     actions?:{
       label:string,
       className:string,
-      onClick:(row:any)=>void,
+      onClick:(row:Record<string, unknown>)=>void,
       isDynamic:boolean
-      disabled?: (row: any) => boolean;
+      disabled?: (row: Record<string, unknown>) => boolean;
     }[],
   }
 

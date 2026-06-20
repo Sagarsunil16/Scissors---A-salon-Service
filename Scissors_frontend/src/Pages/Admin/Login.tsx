@@ -1,11 +1,11 @@
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import Navbar from "../../Components/Navbar";
-import Footer from "../../Components/Footer";
-import SignIn from "../../Components/SignIn";
+import Navbar from "@/shared/ui/organisms/navigation/Navbar";
+import Footer from "@/shared/ui/organisms/navigation/Footer";
+import SignIn from "@/features/auth/components/SignIn";
 // import { signInstart, signInFailure, signInSuccess } from "../../Redux/User/userSlice";
 import {signInStart,signInSuccess,signInFailure,getUserDataSuccess,getSalonDataSuccess } from "../../Redux/Admin/adminSlice";
-import { loginAdmin } from "../../Services/adminAPI";
+import { loginAdmin } from "@/features/admin/api/adminAPI";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css"; // Import styles for toast
 

@@ -266,7 +266,7 @@ class SalonService implements ISalonService {
   }
 
   async getNearbySalons(params: SalonQueryParamsForUser): Promise<SalonResult> {
-    const { longitude, latitude, radius, search, maxPrice, ratings, discount, page, limit, sort } = params;
+    const { longitude, latitude, radius, search, pincode, maxPrice, ratings, discount, page, limit, sort } = params;
     const skip = (page - 1) * limit;
     if (longitude !== undefined && latitude !== undefined) {
       if (isNaN(longitude) || isNaN(latitude)) {
@@ -279,7 +279,14 @@ class SalonService implements ISalonService {
       query.$or = [
         { salonName: { $regex: search, $options: 'i' } },
         { 'services.name': { $regex: search, $options: 'i' } },
+        { 'address.city': { $regex: search, $options: 'i' } },
+        { 'address.areaStreet': { $regex: search, $options: 'i' } },
+        { 'address.pincode': { $regex: search, $options: 'i' } },
       ];
+    }
+
+    if (pincode) {
+      query['address.pincode'] = pincode;
     }
 
     if (maxPrice < 100000) {

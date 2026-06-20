@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import SalonHeader from "../../Components/SalonHeader";
-import SalonSidebar from "../../Components/SalonSidebar";
+import SalonHeader from "@/shared/ui/organisms/dashboard/SalonHeader";
+import SalonSidebar from "@/shared/ui/organisms/dashboard/SalonSidebar";
 import { Field, Form, Formik, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import { updateSalon } from "../../Redux/Salon/salonSlice";
-import { updateSalonProfile } from "../../Services/salonAPI";
+import { updateSalonProfile } from "@/features/salon-management/api/salonAPI";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 

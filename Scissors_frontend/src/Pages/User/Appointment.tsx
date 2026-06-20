@@ -1,22 +1,22 @@
 import React, { useState, useEffect } from "react";
-import { Card, CardContent } from "../../Components/ui/card";
-import { Button } from "../../Components/ui/button";
+import { Card, CardContent } from "@/shared/ui/primitives/card";
+import { Button } from "@/shared/ui/primitives/button";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import Navbar from "../../Components/Navbar";
-import Footer from "../../Components/Footer";
-import ProfileNavbar from "../../Components/ProfileNavbar";
+import Navbar from "@/shared/ui/organisms/navigation/Navbar";
+import Footer from "@/shared/ui/organisms/navigation/Footer";
+import ProfileNavbar from "@/features/profile/components/ProfileNavbar";
 import moment from "moment-timezone";
 import { toast } from "react-toastify";
 import {
   cancelAppointment,
   getUserAppointments,
   submitReview,
-} from "../../Services/UserAPI";
+} from "@/features/user/api/UserAPI";
 import Swal from "sweetalert2";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../../Components/ui/dialog";
-import { Input } from "../../Components/ui/input";
-import { Textarea } from "../../Components/ui/textarea";
-import { Label } from "../../Components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/shared/ui/primitives/dialog";
+import { Input } from "@/shared/ui/primitives/input";
+import { Textarea } from "@/shared/ui/primitives/textarea";
+import { Label } from "@/shared/ui/primitives/label";
 
 interface Address {
   areaStreet: string;

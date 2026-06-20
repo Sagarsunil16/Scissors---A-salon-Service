@@ -66,7 +66,6 @@ class BookingService implements IBookingService {
     if (!salon) {
       throw new CustomError("Salon not found", HttpStatus.NOT_FOUND);
     }
-    console.log(salon,"salonsssdata")
     const reviews = await this._reviewService.getSalonReviews(salonId);
     const offers = await this._offerService.getSalonOffer(salonId);
 
@@ -134,16 +133,8 @@ class BookingService implements IBookingService {
       )
     );
   }
-
-    console.log(selectedDay,"Selected day",
-    console.log(stylists,"stylists")
-  )
-
     if (stylists.length === 0) {
-      throw new CustomError(
-        "No stylists found who offer all selected services",
-        HttpStatus.NOT_FOUND
-      );
+      return [];
     }
 
     return stylists;
@@ -176,6 +167,12 @@ class BookingService implements IBookingService {
 
     const timeZone = salon.timeZone || "Asia/Kolkata";
     const date = moment.tz(selectedDate, "YYYY-MM-DD", timeZone).startOf("day").toDate();
+    if (!moment(selectedDate, "YYYY-MM-DD", true).isValid()) {
+      throw new CustomError("Invalid selected date", HttpStatus.BAD_REQUEST);
+    }
+    if (moment.tz(selectedDate, "YYYY-MM-DD", timeZone).isBefore(moment.tz(timeZone).startOf("day"))) {
+      throw new CustomError("Selected date cannot be in the past", HttpStatus.BAD_REQUEST);
+    }
 
     const slotGroups: ISlotGroup[] = await this._timeSlotService.findAvailableSlots(
       salonId,
@@ -441,6 +438,20 @@ class BookingService implements IBookingService {
       );
     }
 
+    if (metadata.userId !== userId) {
+      throw new CustomError(
+        Messages.AUTHENTICATION_REQUIRED,
+        HttpStatus.UNAUTHORIZED
+      );
+    }
+
+    if (!["online", "cash"].includes(metadata.paymentMethod)) {
+      throw new CustomError(
+        "Invalid payment method for checkout",
+        HttpStatus.BAD_REQUEST
+      );
+    }
+
     const session = await mongoose.startSession();
     session.startTransaction();
 
@@ -448,6 +459,13 @@ class BookingService implements IBookingService {
       const slotIds = Array.isArray(metadata.slotIds)
         ? metadata.slotIds
         : JSON.parse(metadata.slotIds);
+      const serviceIds = Array.isArray(metadata.serviceIds)
+        ? metadata.serviceIds
+        : JSON.parse(metadata.serviceIds);
+
+      if (!slotIds.length || !serviceIds.length) {
+        throw new CustomError(Messages.INVALID_CHECKOUT_DATA, HttpStatus.BAD_REQUEST);
+      }
 
       const slots = await this._timeSlotService.getSlotsByIds(slotIds);
       const now = new Date();
@@ -495,8 +513,8 @@ class BookingService implements IBookingService {
           user: new mongoose.Types.ObjectId(metadata.userId),
           salon: new mongoose.Types.ObjectId(metadata.salonId),
           stylist: new mongoose.Types.ObjectId(metadata.stylistId),
-          services: metadata.serviceIds,
-          slots: slotIds,
+          services: serviceIds.map((id: string) => new mongoose.Types.ObjectId(id)),
+          slots: slotIds.map((id: string) => new mongoose.Types.ObjectId(id)),
           status: AppointmentStatus.Confirmed,
           totalPrice: amount,
           paymentStatus: PaymentStatus.Pending,
@@ -543,7 +561,7 @@ class BookingService implements IBookingService {
           ...metadata,
           slotIds: JSON.stringify(slotIds),
           bookingId,
-          serviceIds: JSON.stringify(metadata.serviceIds),
+          serviceIds: JSON.stringify(serviceIds),
         },
       });
 
@@ -596,6 +614,17 @@ class BookingService implements IBookingService {
                 HttpStatus.BAD_REQUEST
               );
             }
+          }
+
+          const existingAppointment = await Appointment.findOne({
+            $or: [
+              { stripeSessionId: session.id },
+              { bookingId: session.metadata.bookingId },
+            ],
+          }).session(dbSession);
+          if (existingAppointment) {
+            await dbSession.commitTransaction();
+            return;
           }
 
           let slotIds: string[];
@@ -684,6 +713,55 @@ class BookingService implements IBookingService {
       stripeSessionId: session.id,
       bookingId: metadata.bookingId,
     } as IAppointment;
+  }
+
+  async getCheckoutSessionStatus(
+    userId: string,
+    sessionId: string
+  ): Promise<{ bookingId?: string; appointmentId?: string; status: "pending" | "confirmed" }> {
+    if (!userId) {
+      throw new CustomError(Messages.AUTHENTICATION_REQUIRED, HttpStatus.UNAUTHORIZED);
+    }
+
+    if (!sessionId) {
+      throw new CustomError("Missing checkout session ID", HttpStatus.BAD_REQUEST);
+    }
+
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
+    const checkoutSession = await stripe.checkout.sessions.retrieve(sessionId);
+
+    if (checkoutSession.payment_status !== "paid") {
+      throw new CustomError("Payment is not completed yet", HttpStatus.BAD_REQUEST);
+    }
+
+    if (!checkoutSession.metadata) {
+      throw new CustomError("Missing metadata in checkout session", HttpStatus.BAD_REQUEST);
+    }
+
+    if (checkoutSession.metadata.userId !== userId) {
+      throw new CustomError(Messages.AUTHENTICATION_REQUIRED, HttpStatus.UNAUTHORIZED);
+    }
+
+    const appointment = await Appointment.findOne({
+      $or: [
+        { stripeSessionId: checkoutSession.id },
+        { bookingId: checkoutSession.metadata.bookingId },
+      ],
+      user: new mongoose.Types.ObjectId(userId),
+    });
+
+    if (appointment) {
+      return {
+        bookingId: appointment.bookingId,
+        appointmentId: (appointment._id as mongoose.Types.ObjectId).toString(),
+        status: "confirmed",
+      };
+    }
+
+    return {
+      bookingId: checkoutSession.metadata.bookingId,
+      status: "pending",
+    };
   }
 }
 

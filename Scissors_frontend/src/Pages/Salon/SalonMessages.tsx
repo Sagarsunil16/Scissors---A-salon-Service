@@ -1,16 +1,16 @@
 import { useState, useEffect, useRef } from "react";
-import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "../../Components/ui/alert-dialog";
-import { Input } from "../../Components/ui/input";
-import { Button } from "../../Components/ui/button";
+import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/shared/ui/primitives/alert-dialog";
+import { Input } from "@/shared/ui/primitives/input";
+import { Button } from "@/shared/ui/primitives/button";
 import { Mic, Send, Image as ImageIcon, Video, ChevronLeft, Trash2,Heart } from "lucide-react";
 import io, { Socket } from "socket.io-client";
-import SalonSidebar from "../../Components/SalonSidebar";
-import SalonHeader from "../../Components/SalonHeader";
+import SalonSidebar from "@/shared/ui/organisms/dashboard/SalonSidebar";
+import SalonHeader from "@/shared/ui/organisms/dashboard/SalonHeader";
 import { IMessage, Chat } from "../../types/Imessage";
 import { useSelector } from "react-redux";
 import { formatMessageTime } from "../../lib/utils";
 import { ZegoUIKitPrebuilt } from "@zegocloud/zego-uikit-prebuilt";
-import { getChats, getMessages, } from "../../Services/salonAPI";
+import { getChats, getMessages, } from "@/features/salon-management/api/salonAPI";
 import toast from "react-hot-toast";
 
 const SalonMessages: React.FC = () => {

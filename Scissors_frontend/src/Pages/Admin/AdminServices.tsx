@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import AdminHeader from "../../Components/AdminHeader";
-import Sidebar from "../../Components/Sidebar";
+import AdminHeader from "@/shared/ui/organisms/dashboard/AdminHeader";
+import Sidebar from "@/shared/ui/organisms/dashboard/AdminSidebar";
 import { IService } from "../../interfaces/interface";
 import { useNavigate } from "react-router-dom";
-import {getAllServices,deleteService,editService} from "../../Services/adminAPI";
+import {getAllServices,deleteService,editService} from "@/features/admin/api/adminAPI";
 import Swal from "sweetalert2"
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";

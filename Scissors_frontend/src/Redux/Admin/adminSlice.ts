@@ -36,11 +36,11 @@ const adminSlice = createSlice({
         },
         getUserDataSuccess:(state,action:PayloadAction<User[]>)=>{
             state.userData.userData = action.payload
-            state.loading = false,
+            state.loading = false
             state.error = false
         },
         getUserDataFailure:(state,action:PayloadAction<string>)=>{
-            state.loading =  false,
+            state.loading =  false
             state.error = action.payload;
         },
         updateUserData:(state,action:PayloadAction<User[]>)=>{
@@ -62,11 +62,11 @@ const adminSlice = createSlice({
         },
         getSalonDataSuccess:(state,action:PayloadAction<ISalon[]>)=>{
             state.salonData.salonData = action.payload
-            state.loading = false,
+            state.loading = false
             state.error = false
         },
         getSalonDataFailure:(state,action:PayloadAction<string>)=>{
-            state.loading =  false,
+            state.loading =  false
             state.error = action.payload;
         },
         updateSalonStatus:(state,action:PayloadAction<ISalon>)=>{
@@ -80,14 +80,14 @@ const adminSlice = createSlice({
             state.currentUser = action.payload
         },
         signOut:(state)=>{
-            state.currentUser = "",
+            state.currentUser = ""
             state.userData = {  userData:[],
-                totalUserPages:''},
+                totalUserPages:''}
             state.salonData = {
                   salonData:[],
                 totalSalonPages:''
             }   
-            state.loading = false,
+            state.loading = false
             state.error = ""
         }
     }

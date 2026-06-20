@@ -1,7 +1,7 @@
 
-import Navbar from '../../Components/Navbar'
-import Footer from '../../Components/Footer'
-import UserSignUp from '../../Components/UserSignUp'
+import Navbar from '@/shared/ui/organisms/navigation/Navbar'
+import Footer from '@/shared/ui/organisms/navigation/Footer'
+import UserSignUp from '@/features/auth/components/UserSignUp'
 const SignUp = () => {
   return (
     <div>

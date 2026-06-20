@@ -66,4 +66,8 @@ export interface IBookingService {
       bookingId: string;
     }
   ): Promise<{ id?: string; bookingId?: string; appointmentId?: string }>;
+  getCheckoutSessionStatus(
+    userId: string,
+    sessionId: string
+  ): Promise<{ bookingId?: string; appointmentId?: string; status: "pending" | "confirmed" }>;
 }

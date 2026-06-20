@@ -1,6 +1,6 @@
-import Navbar from "../../Components/Navbar"
-import Profile from "../../Components/Profile"
-import Footer from "../../Components/Footer"
+import Navbar from "@/shared/ui/organisms/navigation/Navbar"
+import Profile from "@/features/profile/components/Profile"
+import Footer from "@/shared/ui/organisms/navigation/Footer"
 const UserProfile = () => {
   return (
     <div>

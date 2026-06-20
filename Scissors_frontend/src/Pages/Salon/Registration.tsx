@@ -1,6 +1,6 @@
-import Navbar from "../../Components/Navbar";
-import SalonRegistration from "../../Components/SalonRegistration";
-import Footer from "../../Components/Footer";
+import Navbar from "@/shared/ui/organisms/navigation/Navbar";
+import SalonRegistration from "@/features/salon-management/components/SalonRegistration";
+import Footer from "@/shared/ui/organisms/navigation/Footer";
 
 
 

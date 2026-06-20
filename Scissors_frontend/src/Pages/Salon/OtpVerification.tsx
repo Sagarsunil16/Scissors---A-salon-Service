@@ -1,7 +1,7 @@
-import Navbar from "../../Components/Navbar"
-import OTP from "../../Components/OTP"
-import Footer from "../../Components/Footer"
-import { resentOtp,verifyOtp} from "../../Services/salonAPI"
+import Navbar from "@/shared/ui/organisms/navigation/Navbar"
+import OTP from "@/features/auth/components/OTP"
+import Footer from "@/shared/ui/organisms/navigation/Footer"
+import { resentOtp,verifyOtp} from "@/features/salon-management/api/salonAPI"
 const OtpVerification = () => {
   return (
     <div>

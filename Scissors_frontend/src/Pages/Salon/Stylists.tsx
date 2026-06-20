@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
-import SalonHeader from "../../Components/SalonHeader";
-import SalonSidebar from "../../Components/SalonSidebar";
-import { getStylists, deleteStylist } from "../../Services/salonAPI";
+import SalonHeader from "@/shared/ui/organisms/dashboard/SalonHeader";
+import SalonSidebar from "@/shared/ui/organisms/dashboard/SalonSidebar";
+import { getStylists, deleteStylist } from "@/features/salon-management/api/salonAPI";
 import { useSelector } from "react-redux";
 import { Link } from "react-router-dom";
-import { Button } from "../../Components/ui/button";
+import { Button } from "@/shared/ui/primitives/button";
 import { IStylist } from "../../interfaces/interface";
-import ConfirmationModal from "../../Components/ConfirmationModal";
+import ConfirmationModal from "@/shared/ui/molecules/ConfirmationModal";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import ReusableTable, { Column } from "../../Components/ReusableTable";
+import ReusableTable, { Column } from "@/shared/ui/organisms/data-display/ReusableTable";
 
 const Stylists = () => {
   const [stylists, setStylists] = useState<IStylist[]>([]);

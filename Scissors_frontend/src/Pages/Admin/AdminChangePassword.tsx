@@ -1,9 +1,9 @@
-import AdminHeader from "../../Components/AdminHeader";
-import Sidebar from "../../Components/Sidebar";
+import AdminHeader from "@/shared/ui/organisms/dashboard/AdminHeader";
+import Sidebar from "@/shared/ui/organisms/dashboard/AdminSidebar";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import {useSelector } from "react-redux";
-import { updatePassword } from "../../Services/adminAPI";
+import { updatePassword } from "@/features/admin/api/adminAPI";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import { toast } from "react-toastify"

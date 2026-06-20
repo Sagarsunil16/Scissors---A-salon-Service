@@ -42,12 +42,12 @@ const userSlice = createSlice({
             state.error = null
         },
         updateProfileFailure:(state,action)=>{
-            state.error = action.payload,
+            state.error = action.payload
             state.loading = false
         },
         signOut:(state)=>{
             state.currentUser = null
-            state.loading = false,
+            state.loading = false
             state.error = null
         },
         

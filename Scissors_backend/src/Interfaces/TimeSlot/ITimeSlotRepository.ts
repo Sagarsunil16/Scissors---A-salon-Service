@@ -2,8 +2,8 @@ import mongoose, { Document, Query, QueryOptions } from "mongoose";
 import { ITimeSlot, ITimeSlotDocument } from "./ITimeSlot";
 
 export interface ITimeSlotRepository {
-  findAllSlots(salonId: string, date: Date, stylistId?: string): Promise<ITimeSlotDocument[]>;
-  findAvailableSlots(salonId: string, date:Date, stylistId?: string): Promise<ITimeSlotDocument[]>;
+  findAllSlots(salonId: string, date: Date, stylistId?: string, timeZone?: string): Promise<ITimeSlotDocument[]>;
+  findAvailableSlots(salonId: string, date: Date, stylistId?: string, timeZone?: string): Promise<ITimeSlotDocument[]>;
   bulkCreate(slots: ITimeSlot[]): Promise<ITimeSlotDocument[]>;
   updateSlotStatus(slotId: string, status: ITimeSlot["status"], version: number, options?: mongoose.QueryOptions): Promise<ITimeSlotDocument | null>;
   findById(slotId: string): Promise<ITimeSlotDocument | null>;

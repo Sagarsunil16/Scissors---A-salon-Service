@@ -1,7 +1,7 @@
 import { useState } from "react";
-import SalonHeader from "../../Components/SalonHeader";
-import SalonSidebar from "../../Components/SalonSidebar";
-import { uploadImage, deleteImage } from "../../Services/salonAPI";
+import SalonHeader from "@/shared/ui/organisms/dashboard/SalonHeader";
+import SalonSidebar from "@/shared/ui/organisms/dashboard/SalonSidebar";
+import { uploadImage, deleteImage } from "@/features/salon-management/api/salonAPI";
 import { useDispatch, useSelector } from "react-redux";
 import { addImagesSalon, deleteImageSalon,start,stop } from "../../Redux/Salon/salonSlice";
 import { toast } from "react-toastify"

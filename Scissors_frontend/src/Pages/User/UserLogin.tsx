@@ -1,12 +1,14 @@
 
-import Navbar from '../../Components/Navbar'
-import Footer from '../../Components/Footer'
-import SignIn from '../../Components/SignIn'
+import Navbar from '@/shared/ui/organisms/navigation/Navbar'
+import Footer from '@/shared/ui/organisms/navigation/Footer'
+import SignIn from '@/features/auth/components/SignIn'
 import { useDispatch } from 'react-redux'
 import { signInstart,signInSuccess,signInFailure } from '../../Redux/User/userSlice'
-import { loginUser } from '../../Services/UserAPI'
+import { loginUser } from '@/features/user/api/UserAPI'
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import axios from 'axios'
+
 const UserLogin = () => {
   const dispatch = useDispatch()
   const handleUserLogin =  async(values:{email:string,password:string})=>{
@@ -14,17 +16,20 @@ const UserLogin = () => {
     try {
       const response = await loginUser(values);
       dispatch(signInSuccess(response.data.user))
-      console.log("Before toast success"); // Debugging
       toast.success(response.data.message)
-    } catch (error:any) {
-      dispatch(signInFailure(true))
-      toast.error(error?.response?.data?.message || "Failed to login. Please try again!")
+    } catch (error: unknown) {
+      const message = axios.isAxiosError(error)
+        ? error.response?.data?.message || error.response?.data?.error
+        : null;
+      dispatch(signInFailure(message || "Login failed"))
+      toast.error(message || "Failed to login. Please try again!")
+      throw error
     }
   }
   return (
     <div>
       <Navbar/>
-      <SignIn title="Welcome back. Login Please !" onSubmit={handleUserLogin}  redirectPath="/user-dashboard" />
+      <SignIn title="Welcome back" onSubmit={handleUserLogin} redirectPath="/home" />
       <Footer/>
     </div>
   )

@@ -6,6 +6,7 @@ import { IUserService } from "../Interfaces/User/IUserService";
 import { plainToClass } from "class-transformer";
 import { CreateUserDto, UpdateUserDto } from "../dto/user.dto";
 import { validate } from "class-validator";
+import jwt from "jsonwebtoken";
 
 class UserController {
   private _userService: IUserService;
@@ -38,12 +39,15 @@ class UserController {
   async userLogin(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { email, password } = req.body;
+      if (!email || !password) {
+        throw new CustomError(Messages.MISSING_LOGIN_CREDENTIALS, HttpStatus.BAD_REQUEST);
+      }
       const result = await this._userService.loginUser(email, password);
-      console.log(result?.user)
       const cookieOptions = {
         path: "/",
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" as const : "lax" as const,
       };
 
       res
@@ -73,6 +77,7 @@ class UserController {
         path: "/",
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" as const : "lax" as const,
       };
 
       res
@@ -123,9 +128,28 @@ class UserController {
 
   async verifyOtp(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { email, otp } = req.body;
+      const { email, otp, purpose } = req.body;
       const isValid = await this._userService.verifyOTP(email, otp);
-      res.status(HttpStatus.OK).json({
+      const response = res.status(HttpStatus.OK);
+
+      if (purpose === "password-reset") {
+        const isProduction = process.env.NODE_ENV === "production";
+        const resetPasswordToken = jwt.sign(
+          { email, purpose: "password-reset" },
+          process.env.JWT_SECRET as string,
+          { expiresIn: "10m" }
+        );
+
+        response.cookie("resetPasswordToken", resetPasswordToken, {
+          path: "/",
+          httpOnly: true,
+          secure: isProduction,
+          sameSite: isProduction ? "none" : "lax",
+          maxAge: 10 * 60 * 1000,
+        });
+      }
+
+      response.json({
         message: Messages.OTP_VERIFIED,
         isValid,
       });
@@ -137,9 +161,36 @@ class UserController {
   async resetPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { email, password } = req.body;
+      const resetPasswordToken = req.cookies.resetPasswordToken;
+
+      if (!resetPasswordToken) {
+        throw new CustomError(Messages.INVALID_TOKEN, HttpStatus.UNAUTHORIZED);
+      }
+
+      const decoded = jwt.verify(resetPasswordToken, process.env.JWT_SECRET as string) as {
+        email: string;
+        purpose: string;
+      };
+
+      if (decoded.email !== email || decoded.purpose !== "password-reset") {
+        throw new CustomError(Messages.INVALID_TOKEN, HttpStatus.UNAUTHORIZED);
+      }
+
       const message = await this._userService.resetPassword(email, password);
-      res.status(HttpStatus.OK).json({ message: Messages.PASSWORD_RESET });
+      res
+        .clearCookie("resetPasswordToken", {
+          path: "/",
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        })
+        .status(HttpStatus.OK)
+        .json({ message: Messages.PASSWORD_RESET });
     } catch (error: any) {
+      if (error instanceof CustomError) {
+        next(error);
+        return;
+      }
       next(new CustomError(error.message || Messages.RESET_PASSWORD_FAILED, HttpStatus.BAD_REQUEST));
     }
   }

@@ -72,11 +72,15 @@ app.use(mainRouter);
 app.use(((error: Error, req: Request, res: Response, next: NextFunction) => {
   if (error instanceof CustomError) {
     logger.error(`Error: ${error.message}, Status: ${error.statusCode}`);
-    return res.status(error.statusCode).json({ error: error.message });
+    return res.status(error.statusCode).json({
+      message: error.message,
+      error: error.message,
+    });
   }
 
   logger.error(`Unexpected Error: ${error.message}, Stack: ${error.stack}`);
   res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+    message: "An unexpected error occurred. Please try again later.",
     error: "An unexpected error occurred. Please try again later.",
   });
 }) as express.ErrorRequestHandler);

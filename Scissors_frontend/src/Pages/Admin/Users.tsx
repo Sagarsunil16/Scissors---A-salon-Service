@@ -1,10 +1,10 @@
-import AdminHeader from "../../Components/AdminHeader";
-import Sidebar from "../../Components/Sidebar";
+import AdminHeader from "@/shared/ui/organisms/dashboard/AdminHeader";
+import Sidebar from "@/shared/ui/organisms/dashboard/AdminSidebar";
 import { useDispatch } from "react-redux";
 import { deleteUser } from "../../Redux/Admin/adminSlice";
-import { fetchUsers, deleteUserAPI, blockAndUnblockUser } from "../../Services/adminAPI";
+import { fetchUsers, deleteUserAPI, blockAndUnblockUser } from "@/features/admin/api/adminAPI";
 import { useEffect, useState } from "react";
-import Table from "../../Components/Table";
+import Table from "@/shared/ui/organisms/data-display/Table";
 import { User } from "../../interfaces/interface";
 import Swal from "sweetalert2"
 import { toast } from "react-toastify";

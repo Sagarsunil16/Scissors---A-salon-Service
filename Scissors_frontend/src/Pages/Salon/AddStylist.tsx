@@ -1,10 +1,10 @@
 import { Formik, Form, Field, ErrorMessage, FieldArray } from "formik";
 import * as Yup from "yup";
-import SalonHeader from "../../Components/SalonHeader";
-import SalonSidebar from "../../Components/SalonSidebar";
+import SalonHeader from "@/shared/ui/organisms/dashboard/SalonHeader";
+import SalonSidebar from "@/shared/ui/organisms/dashboard/SalonSidebar";
 import { useSelector } from "react-redux";
 import { useEffect, useState } from "react";
-import { addStylist, getSalonData } from "../../Services/salonAPI";
+import { addStylist, getSalonData } from "@/features/salon-management/api/salonAPI";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";

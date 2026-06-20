@@ -1,78 +1,148 @@
+import { AlertCircle, CalendarCheck2, CheckCircle2, Loader2, ReceiptText } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { Button } from "../../Components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../../Components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "../../Components/ui/alert";
-import { CheckCircle2, X } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+
+import { getCheckoutSessionStatus } from "@/features/user/api/UserAPI";
+import { Alert, AlertDescription, AlertTitle } from "@/shared/ui/primitives/alert";
+import { Button } from "@/shared/ui/primitives/button";
+import { Card, CardContent } from "@/shared/ui/primitives/card";
+
+type ConfirmationState = "waiting" | "confirmed" | "failed";
 
 const BookingSuccess = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const sessionId = new URLSearchParams(location.search).get("session_id");
-  const [showPopup, setShowPopup] = useState(false);
+  const [status, setStatus] = useState<ConfirmationState>("waiting");
+  const [message, setMessage] = useState("Payment received. Waiting for secure webhook confirmation...");
+  const [appointmentId, setAppointmentId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (sessionId) {
-      setShowPopup(true);
-      const timer = setTimeout(() => {
-        setShowPopup(false);
-        navigate("/");
-      }, 5000); // Redirect after 5 seconds
-      return () => clearTimeout(timer);
+    if (!sessionId) {
+      setStatus("failed");
+      setMessage("Payment session was not found. Please check your appointments or try booking again.");
+      return;
     }
-  }, [sessionId, navigate]);
+
+    let cancelled = false;
+
+    const pollWebhookConfirmation = async () => {
+      try {
+        const response = await getCheckoutSessionStatus(sessionId);
+        if (cancelled) return;
+
+        if (response.data.status === "confirmed") {
+          setAppointmentId(response.data.appointmentId || null);
+          setStatus("confirmed");
+          setMessage("Your appointment has been confirmed by the payment webhook.");
+          return true;
+        }
+
+        setStatus("waiting");
+        setMessage("Payment received. Waiting for secure webhook confirmation...");
+        return false;
+      } catch (error: any) {
+        if (cancelled) return;
+        setStatus("failed");
+        setMessage(
+          error.response?.data?.message ||
+            "Payment was completed, but confirmation status could not be checked. Please check your appointments."
+        );
+        return true;
+      }
+    };
+
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    pollWebhookConfirmation();
+    const intervalId = window.setInterval(async () => {
+      attempts += 1;
+      const shouldStop = await pollWebhookConfirmation();
+      if (shouldStop || attempts >= maxAttempts) {
+        window.clearInterval(intervalId);
+        if (!cancelled && !shouldStop) {
+          setStatus("failed");
+          setMessage("Payment received, but webhook confirmation is still pending. Please check your appointments shortly.");
+        }
+      }
+    }, 3000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [sessionId]);
+
+  const isConfirmed = status === "confirmed";
+  const isWaiting = status === "waiting";
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      {/* Main Content */}
-      <Card className="max-w-md w-full shadow-lg">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-4 w-16 h-16 bg-green-500 rounded-full flex items-center justify-center">
-            <CheckCircle2 className="w-10 h-10 text-white" />
+    <main className="flex min-h-screen items-center justify-center bg-[#f6f8f7] px-4 py-10 text-slate-950">
+      <Card className="w-full max-w-lg rounded-md border-slate-200 shadow-sm">
+        <CardContent className="space-y-6 p-6 text-center sm:p-8">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-700">
+            {isWaiting ? (
+              <Loader2 className="h-8 w-8 animate-spin" />
+            ) : isConfirmed ? (
+              <CheckCircle2 className="h-8 w-8" />
+            ) : (
+              <AlertCircle className="h-8 w-8 text-red-600" />
+            )}
           </div>
-          <CardTitle className="text-2xl font-bold text-gray-800">
-            Payment Successful!
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="text-center">
-          <p className="text-gray-600 mb-4">
-            Your appointment has been booked successfully. You'll receive a
-            confirmation email soon.
-          </p>
-          <p className="text-sm text-gray-500 mb-6">
-            Redirecting to homepage in a few seconds...
-          </p>
-          <Button
-            onClick={() => navigate("/")}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            Return to Home
-          </Button>
+
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-700">
+              Payment status
+            </p>
+            <h1 className="mt-2 text-2xl font-semibold sm:text-3xl">
+              {isWaiting
+                ? "Waiting for webhook"
+                : isConfirmed
+                  ? "Booking confirmed"
+                  : "Confirmation needs attention"}
+            </h1>
+            <p className="mt-3 text-sm leading-6 text-slate-600">{message}</p>
+          </div>
+
+          {appointmentId && (
+            <div className="rounded-md border border-slate-200 bg-slate-50 p-4 text-left">
+              <div className="flex items-center gap-3">
+                <ReceiptText className="h-5 w-5 text-emerald-700" />
+                <div>
+                  <p className="text-xs font-medium uppercase text-slate-500">Appointment ID</p>
+                  <p className="break-all font-semibold text-slate-950">{appointmentId}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {status === "failed" && (
+            <Alert variant="destructive" className="rounded-md text-left">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Do not pay again immediately</AlertTitle>
+              <AlertDescription>
+                First check your appointments. If it is not listed after a minute, try again or contact support.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Button
+              onClick={() => navigate("/appointments")}
+              className="h-11 rounded-md bg-emerald-700 text-white hover:bg-emerald-800"
+              disabled={isWaiting}
+            >
+              <CalendarCheck2 className="h-4 w-4" />
+              View appointments
+            </Button>
+            <Button asChild variant="outline" className="h-11 rounded-md bg-white">
+              <Link to="/">Return home</Link>
+            </Button>
+          </div>
         </CardContent>
       </Card>
-
-      {/* Pop-up Alert */}
-      {showPopup && (
-        <div className="fixed bottom-4 right-4 max-w-sm w-full animate-in slide-in-from-bottom-4 duration-300">
-          <Alert className="bg-green-600 text-white border-none shadow-lg">
-            <AlertTitle className="flex items-center justify-between">
-              <span>Success!</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowPopup(false)}
-                className="text-white hover:text-gray-200"
-              >
-                <X className="w-5 h-5" />
-              </Button>
-            </AlertTitle>
-            <AlertDescription>
-              Your payment was processed successfully!
-            </AlertDescription>
-          </Alert>
-        </div>
-      )}
-    </div>
+    </main>
   );
 };
 

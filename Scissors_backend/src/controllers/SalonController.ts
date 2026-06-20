@@ -80,16 +80,22 @@ class SalonController {
 
       const result = await this._salonService.loginSalon(req.body);
       console.log(result,"login result")
+      const isProduction = process.env.NODE_ENV === "production";
+      const cookieOptions = {
+        path: "/",
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: isProduction ? "none" as const : "lax" as const,
+      };
+
       res
         .cookie("authToken", result?.accessToken, {
-          httpOnly: true,
+          ...cookieOptions,
           maxAge: 15 * 60 * 1000,
-          secure: process.env.NODE_ENV === "production",
         })
         .cookie("refreshToken", result.refreshToken, {
-          httpOnly: true,
+          ...cookieOptions,
           maxAge: 7 * 24 * 60 * 60 * 1000,
-          secure: process.env.NODE_ENV === "production",
         })
         .status(HttpStatus.OK)
         .json({ message: Messages.LOGIN_SUCCESS, details: result?.salon });
@@ -153,13 +159,14 @@ class SalonController {
 
   async getNearbySalons(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { longitude, latitude, radius = 5000, search = "", maxPrice = 100000, ratings = "", discount = "", page = 1, limit = 6, sort = "rating_desc" } = req.query;
+      const { longitude, latitude, radius = 5000, search = "", pincode = "", maxPrice = 100000, ratings = "", discount = "", page = 1, limit = 6, sort = "rating_desc" } = req.query;
 
       const params = {
         longitude: longitude ? parseFloat(longitude as string) : undefined,
         latitude: latitude ? parseFloat(latitude as string) : undefined,
         radius: parseInt(radius as string) || 5000,
         search: search as string,
+        pincode: pincode as string,
         maxPrice: parseFloat(maxPrice as string) || 100000,
         ratings: ratings ? (ratings as string).split(",").map(Number).filter(n => n >= 1 && n <= 5) : [],
         discount: parseFloat(discount as string) || 0,

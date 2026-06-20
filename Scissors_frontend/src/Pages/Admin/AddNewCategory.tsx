@@ -1,8 +1,8 @@
 import {Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
-import AdminHeader from "../../Components/AdminHeader";
-import Sidebar from "../../Components/Sidebar";
-import { addCategory } from "../../Services/adminAPI";
+import AdminHeader from "@/shared/ui/organisms/dashboard/AdminHeader";
+import Sidebar from "@/shared/ui/organisms/dashboard/AdminSidebar";
+import { addCategory } from "@/features/admin/api/adminAPI";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css";

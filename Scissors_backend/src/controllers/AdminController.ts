@@ -18,11 +18,13 @@ class AdminController {
     try {
       const { email, password } = req.body;
       const { user, accessToken, refreshToken } = await this._userService.adminLogin(email, password);
+      const isProduction = process.env.NODE_ENV === "production";
 
       const cookieOptions = {
         path: "/",
         httpOnly: true,
-        secure: false,
+        secure: isProduction,
+        sameSite: isProduction ? "none" as const : "lax" as const,
         maxAge: 0,
       };
 

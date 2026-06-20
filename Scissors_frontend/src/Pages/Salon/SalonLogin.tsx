@@ -1,7 +1,7 @@
-import Navbar from "../../Components/Navbar"
-import LoginForm from "../../Components/LoginForm"
-import Footer from "../../Components/Footer"
-import { loginSalon } from "../../Services/salonAPI";
+import Navbar from "@/shared/ui/organisms/navigation/Navbar"
+import LoginForm from "@/features/auth/components/LoginForm"
+import Footer from "@/shared/ui/organisms/navigation/Footer"
+import { loginSalon } from "@/features/salon-management/api/salonAPI";
 import {signInStart,signInSuccess,signInFailure} from '../../Redux/Salon/salonSlice'
 const SalonLogin = () => {
   return (

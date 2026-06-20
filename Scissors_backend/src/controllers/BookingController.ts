@@ -37,7 +37,6 @@ class BookingController {
         stylistIds as string,
         date as string
       );
-      console.log(response,"salon details")
       res.status(HttpStatus.OK).json({
         message: "Salon data fetched successfully",
         salonData: response.salonData,
@@ -45,8 +44,11 @@ class BookingController {
         offers: response.offers,
       });
     } catch (error: any) {
-      if (error.statusCode === HttpStatus.BAD_REQUEST) {
-        res.status(HttpStatus.BAD_REQUEST).json({ message: error.message });
+      if (
+        error.statusCode === HttpStatus.BAD_REQUEST ||
+        error.statusCode === HttpStatus.NOT_FOUND
+      ) {
+        res.status(error.statusCode).json({ message: error.message, stylists: [] });
         return;
       }
       next(error);
@@ -187,6 +189,38 @@ class BookingController {
           id: result.id,
         });
       }
+    } catch (error: any) {
+      if (error.statusCode) {
+        res.status(error.statusCode).json({ message: error.message });
+        return;
+      }
+      next(error);
+    }
+  }
+
+  async getCheckoutSessionStatus(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const { sessionId } = req.params;
+      const userId = req.user?.id;
+
+      const result = await this._bookingService.getCheckoutSessionStatus(
+        userId as string,
+        sessionId
+      );
+
+      res.status(HttpStatus.OK).json({
+        message:
+          result.status === "confirmed"
+            ? "Booking confirmed by webhook"
+            : "Payment completed. Waiting for webhook confirmation",
+        bookingId: result.bookingId,
+        appointmentId: result.appointmentId,
+        status: result.status,
+      });
     } catch (error: any) {
       if (error.statusCode) {
         res.status(error.statusCode).json({ message: error.message });
